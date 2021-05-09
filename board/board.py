@@ -56,7 +56,9 @@ class Board:
        self.board = []
        self.mapping = {} #记录暗子到名字的映射
        self.initialize()
-       self.turn = True
+       self.original_board = deepcopy(self.board)
+       self.turn = True #turn == True: 红方行棋, turn == False: 黑方行棋
+       self.history = []
 
 
    def initialize_board(self):
@@ -64,15 +66,49 @@ class Board:
        for i in range(self.H):
            self.board.append([0]*self.W)
 
+
+   def initialize_another_board(self):
+       other_board = []
+       for i in range(self.H):
+           other_board.append([0]*self.W)
+       return other_board
+
    def initialize_mapping(self):
        CHESSES = deepcopy(common.CHESSES)
        random.shuffle(CHESSES)
-       for i, red_dark_chess in enumerate(common.RED_POSITION): #映射红暗子
-           self.mapping[red_dark_chess] = CHESSES[i]
+       for i, red_dark_chess in enumerate(common.RED_POSITIONS): #映射红暗子
+           self.mapping[red_dark_chess] = common.MASK_COLOR + CHESSES[i]
        random.shuffle(CHESSES)
-       for i, black_dark_chess in enumerate(common.BLACK_POSITION): #映射红暗子
+       for i, black_dark_chess in enumerate(common.BLACK_POSITIONS): #映射红暗子
            self.mapping[black_dark_chess] = CHESSES[i]
-        
+
+   def initialize_another_mapping(self):
+       CHESSES = deepcopy(common.CHESSES)
+       mapping = dict()
+       random.shuffle(CHESSES)
+       for i, red_dark_chess in enumerate(common.RED_POSITIONS): #映射红暗子
+           mapping[red_dark_chess] = common.MASK_COLOR + CHESSES[i]
+       random.shuffle(CHESSES)
+       for i, black_dark_chess in enumerate(common.BLACK_POSITIONS): #映射红暗子
+           mapping[black_dark_chess] = CHESSES[i]
+       return mapping
+
+   def copy_board(self, board=None, mapping=None, history=None, turn=None):
+       copied = []
+       if isinstance(board, list):
+          self.board = deepcopy(board)
+          copied.append("board")
+       if isinstance(mapping, dict):
+          self.mapping = deepcopy(mapping)
+          copied.append("mapping")
+       if isinstance(history, list):
+          self.history = deepcopy(history)
+          copied.append("history")
+       if isinstance(turn, bool):
+          self.turn = turn
+          copied.append("turn")
+       return copied
+
    def initialize_soldiers(self):
        #红
        self.board[0][0] = (1<<4) + (1<<3) + 1 #红左暗车
@@ -136,7 +172,7 @@ class Board:
              print('黑')
           return '黑'
 
-   def print_board(self, board=None):
+   def print_board(self, board=None, with_number=True):
        '''
        调试函数: 打印棋盘
        '''
@@ -150,37 +186,81 @@ class Board:
                  print(desc, end="")
             
        for i in range(self.H-1, -1, -1):
+            if with_number:
+                 print(i, end="")
             for j in range(0, self.W):
                  color = board[i][j] & common.MASK_COLOR
                  if board[i][j] & common.MASK_CHESS_ISCOVERED == common.MASK_CHESS_ISCOVERED:
                       desc = '暗'
                  else:
-                      desc = common.desc_dict[board[i][j] & common.MASK_CHESS_COLOR]
+                      desc = common.DESC_DICT[board[i][j] & common.MASK_CHESS_COLOR]
                  _helper(color, desc)
             print("")
-
+            if i == self.H//2:
+                 for k in range(2*self.W+1):
+                     print("*", end="")
+                 print("")
+       if with_number:
+            print("*", end="")
+            for i in range(0, self.W):
+                print(i, end=" ")#一个中文字符占用两个空格
+            print("")
 
    def uncover(self):
        '''
        Uncover a chess
        将暗子转为对应的明子
        '''
-       virtual_board = []
-       for i in range(self.H):
-           virtual_board.append([0]*self.W)
+       virtual_board = self.initialize_another_board()
        for element in self.mapping:
-           virtual_board[element[0]][element[1]] = (self.board[element[0]][element[1]] & common.MASK_COLOR) + self.mapping[element]  
-       virtual_board[0][4] = 13
-       virtual_board[9][4] = 5
+           virtual_board[element[0]][element[1]] = self.mapping[element]  
+       virtual_board[0][4] = common.RED_SHUAI
+       virtual_board[9][4] = common.BLACK_JIANG
        self.print_board(virtual_board)
-
 
    def print_initial_state(self):
        print("Initial state:")
        self.print_board()
        print("Uncovering... Do not tell others!")
        self.uncover()
-                 
-                        
-   
 
+   def random_board(self):
+       #This function generates a random board
+       new_board = self.initialize_another_board()
+       mapping = self.initialize_another_mapping()
+       #处理固定的暗子
+       covered_number, fixed_covered_chesses = common.random_select(common.COVERED_POSITIONS, set)
+       for element in fixed_covered_chesses:
+           new_board[element[0]][element[1]] = self.original_board[element[0]][element[1]]
+       #安置帅将
+       RED_SHUAI_POSSIBLE_POSITIONS = common.RED_JIUGONG - fixed_covered_chesses #红帅不能和红暗士重叠
+       RED_SHUAI_POS = random.sample(RED_SHUAI_POSSIBLE_POSITIONS, 1)[0]
+       new_board[RED_SHUAI_POS[0]][RED_SHUAI_POS[1]] = common.RED_SHUAI
+       BLACK_JIANG_POSSIBLE_POSITIONS = common.BLACK_JIUGONG - fixed_covered_chesses #黑将不能和黑暗士重叠
+       BLACK_JIANG_POS = random.sample(BLACK_JIANG_POSSIBLE_POSITIONS, 1)[0]
+       new_board[BLACK_JIANG_POS[0]][BLACK_JIANG_POS[1]] = common.BLACK_JIANG
+       other_possible_positions = common.ALL_POSITIONS- {RED_SHUAI_POS} - {BLACK_JIANG_POS} - fixed_covered_chesses
+       uncovered_counter = deepcopy(common.UNCOVERED_COUNTER)
+       #将帅已安置，不能重复考虑
+       uncovered_counter[common.RED_SHUAI] = 0
+       uncovered_counter[common.BLACK_JIANG] = 0
+       #去除没被揭开的部分
+       for element in fixed_covered_chesses:
+           uncovered_counter[mapping[element]] -= 1
+       #将dict展开为multi-set: {'k':2} --> ['k', 'k']
+       all_uncovered_chesses = []
+       for k in uncovered_counter:
+           all_uncovered_chesses += [k]*uncovered_counter[k]
+       #选取存活的明子
+       number_of_alived_uncovered_chesses, alive_uncovered_chesses = common.random_select(all_uncovered_chesses)
+       positions_of_alived_uncovered_chesses = random.sample(other_possible_positions, number_of_alived_uncovered_chesses)
+       for i, element in enumerate(alive_uncovered_chesses):
+           pos = positions_of_alived_uncovered_chesses[i]
+           new_board[pos[0]][pos[1]] = element
+       return new_board, mapping
+
+   def dict(self):
+       return {'board': self.board, 'mapping': self.mapping, 'history': self.history, 'turn': self.turn}
+
+   def __str__(self):
+       return str(self.dict())
