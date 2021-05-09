@@ -65,8 +65,8 @@ class Board:
        self.original_board = deepcopy(self.board)
        self.turn = True #turn == True: 红方行棋, turn == False: 黑方行棋
        self.history = []
-       self.shuai = (0, 5)
-       self.jiang = (9, 5)
+       self.shuai = (0, 4)
+       self.jiang = (9, 4)
 
    def initialize_board(self):
        self.board = []
@@ -263,7 +263,6 @@ class Board:
            self.print_board(virtual_board)
        return virtual_board
        
-
    def dict(self):
        return {'board': self.board, 'mapping': self.mapping, 'history': self.history, 'turn': self.turn}
 
@@ -300,7 +299,7 @@ class Board:
        if self.board[place[0]][place[1]] == 0:
            return None
        else:
-           red_or_black = (self.board[x][y] & common.MASK_COLOR != 0)
+           red_or_black = (self.board[place[0]][place[1]] & common.MASK_COLOR != 0)
            if xor:
                 return not (red_or_black ^ self.turn)
            else:
@@ -327,9 +326,9 @@ class Board:
        #检查棋子颜色，不能吃自己的子
        check_src_color = self.check_color(src, xor=True)
        check_dst_color = self.check_color(dst, xor=False)
-       if not check_src_color or (check_dst_color == self.turn):
+       if not check_src_color or (check_dst_color == self.turn) or check_dst_color is None:
            return False
-       chess = self.board[self.src[0]][self.src[1]]
+       chess = self.board[src[0]][src[1]]
        chess_type = chess & common.MASK_CHESS
        if chess_type not in (1, 6): #车炮比较特殊
           if chess_type == 2:#马
@@ -347,12 +346,21 @@ class Board:
                  return False
               else:
                  return True
+
           if chess_type == 3:#相/象, 判断塞象眼
               if self.board[(src[0] + dst[0])//2][(src[1] + dst[1])//2] != 0: #象眼位置: ((src[0] + dst[0])//2, (src[1] + dst[1])//2)
+                 return False  
+                  
+          elif chess_type == 5:
+              if (self.turn and dst == self.jiang) or (not self.turn and dst == self.shuai) and self.drink(): #判断饮酒
+                 return True
+              if (self.turn and dst not in common.RED_JIUGONG) or (not self.turn and dst not in common.BLACK_JIUGONG):
                  return False
+
           sub_vector = common.addsub(dst, src, '-')
           return (sub_vector in common.DIRECTION_DICT[chess])
-       elif chess_type == 1:
+
+       elif chess_type == 1: #车
           if src[0] == dst[0]:
                #检查障碍物
                #Check obstacles in the open interval (src[1], dst[1])
@@ -367,30 +375,58 @@ class Board:
                return True
           else:
                return False
-       elif chess_type == 6:
+
+       elif chess_type == 6: #炮
           if src[0] == dst[0]:
-                obstacles = 0
-                for potential_obstacle in range(min(src[1], dst[1])+1, max(src[1], dst[1])):
-                   if self.board[src[0]][potential_obstacle] != 0:
-                        obstacles += 1
-                   if obstacles == 2:
-                        return False
-                return True
+             obstacles = 0
+             for potential_obstacle in range(min(src[1], dst[1])+1, max(src[1], dst[1])):
+                if self.board[src[0]][potential_obstacle] != 0:
+                    obstacles += 1
+                if obstacles == 2:
+                    return False
+             return True
           elif src[1] == dst[1]:
-               obstacles = 0
-               for potential_obstacle in range(min(src[0], dst[0])+1, max(src[0], dst[0])):
-                   if self.board[potential_obstacle][src[1]] != 0:
-                        obstacles += 1
-                   if obstacles == 2:
-                        return False
-               return True
+             obstacles = 0
+             for potential_obstacle in range(min(src[0], dst[0])+1, max(src[0], dst[0])):
+                if self.board[potential_obstacle][src[1]] != 0:
+                   obstacles += 1
+                if obstacles == 2:
+                   return False
+             return True
           else:
-               return False
-          
-   def search_kings(self, board=None, assign=True):
+             return False
+
+   def check_legal_and_jiangjun(self, src, dst):
+       if not self.check_legal(src, dst):
+           return False, False
+       if (self.turn and dst == self.jiang) or (not self.turn and dst == self.shuai):
+           return True, True
+       else:
+           return True, False
+
+   def stupid_print_all_legal_moves(self, only_legal=True):
+       counter = 0
+       # A very stupid way to test check_legal_and_jiangjun
+       for x1 in range(self.H):
+           for x2 in range(self.H):
+               for y1 in range(self.W):
+                   for y2 in range(self.W):
+                       islegal, isjiangjun = self.check_legal_and_jiangjun((x1, y1), (x2, y2))
+                       drink = self.drink()
+                       if counter % 10 == 0:
+                           if not only_legal or islegal:
+                               self.print_board()
+                       if not only_legal:
+                           print("(%s, %s) --> (%s, %s): 是否合法:%s, 是否将军:%s, 是否对饮:%s"%(x1, y1, x2, y2, islegal, isjiangjun, drink))
+                       elif islegal:
+                           print("(%s, %s) --> (%s, %s): 是否合法:%s, 是否将军:%s, 是否对饮:%s"%(x1, y1, x2, y2, islegal, isjiangjun, drink))
+                           counter += 1
+                       if not only_legal:
+                           counter += 1
+     
+   def search_kings(self, board=None):
        #Where are the kings?
        #搜寻将帅位置
-       #valuation=True --> assign the searched shuai/jiang to self.jiang
        shuai = None
        jiang = None
        counter = 0
@@ -405,9 +441,6 @@ class Board:
                     assert i >= 7
                     jiang = (i, j)
                if shuai and jiang:
-                    if assign:
-                        self.shuai = shuai
-                        self.jiang = jiang
                     return shuai, jiang
        if counter < 2:
            raise ValueError("Where are the kings?")
