@@ -2,6 +2,13 @@ from . import common
 import random
 from copy import deepcopy
 
+
+#参考代码
+#https://github.com/NeymarL/ChineseChess-AlphaZero/
+#https://github.com/bupticybee/icyChessZero
+#https://zhuanlan.zhihu.com/p/34433581
+
+
 #Notations
 #棋盘的每一个位置是一个五位二进制数
 #0: 无子
@@ -44,7 +51,6 @@ from copy import deepcopy
 0
 abcdefghi
 '''
-
 class Board:
    def __init__(self, H=10, W=9, num=16):
        '''
@@ -59,13 +65,13 @@ class Board:
        self.original_board = deepcopy(self.board)
        self.turn = True #turn == True: 红方行棋, turn == False: 黑方行棋
        self.history = []
-
+       self.shuai = (0, 5)
+       self.jiang = (9, 5)
 
    def initialize_board(self):
        self.board = []
        for i in range(self.H):
            self.board.append([0]*self.W)
-
 
    def initialize_another_board(self):
        other_board = []
@@ -98,6 +104,7 @@ class Board:
        if isinstance(board, list):
           self.board = deepcopy(board)
           copied.append("board")
+          self.search_kings()
        if isinstance(mapping, dict):
           self.mapping = deepcopy(mapping)
           copied.append("mapping")
@@ -174,7 +181,7 @@ class Board:
 
    def print_board(self, board=None, with_number=True):
        '''
-       调试函数: 打印棋盘
+       调试函数: 打印棋盘 Print the board
        '''
        if board is None:
             board = self.board
@@ -206,23 +213,11 @@ class Board:
                 print(i, end=" ")#一个中文字符占用两个空格
             print("")
 
-   def uncover(self):
-       '''
-       Uncover a chess
-       将暗子转为对应的明子
-       '''
-       virtual_board = self.initialize_another_board()
-       for element in self.mapping:
-           virtual_board[element[0]][element[1]] = self.mapping[element]  
-       virtual_board[0][4] = common.RED_SHUAI
-       virtual_board[9][4] = common.BLACK_JIANG
-       self.print_board(virtual_board)
-
    def print_initial_state(self):
        print("Initial state:")
        self.print_board()
        print("Uncovering... Do not tell others!")
-       self.uncover()
+       virtual_board = self.uncover_board(self.board, self.mapping, verbose=True)
 
    def random_board(self):
        #This function generates a random board
@@ -259,8 +254,161 @@ class Board:
            new_board[pos[0]][pos[1]] = element
        return new_board, mapping
 
+   def uncover_board(self, board, mapping, verbose=True):
+       virtual_board = deepcopy(board)
+       for element in common.COVERED_POSITIONS:
+           if board[element[0]][element[1]] & common.MASK_CHESS_ISCOVERED != 0: #找到暗子
+                virtual_board[element[0]][element[1]] = mapping[element]
+       if verbose:
+           self.print_board(virtual_board)
+       return virtual_board
+       
+
    def dict(self):
        return {'board': self.board, 'mapping': self.mapping, 'history': self.history, 'turn': self.turn}
 
    def __str__(self):
        return str(self.dict())
+
+   def inchessboard(self, x, y):
+       return (x >= 0) and (x < self.H) and (y >= 0) and (y < self.W)
+
+   def inchessboard_tuple(self, xy):
+       return (xy[0] >= 0) and (xy[0] < self.H) and (xy[1] >= 0) and (xy[1] < self.W)
+  
+   def drink(self):
+       '''
+       将帅在同一条直线上时, 中间必须隔着其他子力, 否则饮酒
+       '''
+       if self.shuai[1] != self.jiang[1]:
+           return False
+       else:
+           for i in range(self.shuai[0]+1, self.jiang[0]):
+               if self.board[i][self.shuai[1]] != 0:
+                   return False
+           return True
+
+   def check_color(self, place, xor=True):
+       '''
+       检查(x, y)处的子力颜色
+       为了加快运算速度，这里并没有对x, y做越界判断!
+       xor = Exclusive or
+       如果xor == False, 则返回坐标(x, y)处子力的颜色, 红色为True。
+       如果xor == True, 则返回坐标(x, y)处子力的颜色与当前行棋的一方是否吻合。
+       '''
+       red_or_black = None
+       if self.board[place[0]][place[1]] == 0:
+           return None
+       else:
+           red_or_black = (self.board[x][y] & common.MASK_COLOR != 0)
+           if xor:
+                return not (red_or_black ^ self.turn)
+           else:
+                return red_or_black
+
+   def check_legal(self, src, dst):
+       #20210510 morning not tested!
+       '''
+       src: (x, y), dst: (z, w) 为二元组
+       return: islegal
+       islegal: 是否为合法步骤
+       '''
+
+       #检查是否超出棋盘范围
+       '''
+       jiangjun = False
+       if (self.turn and dst == self.jiang) or ((not self.turn) and dst == self.shuai):
+           jiangjun = True
+           if ((self.turn and src == self.shuai) or ((not self.turn) and src == self.jiang)) and self.drink():
+               return True, True
+       '''
+       if src == dst or not self.inchessboard_tuple(src) or not self.inchessboard_tuple(dst):
+           return False
+       #检查棋子颜色，不能吃自己的子
+       check_src_color = self.check_color(src, xor=True)
+       check_dst_color = self.check_color(dst, xor=False)
+       if not check_src_color or (check_dst_color == self.turn):
+           return False
+       chess = self.board[self.src[0]][self.src[1]]
+       chess_type = chess & common.MASK_CHESS
+       if chess_type not in (1, 6): #车炮比较特殊
+          if chess_type == 2:#马
+              absx = abs(src[0] - dst[0])
+              absy = abs(src[1] - dst[1])
+              #计算马腿位置
+              biematui = None
+              if absx == 2 and absy == 1:
+                 biematui = ((src[0] + dst[0]) // 2, src[1])
+              elif absx == 1 and absy == 2:
+                 biematui = (src[0], (src[1] + dst[1])//2)
+              else:
+                 return False
+              if self.board[biematui[0]][biematui[1]] != 0:
+                 return False
+              else:
+                 return True
+          if chess_type == 3:#相/象, 判断塞象眼
+              if self.board[(src[0] + dst[0])//2][(src[1] + dst[1])//2] != 0: #象眼位置: ((src[0] + dst[0])//2, (src[1] + dst[1])//2)
+                 return False
+          sub_vector = common.addsub(dst, src, '-')
+          return (sub_vector in common.DIRECTION_DICT[chess])
+       elif chess_type == 1:
+          if src[0] == dst[0]:
+               #检查障碍物
+               #Check obstacles in the open interval (src[1], dst[1])
+               for potential_obstacle in range(min(src[1], dst[1])+1, max(src[1], dst[1])):
+                   if self.board[src[0]][potential_obstacle] != 0:
+                        return False
+               return True
+          elif src[1] == dst[1]:
+               for potential_obstacle in range(min(src[0], dst[0])+1, max(src[0], dst[0])):
+                   if self.board[potential_obstacle][src[1]] != 0:
+                        return False
+               return True
+          else:
+               return False
+       elif chess_type == 6:
+          if src[0] == dst[0]:
+                obstacles = 0
+                for potential_obstacle in range(min(src[1], dst[1])+1, max(src[1], dst[1])):
+                   if self.board[src[0]][potential_obstacle] != 0:
+                        obstacles += 1
+                   if obstacles == 2:
+                        return False
+                return True
+          elif src[1] == dst[1]:
+               obstacles = 0
+               for potential_obstacle in range(min(src[0], dst[0])+1, max(src[0], dst[0])):
+                   if self.board[potential_obstacle][src[1]] != 0:
+                        obstacles += 1
+                   if obstacles == 2:
+                        return False
+               return True
+          else:
+               return False
+          
+   def search_kings(self, board=None, assign=True):
+       #Where are the kings?
+       #搜寻将帅位置
+       #valuation=True --> assign the searched shuai/jiang to self.jiang
+       shuai = None
+       jiang = None
+       counter = 0
+       if not board:
+           board = self.board
+       for i in (0, 1, 2, 7, 8, 9):
+           for j in (3, 4, 5):
+               if board[i][j] == common.RED_SHUAI:
+                    assert i <= 2
+                    shuai = (i, j)
+               elif board[i][j] == common.BLACK_JIANG:
+                    assert i >= 7
+                    jiang = (i, j)
+               if shuai and jiang:
+                    if assign:
+                        self.shuai = shuai
+                        self.jiang = jiang
+                    return shuai, jiang
+       if counter < 2:
+           raise ValueError("Where are the kings?")
+       return None, None
