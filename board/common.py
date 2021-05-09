@@ -107,7 +107,8 @@ COVERED_COUNTER = {(1<<4)+(1<<3)+1: 2, (1<<4)+(1<<3)+2: 2, (1<<4)+(1<<3)+3: 2, (
 UNCOVERED_COUNTER = {(0<<4)+(1<<3)+1: 2, (0<<4)+(1<<3)+2: 2, (0<<4)+(1<<3)+3: 2, (0<<4)+(1<<3)+4: 2, (0<<4)+(1<<3)+4: 1, (0<<4)+(1<<3)+6: 2, (0<<4)+(1<<3)+7: 5,
 (0<<4)+(0<<3)+1: 2, (0<<4)+(0<<3)+2: 2, (0<<4)+(0<<3)+3: 2, (0<<4)+(0<<3)+4: 2, (0<<4)+(0<<3)+5: 1, (0<<4)+(0<<3)+6: 2, (0<<4)+(0<<3)+7: 5}
 
-
+'''
+#https://zhuanlan.zhihu.com/p/34433581
 def create_uci_labels2():
     labels_array = []
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
@@ -125,7 +126,7 @@ def create_uci_labels2():
                     labels_array.append(move)
 
     return labels_array
-
+'''
 
 def create_uci_labels():
     labels_array = []
@@ -146,11 +147,9 @@ def create_uci_labels():
     return labels_array
 
 
-labels_array2 = create_uci_labels2()
-print(labels_array2, len(labels_array2))
 labels_array = create_uci_labels()
 print(labels_array, len(labels_array))
-assert set(labels_array) == set(labels_array2)
+
 
 def random_select(s, return_type=None, num=None):
 	#s is a (multi-)set. This function selects one element from the power set of s.
