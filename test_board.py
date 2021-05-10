@@ -22,4 +22,23 @@ b[0][5] = 13
 b[9][5] = 5
 print(B.search_kings(b))
 '''
+result = B.check_legal_and_jiangjun((0, 1), (2, 0))
+print(result)
+result = B.check_legal_and_jiangjun((2, 1), (8, 1))
+print(result)
 B.stupid_print_all_legal_moves()
+board, mapping = B.random_board()
+B.copy_board(board=board, mapping=mapping)
+B.stupid_print_all_legal_moves()
+B.turn = not B.turn
+B.stupid_print_all_legal_moves()
+board = B.initialize_another_board()
+board[0][2] = 2
+board[1][2] = 9
+board[2][4] = 13
+board[7][3] = 5
+B.copy_board(board=board)
+B.print_board()
+B.stupid_print_all_legal_moves()
+
+

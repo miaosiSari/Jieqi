@@ -104,7 +104,8 @@ class Board:
        if isinstance(board, list):
           self.board = deepcopy(board)
           copied.append("board")
-          self.search_kings()
+          shuai, jiang = self.search_kings()
+          self.shuai, self.jiang = shuai, jiang
        if isinstance(mapping, dict):
           self.mapping = deepcopy(mapping)
           copied.append("mapping")
@@ -115,6 +116,20 @@ class Board:
           self.turn = turn
           copied.append("turn")
        return copied
+
+   def is_legal_board(self):
+       shuai = None
+       jiang = None
+       if self.shuai not in common.RED_JIUGONG or self.jiang not in common.BLACK_JIUGONG:
+          return False
+       for i in range(self.H):
+          for j in range(self.W):
+              if self.board[i][j] == common.RED_SHUAI and (i > 2 or j < 3 or j > 5):
+                  return False
+              if self.board[i][j] == common.BLACK_JIANG and (i, j) not in common.BLACK_JIUGONG:
+                  return False
+       return shuai, jiang
+
 
    def initialize_soldiers(self):
        #红
@@ -326,10 +341,11 @@ class Board:
        #检查棋子颜色，不能吃自己的子
        check_src_color = self.check_color(src, xor=True)
        check_dst_color = self.check_color(dst, xor=False)
-       if not check_src_color or (check_dst_color == self.turn) or check_dst_color is None:
+       if not check_src_color or (check_dst_color == self.turn):
            return False
        chess = self.board[src[0]][src[1]]
        chess_type = chess & common.MASK_CHESS
+       #print("chess = %s, chess_type = %s, self.drink = %s"%(chess, chess_type, self.drink()))
        if chess_type not in (1, 6): #车炮比较特殊
           if chess_type == 2:#马
               absx = abs(src[0] - dst[0])
@@ -350,14 +366,15 @@ class Board:
           if chess_type == 3:#相/象, 判断塞象眼
               if self.board[(src[0] + dst[0])//2][(src[1] + dst[1])//2] != 0: #象眼位置: ((src[0] + dst[0])//2, (src[1] + dst[1])//2)
                  return False  
-                  
+
           elif chess_type == 5:
-              if (self.turn and dst == self.jiang) or (not self.turn and dst == self.shuai) and self.drink(): #判断饮酒
+              if ((self.turn and dst == self.jiang) or (not self.turn and dst == self.shuai)) and self.drink(): #判断饮酒
                  return True
-              if (self.turn and dst not in common.RED_JIUGONG) or (not self.turn and dst not in common.BLACK_JIUGONG):
+              if (self.turn and dst not in common.RED_JIUGONG) or ((not self.turn) and dst not in common.BLACK_JIUGONG):
                  return False
 
           sub_vector = common.addsub(dst, src, '-')
+          #print("sub_vector: ", sub_vector)
           return (sub_vector in common.DIRECTION_DICT[chess])
 
        elif chess_type == 1: #车
@@ -381,25 +398,29 @@ class Board:
              obstacles = 0
              for potential_obstacle in range(min(src[1], dst[1])+1, max(src[1], dst[1])):
                 if self.board[src[0]][potential_obstacle] != 0:
+                    if check_dst_color is None:
+                        return False
                     obstacles += 1
                 if obstacles == 2:
                     return False
-             return True
+             return obstacles == 1 or (check_dst_color is None)
           elif src[1] == dst[1]:
              obstacles = 0
              for potential_obstacle in range(min(src[0], dst[0])+1, max(src[0], dst[0])):
                 if self.board[potential_obstacle][src[1]] != 0:
+                   if check_dst_color is None:
+                        return False
                    obstacles += 1
                 if obstacles == 2:
                    return False
-             return True
+             return obstacles == 1 or (check_dst_color is None)
           else:
              return False
 
    def check_legal_and_jiangjun(self, src, dst):
        if not self.check_legal(src, dst):
            return False, False
-       if (self.turn and dst == self.jiang) or (not self.turn and dst == self.shuai):
+       if (self.turn and dst == self.jiang) or ((not self.turn) and dst == self.shuai):
            return True, True
        else:
            return True, False
@@ -423,13 +444,13 @@ class Board:
                            counter += 1
                        if not only_legal:
                            counter += 1
+       print(counter)
      
    def search_kings(self, board=None):
        #Where are the kings?
        #搜寻将帅位置
        shuai = None
        jiang = None
-       counter = 0
        if not board:
            board = self.board
        for i in (0, 1, 2, 7, 8, 9):
@@ -442,6 +463,6 @@ class Board:
                     jiang = (i, j)
                if shuai and jiang:
                     return shuai, jiang
-       if counter < 2:
+       if shuai is None or jiang is None:
            raise ValueError("Where are the kings?")
        return None, None
