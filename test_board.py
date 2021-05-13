@@ -4,20 +4,31 @@ import traceback
 from multiprocessing import Process
 
 
+#for cnt in range(1000000000):
+#	if cnt % 2 == 0:
+#		pass
+
 B = board.Board()
 B.print_initial_state()
+#B.stupid_print_all_legal_moves()
+stupid_way = set(B.stupid_generate_all_legal_moves())
+smart_way = set(B.get_legal_moves())
+print(len(smart_way), len(stupid_way))
+print(smart_way - stupid_way)
+print(stupid_way - smart_way)
+
 
 #x = time.time()
 #for cnt in range(10000000):
 #    b, m = B.generate_and_check()
 #print(time.time() - x)
 
-
+'''
 def random_generate(pid, num):
     x = time.time()
     BOARD = board.Board()
     for cnt in range(10000000//num):
-        b, m = B.generate_and_check()
+        b, m, shuaijiang = B.random_board()
         if cnt % 10000 == 0:
             print("pid = %s, cnt = %s"%(pid, cnt), time.time() - x)
 
@@ -32,7 +43,7 @@ for i in range(5):
 
 
 #board, mapping = B.random_board()
-'''
+
 B.print_board(board)
 B.uncover_board(board, mapping)
 B.copy_board(board=board)
