@@ -17,6 +17,25 @@ print(len(smart_way), len(stupid_way))
 print(smart_way - stupid_way)
 print(stupid_way - smart_way)
 
+S = 0.0
+for cnt in range(10000000):
+    start = time.time()
+    board, mapping, shuaijiang, chessdict = B.random_board()
+    start1 = time.time()
+    print(start1 - start, 'random_board')
+    #setA = set(B.get_legal_moves(board=board, shuaijiang=shuaijiang, chessdict=chessdict, turn=True))
+    setA = set(B.get_legal_moves_speedup(board=board, shuaijiang=shuaijiang, chessdict=chessdict, turn=True))
+    start2 = time.time()
+    print(start2 - start1, 'get_legal_moves')
+    setB = set(B.stupid_generate_all_legal_moves(board=board, shuaijiang=shuaijiang, turn=True))
+    start3 = time.time()
+    print(start3 - start2, 'stupid')
+    B.print_board(board)
+    print(setA - setB)
+    print(setB - setA)
+print(S)
+
+
 
 #x = time.time()
 #for cnt in range(10000000):
