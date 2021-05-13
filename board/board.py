@@ -67,6 +67,7 @@ class Board:
        self.history = []
        self.shuai = (0, 4)
        self.jiang = (9, 4)
+       self.chessdict = dict()
 
    def initialize_board(self):
        self.board = []
@@ -117,19 +118,85 @@ class Board:
           copied.append("turn")
        return copied
 
-   def is_legal_board(self):
+   def is_legal_board(self, board=None):
+       if board is None:
+          board = self.board
        shuai = None
        jiang = None
-       if self.shuai not in common.RED_JIUGONG or self.jiang not in common.BLACK_JIUGONG:
+       shuaicount = 0
+       jiangcount = 0
+
+       uncovered_counter = deepcopy(common.UNCOVERED_COUNTER)
+       if board[1][2] == 15 or board[1][6] == 15 or board[0][0] == 15 or board[0][8] == 15 or board[8][2] == 7 or board[8][6] == 7 or board[9][0] == 7 or board[9][8] == 7:
+          '''
+          红方兵不可能出现在以下a位置:
+          1**a***a**
+          0a*******a
+          0012345678
+          '''
+          #print(i, j, "ILLEGAL BING/ZU")
           return False
+
+       for element in (common.ALL_POSITIONS - common.COVERED_POSITIONS):
+          i = element[0]
+          j = element[1]
+          if board[i][j] & common.MASK_CHESS_ISCOVERED != 0:
+             #print(i, j, "NON COVERED AREA FINDS COVERED CHESSES!")
+             return False
+
+       for element in common.RED_POSITIONS:
+          i = element[0]
+          j = element[1]
+          if board[i][j] & common.MASK_CHESS_ISCOVERED != 0 and board[i][j] & common.MASK_COLOR == 0:
+             #print(i, j, "COVERED RED AREA FINDS COVERED BLACK CHESSES!")
+             return False
+
+       for element in common.BLACK_POSITIONS:
+          i = element[0]
+          j = element[1]
+          if board[i][j] & common.MASK_COLOR != 0 and  board[i][j] & common.MASK_CHESS_ISCOVERED != 0:
+             #print(i, j, "COVERED BLACK AREA FINDS COVERED RED CHESSES!")
+             return False
+
        for i in range(self.H):
           for j in range(self.W):
-              if self.board[i][j] == common.RED_SHUAI and (i > 2 or j < 3 or j > 5):
-                  return False
-              if self.board[i][j] == common.BLACK_JIANG and (i, j) not in common.BLACK_JIUGONG:
-                  return False
-       return shuai, jiang
+              if board[i][j] > 0 and board[i][j] & common.MASK_CHESS_ISCOVERED == 0:
+                  if uncovered_counter[board[i][j]] < 1:
+                      return False
+                  uncovered_counter[board[i][j]] -= 1
+              if board[i][j] == common.RED_SHUAI:
+                  if i > 2 or j < 3 or j > 5:
+                      #print("RED_SHUAI OUT OF BOUND!")
+                      return False
+                  shuaicount += 1
+                  shuai = (i, j)
+                  if shuaicount >= 2:
+                      #print("SHUAICOUNT ILLEGAL")
+                      return False
 
+              if board[i][j] == common.BLACK_JIANG:
+                  if i < 7 or j < 3 or j > 5:
+                      #print("BLACK_JIANG OUT OF BOUND!")
+                      return False
+                  jiangcount += 1
+                  jiang = (i, j)
+                  if jiangcount >= 2:
+                      #print("JIANGCOUNT ILLEGAL")
+                      return False
+       if shuaicount == 1 and jiangcount == 1:
+           return (shuai, jiang)
+       else:
+           return False
+
+   def initialize_chessdict(self, board=None):
+       chessdict = self.chessdict if board is None else {}
+       if board is None:
+           board = self.board
+       for i in range(self.H):
+           for j in range(self.W):
+               if board[i][j] != 0:
+                  chessdict[(i, j)] = board[i][j]
+       return chessdict
 
    def initialize_soldiers(self):
        #红
@@ -170,6 +237,7 @@ class Board:
        self.board[6][4] = (1<<4) + 7 #黑五路暗边兵
        self.board[6][6] = (1<<4) + 7 #黑七路暗边兵
        self.board[6][8] = (1<<4) + 7 #黑九路暗边兵
+       self.initialize_chessdict()
 
    def initialize(self):
        self.initialize_mapping()
@@ -252,12 +320,20 @@ class Board:
        other_possible_positions = common.ALL_POSITIONS- {RED_SHUAI_POS} - {BLACK_JIANG_POS} - fixed_covered_chesses
        uncovered_counter = deepcopy(common.UNCOVERED_COUNTER)
        #将帅已安置，不能重复考虑
-       uncovered_counter[common.RED_SHUAI] = 0
-       uncovered_counter[common.BLACK_JIANG] = 0
+       uncovered_counter[common.RED_SHUAI] = uncovered_counter[common.BLACK_JIANG] = 0
        #去除没被揭开的部分
        for element in fixed_covered_chesses:
            uncovered_counter[mapping[element]] -= 1
        #将dict展开为multi-set: {'k':2} --> ['k', 'k']
+       red_bing_positions = common.random_select(other_possible_positions - common.RED_BING_FORBIDDEN, return_type=set, num=uncovered_counter.get(15, 0))[1]
+       for pos in red_bing_positions:
+           new_board[pos[0]][pos[1]] = 15
+       black_zu_positions = common.random_select(other_possible_positions - common.BLACK_ZU_FORBIDDEN - red_bing_positions, return_type=set, num=uncovered_counter.get(7, 0))[1]
+       for pos in black_zu_positions:
+           new_board[pos[0]][pos[1]] = 7
+       uncovered_counter[15] = uncovered_counter[7] = 0
+       other_possible_positions = other_possible_positions - red_bing_positions - black_zu_positions
+
        all_uncovered_chesses = []
        for k in uncovered_counter:
            all_uncovered_chesses += [k]*uncovered_counter[k]
@@ -267,6 +343,11 @@ class Board:
        for i, element in enumerate(alive_uncovered_chesses):
            pos = positions_of_alived_uncovered_chesses[i]
            new_board[pos[0]][pos[1]] = element
+       return new_board, mapping
+
+   def generate_and_check(self):
+       new_board, mapping = self.random_board()
+       assert self.is_legal_board(new_board)
        return new_board, mapping
 
    def uncover_board(self, board, mapping, verbose=True):
@@ -320,6 +401,35 @@ class Board:
            else:
                 return red_or_black
 
+   def check_legal_and_jiangjun(self, src, dst):
+       if not self.check_legal(src, dst):
+           return False, False
+       if (self.turn and dst == self.jiang) or ((not self.turn) and dst == self.shuai):
+           return True, True
+       else:
+           return True, False
+
+   def search_kings(self, board=None):
+       #Where are the kings?
+       #搜寻将帅位置
+       shuai = None
+       jiang = None
+       if not board:
+           board = self.board
+       for i in (0, 1, 2, 7, 8, 9):
+           for j in (3, 4, 5):
+               if board[i][j] == common.RED_SHUAI:
+                    assert i <= 2
+                    shuai = (i, j)
+               elif board[i][j] == common.BLACK_JIANG:
+                    assert i >= 7
+                    jiang = (i, j)
+               if shuai and jiang:
+                    return shuai, jiang
+       if shuai is None or jiang is None:
+           raise ValueError("Where are the kings?")
+       return None, None
+
    def check_legal(self, src, dst):
        #20210510 morning not tested!
        '''
@@ -363,9 +473,13 @@ class Board:
               else:
                  return True
 
-          if chess_type == 3:#相/象, 判断塞象眼
+          elif chess_type == 3:#相/象, 判断塞象眼
               if self.board[(src[0] + dst[0])//2][(src[1] + dst[1])//2] != 0: #象眼位置: ((src[0] + dst[0])//2, (src[1] + dst[1])//2)
                  return False  
+          
+          elif chess_type == 4:#士, 暗士只能往中间走
+              if self.board[src[0]][src[1]] & common.MASK_CHESS_ISCOVERED != 0 and dst[1] != 4:
+                 return False
 
           elif chess_type == 5:
               if ((self.turn and dst == self.jiang) or (not self.turn and dst == self.shuai)) and self.drink(): #判断饮酒
@@ -417,14 +531,6 @@ class Board:
           else:
              return False
 
-   def check_legal_and_jiangjun(self, src, dst):
-       if not self.check_legal(src, dst):
-           return False, False
-       if (self.turn and dst == self.jiang) or ((not self.turn) and dst == self.shuai):
-           return True, True
-       else:
-           return True, False
-
    def stupid_print_all_legal_moves(self, only_legal=True):
        counter = 0
        # A very stupid way to test check_legal_and_jiangjun
@@ -446,23 +552,8 @@ class Board:
                            counter += 1
        print(counter)
      
-   def search_kings(self, board=None):
-       #Where are the kings?
-       #搜寻将帅位置
-       shuai = None
-       jiang = None
-       if not board:
-           board = self.board
-       for i in (0, 1, 2, 7, 8, 9):
-           for j in (3, 4, 5):
-               if board[i][j] == common.RED_SHUAI:
-                    assert i <= 2
-                    shuai = (i, j)
-               elif board[i][j] == common.BLACK_JIANG:
-                    assert i >= 7
-                    jiang = (i, j)
-               if shuai and jiang:
-                    return shuai, jiang
-       if shuai is None or jiang is None:
-           raise ValueError("Where are the kings?")
-       return None, None
+   def move(self, src, dst, need_check_legal=True):
+       if need_check_legal:
+          if not self.check_legal(src, dst):
+              return False
+       

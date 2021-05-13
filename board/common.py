@@ -111,7 +111,8 @@ COVERED_COUNTER = {(1<<4)+(1<<3)+1: 2, (1<<4)+(1<<3)+2: 2, (1<<4)+(1<<3)+3: 2, (
 (1<<4)+(0<<3)+1: 2, (1<<4)+(0<<3)+2: 2, (1<<4)+(0<<3)+3: 2, (1<<4)+(0<<3)+4: 2, (1<<4)+(0<<3)+6: 2, (1<<4)+(0<<3)+7: 5}
 UNCOVERED_COUNTER = {(0<<4)+(1<<3)+1: 2, (0<<4)+(1<<3)+2: 2, (0<<4)+(1<<3)+3: 2, (0<<4)+(1<<3)+4: 2, (0<<4)+(1<<3)+5: 1, (0<<4)+(1<<3)+6: 2, (0<<4)+(1<<3)+7: 5,
 (0<<4)+(0<<3)+1: 2, (0<<4)+(0<<3)+2: 2, (0<<4)+(0<<3)+3: 2, (0<<4)+(0<<3)+4: 2, (0<<4)+(0<<3)+5: 1, (0<<4)+(0<<3)+6: 2, (0<<4)+(0<<3)+7: 5}
-
+RED_BING_FORBIDDEN = {(0, 0), (0, 8), (1, 2), (1, 6)}
+BLACK_ZU_FORBIDDEN = {(9, 0), (9, 8), (8, 2), (8, 6)}
 '''
 #https://zhuanlan.zhihu.com/p/34433581
 def create_uci_labels2():
@@ -159,7 +160,7 @@ labels_array = create_uci_labels()
 def random_select(s, return_type=None, num=None):
     #s is a (multi-)set. This function selects one element from the power set of s.
     lens = len(s)
-    if not num:
+    if num is None:
 	    num = random.randint(0, lens)
     sampled = random.sample(s, num)
     if return_type:

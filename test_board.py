@@ -1,16 +1,36 @@
 from board import board
-import time
+import time 
+import traceback
+from multiprocessing import Process
+
+
 B = board.Board()
 B.print_initial_state()
-'''
-x = time.time()
-for cnt in range(1000000):
-    B.print_initial_state()
-    B.initialize()
-print(time.time() - x)
-B.copy_board(**{'turn': False})
-print(B)
-'''
+
+#x = time.time()
+#for cnt in range(10000000):
+#    b, m = B.generate_and_check()
+#print(time.time() - x)
+
+
+def random_generate(pid, num):
+    x = time.time()
+    BOARD = board.Board()
+    for cnt in range(10000000//num):
+        b, m = B.generate_and_check()
+        if cnt % 10000 == 0:
+            print("pid = %s, cnt = %s"%(pid, cnt), time.time() - x)
+
+l = []
+for i in range(5):
+    p = Process(target=random_generate, args=(i, 5, ))
+    p.start()
+    l.append(p)
+
+for i in range(5):
+    l[i].join()
+
+
 #board, mapping = B.random_board()
 '''
 B.print_board(board)
@@ -21,6 +41,8 @@ b = B.initialize_another_board()
 b[0][5] = 13
 b[9][5] = 5
 print(B.search_kings(b))
+'''
+
 '''
 result = B.check_legal_and_jiangjun((0, 1), (2, 0))
 print(result)
@@ -40,5 +62,6 @@ board[7][3] = 5
 B.copy_board(board=board)
 B.print_board()
 B.stupid_print_all_legal_moves()
+'''
 
 
