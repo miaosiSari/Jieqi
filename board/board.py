@@ -1,5 +1,6 @@
 from . import common
 import random
+import json
 from copy import deepcopy
 
 
@@ -296,6 +297,47 @@ class Board:
                 print(i, end=" ")#一个中文字符占用两个空格
             print("")
 
+   def print_board_icybee(self, board=None):
+   	  #https://github.com/bupticybee/elephantfish/blob/master/elephantfish.py
+   	  #print_pos(pos) function
+      chessstr = ''
+      uni_pieces = {
+      '.':'．',
+       'R':'\033[31m俥\033[0m',
+       'N': '\033[31m傌\033[0m', 
+       'B': '\033[31m相\033[0m', 
+       'A':'\033[31m仕\033[0m', 
+       'K':'\033[31m帅\033[0m', 
+       'P':'\033[31m兵\033[0m', 
+       'C':'\033[31m炮\033[0m', 
+       'D': '\033[31m暗\033[0m', 
+       'E': '\033[31m暗\033[0m',
+       'F': '\033[31m暗\033[0m',
+       'G': '\033[31m暗\033[0m',
+       'H': '\033[31m暗\033[0m', 
+       'I': '\033[31m暗\033[0m',
+       'r':'车', 
+       'n':'马', 
+       'b':'象', 
+       'a':'士', 
+       'k':'将', 
+       'p':'卒', 
+       'c':'炮', 
+       'd':'暗', 
+       'e':'暗',
+       'f':'暗',
+       'g':'暗',
+       'h':'暗', 
+       'i':'暗'
+      }
+      for i, row in enumerate(board.split()):
+          joinstr = ''.join(uni_pieces.get(p, p) for p in row)
+          print(' ', 9-i, joinstr)
+          chessstr += (' ' + str(9-i) + joinstr)
+      print('    ａｂｃｄｅｆｇｈｉ\n\n')
+      chessstr += '    ａｂｃｄｅｆｇｈｉ\n\n\n'
+      return chessstr
+
    def print_initial_state(self):
        print("Initial state:")
        self.print_board()
@@ -361,6 +403,14 @@ class Board:
        if verbose:
            self.print_board(virtual_board)
        return virtual_board
+
+   def uncover_board_icybee(self, board, mapping):
+   	   covered_set = {'d', 'D', 'e', 'E', 'f', 'F', 'g', 'G', 'h', 'H', 'i', 'I'}
+   	   newboard = list(board)
+   	   for key in mapping:
+   	   	   if board[key] in covered_set:
+   	   	      newboard[key] = mapping[key]
+   	   return ''.join(newboard)
        
    def dict(self):
        return {'board': self.board, 'mapping': self.mapping, 'history': self.history, 'turn': self.turn}
@@ -644,30 +694,114 @@ class Board:
         return (src, dst, translate, self.turn)
 
    def translate_board(self, board=None):
-   	  new_board = [' ']*256
-   	  t = 15
-   	  while t < 256:
+      new_board = [' ']*256
+      t = 15
+      d = {
+   	      (False, 1): 'R', 
+          (True, 1): 'D', 
+          (False, 2): 'N', 
+          (True, 2): 'E', 
+          (False, 3): 'B', 
+          (True, 3): 'F', 
+          (False, 4): 'A', 
+          (True, 4): 'G', 
+   	      (False, 5): 'K', 
+   	      (False, 6): 'C', 
+   	      (True, 6): 'H', 
+   	      (False, 7): 'P', 
+   	      (True, 7): 'I'
+   	  }
+      while t < 256:
    	  	 new_board[t] = '\n'
    	  	 t += 16
-   	  if board is None:
-   	  	 board = self.board
-   	  for i in range(self.H):
-   	  	 for j in range(self.W):
-   	  	 	x, y = 12 - i, 3 + j
+      if board is None:
+         board = self.board
+      for i in range(self.H):
+         for j in range(self.W):
+            x, y = 12 - i, 3 + j
+            pos = x * 16 + y
             chess = board[i][j]
-            covered = chess & common.MASK_CHESS_ISCOVERED
+            covered = ((chess & common.MASK_CHESS_ISCOVERED) != 0)
             color = chess & common.MASK_COLOR
-            
-   	  return ''.join(new_board)
+            chess_type = chess & common.MASK_CHESS
+            if chess_type < 1:
+            	new_board[pos] = '.'
+            	continue
+            T = d[(covered, chess_type)]
+            if not color:
+            	T = T.swapcase()
+            new_board[pos] = T
+
+      return ''.join(new_board)
 
    def translate_move(self, t):
       orda = ord('a')
-   	  def _num2char(num):
+      def _num2char(num):
    	  	  return chr(orda + num)
-   	  ucci = _num2char(t[1]) + str(t[0]) + _num2char(t[3]) + str(t[2])
-   	  return ucci
+      ucci = _num2char(t[1]) + str(t[0]) + _num2char(t[3]) + str(t[2])
+      return ucci
+
+   def translate_mapping(self, mapping):
+      d = {
+        1: 'R', 
+        2: 'N', 
+        3: 'B', 
+        4: 'A', 
+        5: 'K',  
+        6: 'C', 
+        7: 'P', 
+      }
+      newmapping = {}
+      for key in mapping.keys():
+          x, y = 12 - key[0], 3 + key[1]
+          pos = x * 16 + y
+          chess = mapping[key]
+          covered = ((chess & common.MASK_CHESS_ISCOVERED) != 0)
+          color = chess & common.MASK_COLOR
+          chess_type = chess & common.MASK_CHESS
+          T = d[chess_type]
+          if not color:
+          	 T = T.swapcase()
+          newmapping[pos] = T
+      return newmapping
+
+   def generate(self, turn, check=False, file=False):
+   	  board, mapping, shuaijiang, chessdict = self.random_board()
+   	  legal_moves = list(self.get_legal_moves_speedup(board=board, turn=turn, shuaijiang=shuaijiang, chessdict=chessdict))
+   	  if check:
+   	  	 legal_moves_2 = self.stupid_generate_all_legal_moves(board=board, turn=turn, shuaijiang=shuaijiang)
+   	  	 uncovered_board = self.uncover_board(board=board, mapping=mapping, verbose=False)
+   	  	 translate_uncovered_board2 = self.translate_board(uncovered_board)
+   	  	 try:
+   	  	     assert set(legal_moves) == set(legal_moves_2)
+   	  	 except:
+   	  	 	 print(set(legal_moves), 'self.get_legal_moves_speedup')
+   	  	 	 print(set(legal_moves_2), 'self.stupid_generate_all_legal_moves')
+   	  	 	 assert False
+   	  newmapping = self.translate_mapping(mapping)
+   	  legal_moves = list(map(self.translate_move, legal_moves))
+   	  board = self.translate_board(board)
+   	  self.print_board_icybee(board)
+   	  if check:
+   	     translate_uncovered_board = self.uncover_board_icybee(board, newmapping)
+   	     print('translate_uncovered_board: mapping --translate_mapping-> newmapping --uncover_board_icybee-> translate_uncovered_board')
+   	     self.print_board_icybee(translate_uncovered_board)
+   	     print('translate_uncovered_board: board --uncover_board-> uncovered_board --> translate_uncovered_board2')
+   	     self.print_board_icybee(translate_uncovered_board2)
+   	     assert translate_uncovered_board2 == translate_uncovered_board
+   	     self.print_board_icybee(translate_uncovered_board)
+   	  if file:
+   	  	 filedict = {
+   	  	   'turn': turn,
+   	  	   'board': board,
+   	  	   'mapping': newmapping,
+   	  	   'legal_moves': legal_moves
+   	  	 }
+   	  	 with open(file, 'w') as f:
+   	  	 	json.dump(filedict, f)
+   	  return board, newmapping, legal_moves
       
-   def get_legal_moves(self, board=None, turn=None, chessdict=None, shuaijiang=None):
+   def get_legal_moves(self, board=None, turn=None, shuaijiang=None, chessdict=None):
       #0.00013s
       #20210513, Buggy & Poorly Written
       if board is None or chessdict is None:
@@ -683,7 +817,7 @@ class Board:
       legal_moves = []
       for pos in chessdict:
         chess = chessdict[pos]
-        if (turn and (chess & common.MASK_COLOR == 0)) or ((not turn) and (chess & common.MASK_COLOR == MASK_COLOR)):
+        if (turn and (chess & common.MASK_COLOR == 0)) or ((not turn) and (chess & common.MASK_COLOR == common.MASK_COLOR)):
           continue
         chess_type = chess & common.MASK_CHESS
         if chess_type == 1: #车
@@ -919,7 +1053,7 @@ class Board:
       legal_moves = []
       for pos in chessdict:
         chess = chessdict[pos]
-        if (turn and (chess & common.MASK_COLOR == 0)) or ((not turn) and (chess & common.MASK_COLOR == MASK_COLOR)):
+        if (turn and (chess & common.MASK_COLOR == 0)) or ((not turn) and (chess & common.MASK_COLOR == common.MASK_COLOR)):
           continue
         chess_type = chess & common.MASK_CHESS
         if chess_type == 1: #车
@@ -1004,18 +1138,18 @@ class Board:
         if chess_type == 4: #仕
            if board[pos[0]][pos[1]] & common.MASK_CHESS_ISCOVERED == common.MASK_CHESS_ISCOVERED: #暗士
               if turn and (pos[1] == 3 or pos[1] == 5) and _helper((1, 4)) != turn:
-                 legal_moves.append((pos[0], pos[1], 1, 4))
+                 yield (pos[0], pos[1], 1, 4)
               elif (not turn) and (pos[1] == 3 or pos[1] == 5) and _helper((8, 4)) != turn:
-                 legal_moves.append((pos[0], pos[1], 8, 4))
+                 yield (pos[0], pos[1], 8, 4)
            else:
               if pos[0] > 0 and pos[1] > 0 and _helper((pos[0]-1, pos[1]-1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]-1))
+                 yield (pos[0], pos[1], pos[0]-1, pos[1]-1)
               if pos[0] > 0 and pos[1] < self.W-1 and _helper((pos[0]-1, pos[1]+1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]+1))
+                 yield(pos[0], pos[1], pos[0]-1, pos[1]+1)
               if pos[0] < self.H-1 and pos[1] > 0 and _helper((pos[0]+1, pos[1]-1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]-1))
+                 yield (pos[0], pos[1], pos[0]+1, pos[1]-1)
               if pos[0] < self.H-1 and pos[1] < self.W-1 and _helper((pos[0]+1, pos[1]+1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]+1))
+                 yield (pos[0], pos[1], pos[0]+1, pos[1]+1)
 
         if chess_type == 5: #帅
            isdrink = self.drink(board=board, shuaijiang=shuaijiang)
