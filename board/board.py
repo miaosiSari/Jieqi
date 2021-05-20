@@ -53,6 +53,10 @@ from copy import deepcopy
 abcdefghi
 '''
 class Board:
+
+   A0, I0, A9, I9 = 12 * 16 + 3, 12 * 16 + 11, 3 * 16 + 3,  3 * 16 + 11
+   ALL = ord('a') + ord('i')
+
    def __init__(self, H=10, W=9, num=16):
        '''
        Initialize a chessboard
@@ -740,6 +744,9 @@ class Board:
       ucci = _num2char(t[1]) + str(t[0]) + _num2char(t[3]) + str(t[2])
       return ucci
 
+   def reverse_move(self, t):
+   	  return chr(Board.ALL - ord(t[0])) + str(9 - int(t[1])) + chr(Board.ALL - ord(t[2])) + str(9 - int(t[3]))
+
    def translate_mapping(self, mapping):
       d = {
         1: 'R', 
@@ -764,46 +771,58 @@ class Board:
           newmapping[pos] = T
       return newmapping
 
-   def generate(self, turn, check=False, file=False):
-   	  board, mapping, shuaijiang, chessdict = self.random_board()
-   	  legal_moves = list(self.get_legal_moves_speedup(board=board, turn=turn, shuaijiang=shuaijiang, chessdict=chessdict))
-   	  if check:
-   	  	 legal_moves_2 = self.stupid_generate_all_legal_moves(board=board, turn=turn, shuaijiang=shuaijiang)
-   	  	 uncovered_board = self.uncover_board(board=board, mapping=mapping, verbose=False)
-   	  	 translate_uncovered_board2 = self.translate_board(uncovered_board)
-   	  	 try:
-   	  	     assert set(legal_moves) == set(legal_moves_2)
-   	  	 except:
-   	  	 	 print(set(legal_moves), 'self.get_legal_moves_speedup')
-   	  	 	 print(set(legal_moves_2), 'self.stupid_generate_all_legal_moves')
-   	  	 	 print(set(legal_moves) - set(legal_moves_2))
-   	  	 	 print(set(legal_moves_2) - set(legal_moves))
-   	  	 	 self.print_board_icybee(self.translate_board(board))
-   	  	 	 assert False
-   	  newmapping = self.translate_mapping(mapping)
-   	  legal_moves = list(map(self.translate_move, legal_moves))
-   	  board = self.translate_board(board)
-   	  self.print_board_icybee(board)
-   	  if check:
-   	     translate_uncovered_board = self.uncover_board_icybee(board, newmapping)
-   	     print('translate_uncovered_board: mapping --translate_mapping-> newmapping --uncover_board_icybee-> translate_uncovered_board')
-   	     self.print_board_icybee(translate_uncovered_board)
-   	     print('translate_uncovered_board: board --uncover_board-> uncovered_board --> translate_uncovered_board2')
-   	     self.print_board_icybee(translate_uncovered_board2)
-   	     assert translate_uncovered_board2 == translate_uncovered_board
-   	     self.print_board_icybee(translate_uncovered_board)
-   	  if file:
-   	  	 filedict = {
-   	  	   'turn': turn,
-   	  	   'board': board,
-   	  	   'mapping': newmapping,
-   	  	   'legal_moves': legal_moves
-   	  	 }
-   	  	 with open(file, 'w') as f:
-   	  	 	json.dump(filedict, f)
-   	  return board, newmapping, legal_moves
+   def generate(self, turn, check=False, file=False, verbose=False):
+      board, mapping, shuaijiang, chessdict = self.random_board()
+      original_board = deepcopy(board)
+      original_mapping = deepcopy(mapping)
+      legal_moves = list(self.get_legal_moves_speedup(board=board, turn=turn, shuaijiang=shuaijiang, chessdict=chessdict))
+      if check:
+         legal_moves_2 = self.stupid_generate_all_legal_moves(board=board, turn=turn, shuaijiang=shuaijiang)
+         uncovered_board = self.uncover_board(board=board, mapping=mapping, verbose=False)
+         translate_uncovered_board2 = self.translate_board(uncovered_board)
+         try:
+             assert set(legal_moves) == set(legal_moves_2)
+         except:
+             print(set(legal_moves), 'self.get_legal_moves_speedup')
+             print(set(legal_moves_2), 'self.stupid_generate_all_legal_moves')
+             print(set(legal_moves) - set(legal_moves_2))
+             print(set(legal_moves_2) - set(legal_moves))
+             self.print_board_icybee(self.translate_board(board))
+             assert False
+      newmapping = self.translate_mapping(mapping)
+      legal_moves = list(map(self.translate_move, legal_moves))
+      board = self.translate_board(board)
+      if verbose:
+         self.print_board_icybee(board)
+      if check:
+         translate_uncovered_board = self.uncover_board_icybee(board, newmapping)
+         print('translate_uncovered_board: mapping --translate_mapping-> newmapping --uncover_board_icybee-> translate_uncovered_board')
+         self.print_board_icybee(translate_uncovered_board)
+         print('translate_uncovered_board: board --uncover_board-> uncovered_board --> translate_uncovered_board2')
+         self.print_board_icybee(translate_uncovered_board2)
+         assert translate_uncovered_board2 == translate_uncovered_board
+         self.print_board_icybee(translate_uncovered_board)
+      if file:
+         filedict = {
+           'turn': turn,
+           'board': board,
+           'mapping': newmapping,
+           'legal_moves': legal_moves
+         }
+         with open(file, 'w') as f:
+            json.dump(filedict, f)
+      return board, newmapping, legal_moves, shuaijiang, chessdict, original_board, original_mapping
 
-   def get_legal_moves_speedup(self, board=None, turn=None, chessdict=None, shuaijiang=None):
+   def render(self, i):
+      #num to ucci representation
+      rank, fil = divmod(i - Board.A0, 16)
+      return chr(fil + ord('a')) + str(-rank)
+
+   def render_move(self, move):
+   	  #move is a tuple
+   	  return self.render(move[0]) + self.render(move[1])
+
+   def get_legal_moves_speedup(self, board=None, turn=None, shuaijiang=None, chessdict=None):
       #0.00013s
       if board is None or chessdict is None:
          board = self.board
