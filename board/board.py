@@ -654,7 +654,6 @@ class Board:
                            legal_moves.append((x1, y1, x2, y2))
        return legal_moves
 
-
    def move(self, src, dst, need_check_legal=True):
         #20210513
         #Warning: Not tested! May have many bugs!
@@ -777,6 +776,9 @@ class Board:
    	  	 except:
    	  	 	 print(set(legal_moves), 'self.get_legal_moves_speedup')
    	  	 	 print(set(legal_moves_2), 'self.stupid_generate_all_legal_moves')
+   	  	 	 print(set(legal_moves) - set(legal_moves_2))
+   	  	 	 print(set(legal_moves_2) - set(legal_moves))
+   	  	 	 self.print_board_icybee(self.translate_board(board))
    	  	 	 assert False
    	  newmapping = self.translate_mapping(mapping)
    	  legal_moves = list(map(self.translate_move, legal_moves))
@@ -800,237 +802,6 @@ class Board:
    	  	 with open(file, 'w') as f:
    	  	 	json.dump(filedict, f)
    	  return board, newmapping, legal_moves
-      
-   def get_legal_moves(self, board=None, turn=None, shuaijiang=None, chessdict=None):
-      #0.00013s
-      #20210513, Buggy & Poorly Written
-      if board is None or chessdict is None:
-         board = self.board
-         chessdict = self.chessdict
-      if turn is None:
-         turn = self.turn
-      if shuaijiang is None:
-         shuai = self.shuai
-         jiang = self.jiang
-      else:
-         shuai, jiang = shuaijiang
-      legal_moves = []
-      for pos in chessdict:
-        chess = chessdict[pos]
-        if (turn and (chess & common.MASK_COLOR == 0)) or ((not turn) and (chess & common.MASK_COLOR == common.MASK_COLOR)):
-          continue
-        chess_type = chess & common.MASK_CHESS
-        if chess_type == 1: #车
-          #We are at pos = (pos[0], pos[1])
-           for i in range(pos[0]+1, self.H):
-               result = self.check_color((i, pos[1]), xor=False, board=board, turn=turn)
-               if result is None:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
-               elif result == turn:
-                  break
-               else:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
-                  break
-
-           for i in range(pos[0]-1, -1, -1):
-               result = self.check_color((i, pos[1]), xor=False, board=board, turn=turn)
-               if result is None:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
-               elif result == turn:
-                  break
-               else:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
-                  break
-
-           for j in range(pos[1]+1, self.W):
-               result = self.check_color((pos[0], j), xor=False, board=board, turn=turn)
-               if result is None:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
-               elif result == turn:
-                  break
-               else:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
-                  break
-
-           for j in range(pos[1]-1, -1, -1):
-              result = self.check_color((pos[0], j), xor=False, board=board, turn=turn)
-              if result is None:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
-              elif result == turn:
-                  break
-              else:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
-                  break
-
-        if chess_type == 2: #马
-          if pos[0] < self.H - 2 and board[pos[0]+1][pos[1]] == 0:
-             if pos[1] > 0 and self.check_color((pos[0]+2, pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]-1))
-             if pos[1] < self.W - 1 and self.check_color((pos[0]+2, pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]+1))
-
-          if pos[0] >= 2 and board[pos[0]-1][pos[1]] == 0:
-             if pos[1] > 0 and self.check_color((pos[0]-2, pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]-1))
-             if pos[1] < self.W - 1 and self.check_color((pos[0]-2, pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]+1))
-
-          if pos[1] < self.W - 2 and board[pos[0]][pos[1]+1] == 0:
-             if pos[0] > 0 and self.check_color((pos[0]-1, pos[1]+2), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]+2))
-             if pos[0] < self.H-1 and self.check_color((pos[0]+1, pos[1]+2), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]+2))
-
-          if pos[1] >= 2 and board[pos[0]][pos[1]-1] == 0:
-             if pos[0] > 0 and self.check_color((pos[0]-1, pos[1]-2), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]-2))
-             if pos[0] < self.H-1 and self.check_color((pos[0]+1, pos[1]-2), xor=False, board=board, turn=turn) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]-2))
-
-        if chess_type == 3: #相
-           if pos[0] < self.H - 2:
-              if pos[1] < self.W - 2 and board[pos[0]+1][pos[1]+1] == 0 and self.check_color((pos[0]+2, pos[1]+2), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]+2))
-              if pos[1] >= 2 and board[pos[0]+1][pos[1]-1] == 0 and self.check_color((pos[0]+2, pos[1]-2), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]-2))
-           if pos[0] >= 2:
-              if pos[1] < self.W - 2 and board[pos[0]-1][pos[1]+1] == 0 and self.check_color((pos[0]-2, pos[1]+2), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]+2))
-              if pos[1] >= 2 and board[pos[0]-1][pos[1]-1] == 0 and self.check_color((pos[0]-2, pos[1]-2), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]-2))
-
-        if chess_type == 4: #仕
-           if board[pos[0]][pos[1]] & common.MASK_CHESS_ISCOVERED == common.MASK_CHESS_ISCOVERED: #暗士
-              if turn and (pos[1] == 3 or pos[1] == 5) and self.check_color((1, 4), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], 1, 4))
-              elif (not turn) and (pos[1] == 3 or pos[1] == 5) and self.check_color((8, 4), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], 8, 4))
-           else:
-              if pos[0] > 0 and pos[1] > 0 and self.check_color((pos[0]-1, pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]-1))
-              if pos[0] > 0 and pos[1] < self.W-1 and self.check_color((pos[0]-1, pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]+1))
-              if pos[0] < self.H-1 and pos[1] > 0 and self.check_color((pos[0]+1, pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]-1))
-              if pos[0] < self.H-1 and pos[1] < self.W-1 and self.check_color((pos[0]+1, pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]+1))
-
-        if chess_type == 5: #帅
-           isdrink = self.drink(board=board, shuaijiang=shuaijiang)
-           if turn:
-              if pos[0] <= 1 and self.check_color((pos[0]+1, pos[1]), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]))
-              if pos[0] >= 1 and self.check_color((pos[0]-1, pos[1]), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]))
-              if pos[1] >= 4 and self.check_color((pos[0], pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
-              if pos[1] <= 4 and self.check_color((pos[0], pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
-              if isdrink:
-                 legal_moves.append((shuai[0], shuai[1], jiang[0], jiang[1]))
-           else:
-              if pos[0] <= 8 and self.check_color((pos[0], pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
-              if pos[0] >= 8 and self.check_color((pos[0], pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
-              if pos[1] >= 4 and self.check_color((pos[0], pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
-              if pos[1] <= 4 and self.check_color((pos[0], pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
-              if isdrink:
-                 legal_moves.append((jiang[0], jiang[1], shuai[0], shuai[1]))
-
-        if chess_type == 6:#炮
-            obstacles = 0
-            for i in range(pos[0]+1, self.H):
-               result = self.check_color((i, pos[1]), xor=False, board=board, turn=turn)
-               if result is None:
-                  if obstacles == 0:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
-               elif result == turn:
-                  if obstacles == 1:
-                     break
-                  obstacles += 1
-               else:
-                  if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
-                     break
-                  obstacles += 1
-
-            obstacles = 0
-            for i in range(pos[0]-1, -1, -1):
-               result = self.check_color((i, pos[1]), xor=False, board=board, turn=turn)
-               if result is None:
-                  if obstacles == 0:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
-               elif result == turn:
-                  if obstacles == 1:
-                     break
-                  obstacles += 1
-               else:
-                  if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
-                     break
-                  obstacles += 1
-
-            obstacles = 0
-            for j in range(pos[1]+1, self.W):
-               result = self.check_color((pos[0], j), xor=False, board=board, turn=turn)
-               if result is None:
-                  if obstacles == 0:
-                      legal_moves.append((pos[0], pos[1], pos[0], j))
-               elif result == turn:
-                  if obstacles == 1:
-                     break
-                  obstacles += 1
-               else:
-                  if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], pos[0], j))
-                     break
-                  obstacles += 1
-
-            obstacles = 0
-            for j in range(pos[1]-1, -1, -1):
-               result = self.check_color((pos[0], j), xor=False, board=board, turn=turn)
-               if result is None:
-                  if obstacles == 0:
-                     legal_moves.append((pos[0], pos[1], pos[0], j))
-               elif result == turn:
-                  if obstacles == 1:
-                     break
-                  obstacles += 1
-               else:
-                  if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], pos[0], j))
-                     break
-                  obstacles += 1
-
-        if chess_type == 7: #兵/卒
-           if turn:
-              if pos[0] <= 4:
-                 if self.check_color((pos[0]+1, pos[1]), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]))
-              else:
-                 if pos[0] <= 8 and self.check_color((pos[0]+1, pos[1]), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]))
-                 if pos[1] < self.W-1 and self.check_color((pos[0], pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
-                 if pos[1] >= 1 and self.check_color((pos[0], pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
-           else:
-              if pos[0] >= 5:
-                 if self.check_color((pos[0], pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
-              else:
-                 if pos[0] >= 1 and self.check_color((pos[0]-1, pos[1]), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]))
-                 if pos[1] < self.W-1 and self.check_color((pos[0], pos[1]+1), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
-                 if pos[1] >= 1 and self.check_color((pos[0], pos[1]-1), xor=False, board=board, turn=turn) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
-
-
-      return legal_moves
 
    def get_legal_moves_speedup(self, board=None, turn=None, chessdict=None, shuaijiang=None):
       #0.00013s
@@ -1165,10 +936,10 @@ class Board:
               if isdrink:
                  yield (shuai[0], shuai[1], jiang[0], jiang[1])
            else:
-              if pos[0] <= 8 and _helper((pos[0], pos[1]+1)) != turn:
-                 yield (pos[0], pos[1], pos[0], pos[1]+1)
-              if pos[0] >= 8 and _helper((pos[0], pos[1]-1)) != turn:
-                 yield (pos[0], pos[1], pos[0], pos[1]-1)
+              if pos[0] <= 8 and _helper((pos[0]+1, pos[1])) != turn:
+                 yield (pos[0], pos[1], pos[0]+1, pos[1])
+              if pos[0] >= 8 and _helper((pos[0]-1, pos[1])) != turn:
+                 yield (pos[0], pos[1], pos[0]-1, pos[1])
               if pos[1] >= 4 and _helper((pos[0], pos[1]-1)) != turn:
                  yield (pos[0], pos[1], pos[0], pos[1]-1)
               if pos[1] <= 4 and _helper((pos[0], pos[1]+1)) != turn:
@@ -1255,8 +1026,8 @@ class Board:
                     yield (pos[0], pos[1], pos[0], pos[1]-1)
            else:
               if pos[0] >= 5:
-                 if _helper((pos[0], pos[1]-1)) != turn:
-                    yield (pos[0], pos[1], pos[0], pos[1]-1)
+                 if _helper((pos[0]-1, pos[1])) != turn:
+                    yield (pos[0], pos[1], pos[0]-1, pos[1])
               else:
                  if pos[0] >= 1 and _helper((pos[0]-1, pos[1])) != turn:
                     yield (pos[0], pos[1], pos[0]-1, pos[1])

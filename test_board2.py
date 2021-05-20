@@ -3,6 +3,7 @@ import time
 import traceback
 
 B = board.Board()
-#rb, mapping, legal_moves = B.generate(turn=True, check=False, file='board_RED.json')
-rb, mapping, legal_moves = B.generate(turn=False, check=True, file='board_BLACK.json')
+for cnt in range(200):
+    rb, mapping, legal_moves = B.generate(turn=True, check=False, file='board_RED_%s.json'%cnt)
+    rb, mapping, legal_moves = B.generate(turn=False, check=True, file='board_BLACK_%s.json'%cnt)
 #print(legal_moves)
