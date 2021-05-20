@@ -643,6 +643,30 @@ class Board:
         self.turn = not self.turn
         return (src, dst, translate, self.turn)
 
+   def translate_board(self, board=None):
+   	  new_board = [' ']*256
+   	  t = 15
+   	  while t < 256:
+   	  	 new_board[t] = '\n'
+   	  	 t += 16
+   	  if board is None:
+   	  	 board = self.board
+   	  for i in range(self.H):
+   	  	 for j in range(self.W):
+   	  	 	x, y = 12 - i, 3 + j
+            chess = board[i][j]
+            covered = chess & common.MASK_CHESS_ISCOVERED
+            color = chess & common.MASK_COLOR
+            
+   	  return ''.join(new_board)
+
+   def translate_move(self, t):
+      orda = ord('a')
+   	  def _num2char(num):
+   	  	  return chr(orda + num)
+   	  ucci = _num2char(t[1]) + str(t[0]) + _num2char(t[3]) + str(t[2])
+   	  return ucci
+      
    def get_legal_moves(self, board=None, turn=None, chessdict=None, shuaijiang=None):
       #0.00013s
       #20210513, Buggy & Poorly Written
@@ -876,7 +900,6 @@ class Board:
 
    def get_legal_moves_speedup(self, board=None, turn=None, chessdict=None, shuaijiang=None):
       #0.00013s
-      #20210513, Buggy & Poorly Written
       if board is None or chessdict is None:
          board = self.board
          chessdict = self.chessdict
@@ -904,79 +927,79 @@ class Board:
            for i in range(pos[0]+1, self.H):
                result = _helper((i, pos[1]))
                if result is None:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
+                  yield (pos[0], pos[1], i, pos[1])
                elif result == turn:
                   break
                else:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
+                  yield (pos[0], pos[1], i, pos[1])
                   break
 
            for i in range(pos[0]-1, -1, -1):
                result = _helper((i, pos[1]))
                if result is None:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
+                  yield  (pos[0], pos[1], i, pos[1])
                elif result == turn:
                   break
                else:
-                  legal_moves.append((pos[0], pos[1], i, pos[1]))
+                  yield (pos[0], pos[1], i, pos[1])
                   break
 
            for j in range(pos[1]+1, self.W):
                result = _helper((pos[0], j))
                if result is None:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
+                  yield (pos[0], pos[1], pos[0], j)
                elif result == turn:
                   break
                else:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
+                  yield (pos[0], pos[1], pos[0], j)
                   break
 
            for j in range(pos[1]-1, -1, -1):
               result = _helper((pos[0], j))
               if result is None:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
+                  yield (pos[0], pos[1], pos[0], j)
               elif result == turn:
                   break
               else:
-                  legal_moves.append((pos[0], pos[1], pos[0], j))
+                  yield (pos[0], pos[1], pos[0], j)
                   break
 
         if chess_type == 2: #马
           if pos[0] < self.H - 2 and board[pos[0]+1][pos[1]] == 0:
              if pos[1] > 0 and _helper((pos[0]+2, pos[1]-1)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]-1))
+                yield (pos[0], pos[1], pos[0]+2, pos[1]-1)
              if pos[1] < self.W - 1 and _helper((pos[0]+2, pos[1]+1)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]+1))
+                yield (pos[0], pos[1], pos[0]+2, pos[1]+1)
 
           if pos[0] >= 2 and board[pos[0]-1][pos[1]] == 0:
              if pos[1] > 0 and _helper((pos[0]-2, pos[1]-1)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]-1))
+                yield (pos[0], pos[1], pos[0]-2, pos[1]-1)
              if pos[1] < self.W - 1 and _helper((pos[0]-2, pos[1]+1)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]+1))
+                yield (pos[0], pos[1], pos[0]-2, pos[1]+1)
 
           if pos[1] < self.W - 2 and board[pos[0]][pos[1]+1] == 0:
              if pos[0] > 0 and _helper((pos[0]-1, pos[1]+2)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]+2))
+                yield (pos[0], pos[1], pos[0]-1, pos[1]+2)
              if pos[0] < self.H-1 and _helper((pos[0]+1, pos[1]+2)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]+2))
+                yield (pos[0], pos[1], pos[0]+1, pos[1]+2)
 
           if pos[1] >= 2 and board[pos[0]][pos[1]-1] == 0:
              if pos[0] > 0 and _helper((pos[0]-1, pos[1]-2)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]-2))
+                yield (pos[0], pos[1], pos[0]-1, pos[1]-2)
              if pos[0] < self.H-1 and _helper((pos[0]+1, pos[1]-2)) != turn:
-                legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]-2))
+                yield (pos[0], pos[1], pos[0]+1, pos[1]-2)
 
         if chess_type == 3: #相
            if pos[0] < self.H - 2:
               if pos[1] < self.W - 2 and board[pos[0]+1][pos[1]+1] == 0 and _helper((pos[0]+2, pos[1]+2)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]+2))
+                 yield (pos[0], pos[1], pos[0]+2, pos[1]+2)
               if pos[1] >= 2 and board[pos[0]+1][pos[1]-1] == 0 and _helper((pos[0]+2, pos[1]-2)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+2, pos[1]-2))
+                 yield (pos[0], pos[1], pos[0]+2, pos[1]-2)
            if pos[0] >= 2:
               if pos[1] < self.W - 2 and board[pos[0]-1][pos[1]+1] == 0 and _helper((pos[0]-2, pos[1]+2)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]+2))
+                 yield (pos[0], pos[1], pos[0]-2, pos[1]+2)
               if pos[1] >= 2 and board[pos[0]-1][pos[1]-1] == 0 and _helper((pos[0]-2, pos[1]-2)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-2, pos[1]-2))
+                 yield (pos[0], pos[1], pos[0]-2, pos[1]-2)
 
         if chess_type == 4: #仕
            if board[pos[0]][pos[1]] & common.MASK_CHESS_ISCOVERED == common.MASK_CHESS_ISCOVERED: #暗士
@@ -998,26 +1021,26 @@ class Board:
            isdrink = self.drink(board=board, shuaijiang=shuaijiang)
            if turn:
               if pos[0] <= 1 and _helper((pos[0]+1, pos[1])) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]))
+                 yield (pos[0], pos[1], pos[0]+1, pos[1])
               if pos[0] >= 1 and _helper((pos[0]-1, pos[1])) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]))
+                 yield (pos[0], pos[1], pos[0]-1, pos[1])
               if pos[1] >= 4 and _helper((pos[0], pos[1]-1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
+                 yield (pos[0], pos[1], pos[0], pos[1]-1)
               if pos[1] <= 4 and _helper((pos[0], pos[1]+1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
+                 yield (pos[0], pos[1], pos[0], pos[1]+1)
               if isdrink:
-                 legal_moves.append((shuai[0], shuai[1], jiang[0], jiang[1]))
+                 yield (shuai[0], shuai[1], jiang[0], jiang[1])
            else:
               if pos[0] <= 8 and _helper((pos[0], pos[1]+1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
+                 yield (pos[0], pos[1], pos[0], pos[1]+1)
               if pos[0] >= 8 and _helper((pos[0], pos[1]-1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
+                 yield (pos[0], pos[1], pos[0], pos[1]-1)
               if pos[1] >= 4 and _helper((pos[0], pos[1]-1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
+                 yield (pos[0], pos[1], pos[0], pos[1]-1)
               if pos[1] <= 4 and _helper((pos[0], pos[1]+1)) != turn:
-                 legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
+                 yield (pos[0], pos[1], pos[0], pos[1]+1)
               if isdrink:
-                 legal_moves.append((jiang[0], jiang[1], shuai[0], shuai[1]))
+                 yield (jiang[0], jiang[1], shuai[0], shuai[1])
 
         if chess_type == 6:#炮
             obstacles = 0
@@ -1025,14 +1048,14 @@ class Board:
                result = _helper((i, pos[1]))
                if result is None:
                   if obstacles == 0:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
+                     yield (pos[0], pos[1], i, pos[1])
                elif result == turn:
                   if obstacles == 1:
                      break
                   obstacles += 1
                else:
                   if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
+                     yield (pos[0], pos[1], i, pos[1])
                      break
                   obstacles += 1
 
@@ -1041,14 +1064,14 @@ class Board:
                result = _helper((i, pos[1]))
                if result is None:
                   if obstacles == 0:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
+                     yield (pos[0], pos[1], i, pos[1])
                elif result == turn:
                   if obstacles == 1:
                      break
                   obstacles += 1
                else:
                   if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], i, pos[1]))
+                     yield (pos[0], pos[1], i, pos[1])
                      break
                   obstacles += 1
 
@@ -1057,14 +1080,14 @@ class Board:
                result = _helper((pos[0], j))
                if result is None:
                   if obstacles == 0:
-                      legal_moves.append((pos[0], pos[1], pos[0], j))
+                     yield (pos[0], pos[1], pos[0], j)
                elif result == turn:
                   if obstacles == 1:
                      break
                   obstacles += 1
                else:
                   if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], pos[0], j))
+                     yield (pos[0], pos[1], pos[0], j)
                      break
                   obstacles += 1
 
@@ -1073,14 +1096,14 @@ class Board:
                result = _helper((pos[0], j))
                if result is None:
                   if obstacles == 0:
-                     legal_moves.append((pos[0], pos[1], pos[0], j))
+                     yield (pos[0], pos[1], pos[0], j)
                elif result == turn:
                   if obstacles == 1:
                      break
                   obstacles += 1
                else:
                   if obstacles == 1:
-                     legal_moves.append((pos[0], pos[1], pos[0], j))
+                     yield (pos[0], pos[1], pos[0], j)
                      break
                   obstacles += 1
 
@@ -1088,27 +1111,25 @@ class Board:
            if turn:
               if pos[0] <= 4:
                  if _helper((pos[0]+1, pos[1])) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]))
+                    yield (pos[0], pos[1], pos[0]+1, pos[1])
               else:
                  if pos[0] <= 8 and _helper((pos[0]+1, pos[1])) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0]+1, pos[1]))
+                    yield (pos[0], pos[1], pos[0]+1, pos[1])
                  if pos[1] < self.W-1 and _helper((pos[0], pos[1]+1)) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
+                    yield (pos[0], pos[1], pos[0], pos[1]+1)
                  if pos[1] >= 1 and _helper((pos[0], pos[1]-1)) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
+                    yield (pos[0], pos[1], pos[0], pos[1]-1)
            else:
               if pos[0] >= 5:
                  if _helper((pos[0], pos[1]-1)) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
+                    yield (pos[0], pos[1], pos[0], pos[1]-1)
               else:
                  if pos[0] >= 1 and _helper((pos[0]-1, pos[1])) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0]-1, pos[1]))
+                    yield (pos[0], pos[1], pos[0]-1, pos[1])
                  if pos[1] < self.W-1 and _helper((pos[0], pos[1]+1)) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]+1))
+                    yield (pos[0], pos[1], pos[0], pos[1]+1)
                  if pos[1] >= 1 and _helper((pos[0], pos[1]-1)) != turn:
-                    legal_moves.append((pos[0], pos[1], pos[0], pos[1]-1))
+                    yield (pos[0], pos[1], pos[0], pos[1]-1)
 
-
-      return legal_moves
 
 
