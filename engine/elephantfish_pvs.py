@@ -7,7 +7,7 @@ from itertools import count
 from collections import namedtuple
 
 piece = { 'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
-
+put = lambda board, i, p: board[:i] + p + board[i+1:]
 # 子力价值表参考“象眼”
 
 pst = {
@@ -257,8 +257,6 @@ class Position(namedtuple('Position', 'board score')):
 
     def move(self, move):
         i, j = move
-        p, q = self.board[i], self.board[j]
-        put = lambda board, i, p: board[:i] + p + board[i+1:]
         # Copy variables and reset ep and kp
         board = self.board
         score = self.score + self.value(move)
@@ -471,7 +469,9 @@ def main():
 
         # After our move we rotate the board and print it again.
         # This allows us to see the effect of our move.
+        print("Before Rotate!")
         print_pos(hist[-1].rotate())
+        print("After Rotate!")
 
         if hist[-1].score <= -MATE_LOWER:
             print("You won")
