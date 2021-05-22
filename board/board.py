@@ -778,7 +778,7 @@ class Board:
       new_board = [' ']*256
       t = 15
       d = {
-   	      (False, 1): 'R', 
+          (False, 1): 'R', 
           (True, 1): 'D', 
           (False, 2): 'N', 
           (True, 2): 'E', 
@@ -786,11 +786,11 @@ class Board:
           (True, 3): 'F', 
           (False, 4): 'A', 
           (True, 4): 'G', 
-   	      (False, 5): 'K', 
-   	      (False, 6): 'C', 
-   	      (True, 6): 'H', 
-   	      (False, 7): 'P', 
-   	      (True, 7): 'I'
+          (False, 5): 'K', 
+          (False, 6): 'C', 
+          (True, 6): 'H', 
+          (False, 7): 'P', 
+          (True, 7): 'I'
    	  }
       while t < 256:
    	  	 new_board[t] = '\n'
