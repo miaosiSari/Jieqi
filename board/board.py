@@ -2,6 +2,7 @@ from . import common
 import random
 import json
 from copy import deepcopy
+from collections import Counter
 
 
 #参考代码
@@ -457,7 +458,7 @@ class Board:
        
        set_red_uncertainty_positions = set()
        if red > 0:
-          num_of_red_uncertainties = random.choice(range(1, red+1))
+          num_of_red_uncertainties = random.randint(1, red)
           _, set_red_uncertainty_positions = common.random_select(possible_uncertainties_positions, return_type=set, num=num_of_red_uncertainties)
           for pos in set_red_uncertainty_positions:
               chessdict[pos] = new_board[pos[0]][pos[1]] = 40
@@ -465,7 +466,7 @@ class Board:
        set_black_uncertainty_positions = set()
        if black > 0:
           possible_uncertainties_positions -= set_red_uncertainty_positions
-          num_of_black_uncertainties = random.choice(range(1, black+1))
+          num_of_black_uncertainties = random.randint(1, black)
           _, set_black_uncertainty_positions = common.random_select(possible_uncertainties_positions, return_type=set, num=num_of_black_uncertainties)
           for pos in set_black_uncertainty_positions:
               chessdict[pos] = new_board[pos[0]][pos[1]] = 32
@@ -791,7 +792,7 @@ class Board:
           (True, 6): 'H', 
           (False, 7): 'P', 
           (True, 7): 'I'
-   	  }
+      }
       while t < 256:
    	  	 new_board[t] = '\n'
    	  	 t += 16
@@ -815,14 +816,73 @@ class Board:
             color = chess & common.MASK_COLOR
             chess_type = chess & common.MASK_CHESS
             if chess_type < 1:
-            	new_board[pos] = '.'
-            	continue
+                new_board[pos] = '.'
+                continue
             T = d[(covered, chess_type)]
             if not color:
-            	T = T.swapcase()
+                T = T.swapcase()
             new_board[pos] = T
 
       return ''.join(new_board)
+
+   def translate_chess(self, chess, return_type=1):
+      assert return_type in {1, 2}
+      d1 = {
+          (False, 1): 'R', 
+          (True, 1): 'D', 
+          (False, 2): 'N', 
+          (True, 2): 'E', 
+          (False, 3): 'B', 
+          (True, 3): 'F', 
+          (False, 4): 'A', 
+          (True, 4): 'G', 
+          (False, 5): 'K', 
+          (False, 6): 'C', 
+          (True, 6): 'H', 
+          (False, 7): 'P', 
+          (True, 7): 'I'
+      }
+      d2 = {
+          (False, 1): '车', 
+          (True, 1): '暗车', 
+          (False, 2): '马', 
+          (True, 2): '暗马', 
+          (False, 3): '相', 
+          (True, 3): '暗相', 
+          (False, 4): '士', 
+          (True, 4): '暗士', 
+          (False, 5): '皇', 
+          (False, 6): '炮', 
+          (True, 6): '暗炮', 
+          (False, 7): '兵', 
+          (True, 7): '暗兵'
+      }
+      if chess & common.MASK_CHESS_UNCERTAIN != 0:
+         if chess & common.MASK_COLOR != 0:
+            if return_type == 1:
+              return 'U'
+            else:
+              return '不'
+         else:
+            if return_type == 1:
+               return 'u'
+            else:
+               return '不'
+      covered = ((chess & common.MASK_CHESS_ISCOVERED) != 0)
+      color = chess & common.MASK_COLOR
+      chess_type = chess & common.MASK_CHESS
+      if chess_type < 1:
+         if return_type == 1:
+            return '.'
+         else:
+            return '无'
+      if return_type == 1:
+         T = d1[(covered, chess_type)]
+         if not color:
+            T = T.swapcase()
+         return T
+      else:
+      	 return d2[(covered, chess_type)]
 
    def translate_move(self, t):
       orda = ord('a')
@@ -904,6 +964,48 @@ class Board:
             json.dump(filedict, f)
       return board, newmapping, legal_moves, shuaijiang, chessdict, original_board, original_mapping
 
+   def scan(self, board):
+      red, black = 0, 0
+      red_possible_list, black_possible_list = [], []
+      uncovered_counter = deepcopy(common.UNCOVERED_COUNTER)
+      if board is None:
+        board = self.board
+      for i in range(self.H):
+        for j in range(self.W):
+          if board[i][j] == 0:
+            continue
+          if (board[i][j] & common.MASK_CHESS_UNCERTAIN > 0) or (board[i][j] & common.MASK_CHESS_ISCOVERED > 0):
+            if board[i][j] & common.MASK_COLOR > 0:
+              red += 1
+            else:
+              black += 1
+          else:
+            uncovered_counter[board[i][j]] -= 1
+      for chess in uncovered_counter:
+        if chess & common.MASK_COLOR > 0:
+          red_possible_list += [chess] * uncovered_counter[chess]
+        else:
+          black_possible_list += [chess] * uncovered_counter[chess]
+      numred = random.randint(red, len(red_possible_list))
+      numblack = random.randint(black, len(black_possible_list))
+      finalredlist = random.sample(red_possible_list, numred)
+      finalblacklist = random.sample(black_possible_list, numblack)
+      #print("board.py --> scan: RED: choose %s from [%s, %s], BLACK: choose %s from [%s, %s]"%(numred, red, len(red_possible_list), numblack, black, len(black_possible_list)))
+      return dict(Counter(finalredlist)), dict(Counter(finalblacklist))
+
+   def scan_translate(self, board):
+      finalreddict, finalblackdict = self.scan(board)
+      reditems, blackitems = list(finalreddict.items()), list(finalblackdict.items())
+      f1 = lambda x: (self.translate_chess(x[0], 1), x[1])
+      f2 = lambda x: (self.translate_chess(x[0], 2), x[1])
+      l1_red = list(map(f1, reditems))
+      l2_red = list(map(f2, reditems))
+      l1_black = list(map(f1, blackitems))
+      l2_black = list(map(f2, blackitems))
+      d_red = {'1': dict(l1_red), '2': dict(l2_red)}
+      d_black = {'1': dict(l1_black), '2': dict(l2_black)}
+      return d_red, d_black
+      
    def render(self, i):
       #num to ucci representation
       rank, fil = divmod(i - Board.A0, 16)

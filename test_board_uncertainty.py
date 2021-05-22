@@ -1,7 +1,31 @@
-from board import board
+from board import board, common
 import time 
 import traceback
 import elephantfish_pvs
+from copy import deepcopy
+
+########################################
+#Check the symmetry of the scoring table
+########################################
+CHECK = False
+
+pst = deepcopy(common.pst)
+for key in pst:
+    for i in range(10):
+        for j in range(4):
+            k = 8 - j
+            x, y, z = 12 - i, 3 + j, 3 + k
+            pos1, pos2 = x * 16 + y, x * 16 + z
+            try:
+                assert pst[key][pos1] == pst[key][pos2]
+            except:
+                print("check i = %d, j = %d, key=%s, pos1=%s, pos2=%s, value1 = %s, value2 = %s"%(i, j, key, pos1, pos2, pst[key][pos1], pst[key][pos2]))
+                assert False
+print("CHECKED!")                
+
+########################################
+#Finish Checking
+########################################
 
 B = board.Board()
 for cnt in range(2000000):
@@ -9,6 +33,26 @@ for cnt in range(2000000):
     #print(rb)
     #print(original_board)
     #continue
+
+    ########################################
+    #Check translate_chess function
+    ########################################
+    if CHECK:
+        for i in range(10):
+            for j in range(9):
+                print("i = %d, j = %d"%(i, j), original_board[i][j])
+                print(B.translate_chess(original_board[i][j], 1))
+                print(B.translate_chess(original_board[i][j], 2))
+                print("\n\n")
+        input("Input anything to continue...")
+    ########################################
+    #Finish Checking
+    ########################################
+    rdict, bdict = B.scan_translate(original_board)
+    print("\033[31m 红: %s \033[0m"%str(rdict))
+    print("黑: %s"%str(bdict))
+    print("cnt=%d FINISHED!\n\n"%cnt)
+    continue
     p = elephantfish_pvs.Position(rb, 0)
     start = time.time()
     results = p.gen_moves()
