@@ -16,6 +16,7 @@ import random
 #7: 兵
 #1 << 3位: 红1/黑0
 #1 << 4位: 明0/暗1
+#1 << 5位: Uncertain
 RED_SHUAI = 13 #(0 << 4 + 1 << 3 + 5)
 BLACK_JIANG = 5 #(0 << 4 + 0 << 3 + 5)
 
@@ -56,6 +57,7 @@ MASK_CHESS = 7 #计算子的类型
 MASK_COLOR = 8 #计算子的颜色
 MASK_CHESS_COLOR = 15 #计算子的类型+颜色
 MASK_CHESS_ISCOVERED = 16 #计算子的明暗
+MASK_CHESS_UNCERTAIN = 32 #此子是否不确定
 
 DIRECTION_DICT = {
   #红明

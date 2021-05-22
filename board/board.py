@@ -306,33 +306,35 @@ class Board:
    	  #print_pos(pos) function
       chessstr = ''
       uni_pieces = {
-      '.':'．',
+       '.':'．',
        'R':'\033[31m俥\033[0m',
        'N': '\033[31m傌\033[0m', 
        'B': '\033[31m相\033[0m', 
-       'A':'\033[31m仕\033[0m', 
-       'K':'\033[31m帅\033[0m', 
-       'P':'\033[31m兵\033[0m', 
-       'C':'\033[31m炮\033[0m', 
+       'A': '\033[31m仕\033[0m', 
+       'K': '\033[31m帅\033[0m', 
+       'P': '\033[31m兵\033[0m', 
+       'C': '\033[31m炮\033[0m', 
+       'U': '\033[31m不\033[0m', 
        'D': '\033[31m暗\033[0m', 
        'E': '\033[31m暗\033[0m',
        'F': '\033[31m暗\033[0m',
        'G': '\033[31m暗\033[0m',
        'H': '\033[31m暗\033[0m', 
        'I': '\033[31m暗\033[0m',
-       'r':'车', 
-       'n':'马', 
-       'b':'象', 
-       'a':'士', 
-       'k':'将', 
-       'p':'卒', 
-       'c':'炮', 
-       'd':'暗', 
-       'e':'暗',
-       'f':'暗',
-       'g':'暗',
-       'h':'暗', 
-       'i':'暗'
+       'r': '车', 
+       'n': '马', 
+       'b': '象', 
+       'a': '士', 
+       'k': '将', 
+       'p': '卒', 
+       'c': '炮', 
+       'd': '暗', 
+       'e': '暗',
+       'f': '暗',
+       'g': '暗',
+       'h': '暗', 
+       'i': '暗',
+       'u': '不'
       }
       for i, row in enumerate(board.split()):
           joinstr = ''.join(uni_pieces.get(p, p) for p in row)
@@ -355,8 +357,8 @@ class Board:
        chessdict = {}
        #处理固定的暗子
        covered_number, fixed_covered_chesses = common.random_select(common.COVERED_POSITIONS, set)
-       for element in fixed_covered_chesses:
-           chessdict[element] = new_board[element[0]][element[1]] = self.original_board[element[0]][element[1]]
+       for pos in fixed_covered_chesses:
+           chessdict[pos] = new_board[pos[0]][pos[1]] = self.original_board[pos[0]][pos[1]]
        #安置帅将
        RED_SHUAI_POSSIBLE_POSITIONS = common.RED_JIUGONG - fixed_covered_chesses #红帅不能和红暗士重叠
        RED_SHUAI_POS = random.sample(RED_SHUAI_POSSIBLE_POSITIONS, 1)[0]
@@ -369,8 +371,8 @@ class Board:
        #将帅已安置，不能重复考虑
        uncovered_counter[common.RED_SHUAI] = uncovered_counter[common.BLACK_JIANG] = 0
        #去除没被揭开的部分
-       for element in fixed_covered_chesses:
-           uncovered_counter[mapping[element]] -= 1
+       for pos in fixed_covered_chesses:
+           uncovered_counter[mapping[pos]] -= 1
        #将dict展开为multi-set: {'k':2} --> ['k', 'k']
        red_bing_positions = common.random_select(other_possible_positions - common.RED_BING_FORBIDDEN, return_type=set, num=uncovered_counter.get(15, 0))[1]
        for pos in red_bing_positions:
@@ -392,6 +394,82 @@ class Board:
            new_board[pos[0]][pos[1]] = element
            chessdict[(pos[0], pos[1])] = element
        assert self.initialize_chessdict(new_board) == chessdict
+       return new_board, mapping, (RED_SHUAI_POS, BLACK_JIANG_POS), chessdict
+
+   def random_board_uncertainty(self):
+       #This function generates a random board
+       #Consider uncertainty 2021/05/22
+       new_board = self.initialize_another_board()
+       mapping = self.initialize_another_mapping()
+       chessdict = {}
+       red = black = 0
+       #处理固定的暗子
+       covered_number, fixed_covered_chesses = common.random_select(common.COVERED_POSITIONS, set)
+       for pos in fixed_covered_chesses:
+           chessdict[pos] = new_board[pos[0]][pos[1]] = self.original_board[pos[0]][pos[1]]
+       #安置帅将
+       RED_SHUAI_POSSIBLE_POSITIONS = common.RED_JIUGONG - fixed_covered_chesses #红帅不能和红暗士重叠
+       RED_SHUAI_POS = random.sample(RED_SHUAI_POSSIBLE_POSITIONS, 1)[0]
+       new_board[RED_SHUAI_POS[0]][RED_SHUAI_POS[1]] = chessdict[RED_SHUAI_POS] = common.RED_SHUAI
+       BLACK_JIANG_POSSIBLE_POSITIONS = common.BLACK_JIUGONG - fixed_covered_chesses #黑将不能和黑暗士重叠
+       BLACK_JIANG_POS = random.sample(BLACK_JIANG_POSSIBLE_POSITIONS, 1)[0]
+       new_board[BLACK_JIANG_POS[0]][BLACK_JIANG_POS[1]] = chessdict[BLACK_JIANG_POS] = common.BLACK_JIANG
+       other_possible_positions = common.ALL_POSITIONS- {RED_SHUAI_POS} - {BLACK_JIANG_POS} - fixed_covered_chesses
+       uncovered_counter = deepcopy(common.UNCOVERED_COUNTER)
+       #将帅已安置，不能重复考虑
+       uncovered_counter[common.RED_SHUAI] = uncovered_counter[common.BLACK_JIANG] = 0
+       #去除没被揭开的部分
+       for pos in fixed_covered_chesses:
+           uncovered_counter[mapping[pos]] -= 1
+       #将dict展开为multi-set: {'k':2} --> ['k', 'k']
+       red_bing_positions = common.random_select(other_possible_positions - common.RED_BING_FORBIDDEN, return_type=set, num=uncovered_counter.get(15, 0))[1]
+       for pos in red_bing_positions:
+           chessdict[pos] = new_board[pos[0]][pos[1]] = 15
+       black_zu_positions = common.random_select(other_possible_positions - common.BLACK_ZU_FORBIDDEN - red_bing_positions, return_type=set, num=uncovered_counter.get(7, 0))[1]
+       for pos in black_zu_positions:
+           chessdict[pos] = new_board[pos[0]][pos[1]] = 7
+       uncovered_counter[15] = uncovered_counter[7] = 0
+       other_possible_positions = other_possible_positions - red_bing_positions - black_zu_positions
+
+       all_uncovered_chesses = []
+       for k in uncovered_counter:
+           all_uncovered_chesses += [k]*uncovered_counter[k]
+       #选取存活的明子
+       number_of_alived_uncovered_chesses, alive_uncovered_chesses = common.random_select(all_uncovered_chesses)
+       positions_of_alived_uncovered_chesses = random.sample(other_possible_positions, number_of_alived_uncovered_chesses)
+       for i, element in enumerate(alive_uncovered_chesses):
+           pos = positions_of_alived_uncovered_chesses[i]
+           new_board[pos[0]][pos[1]] = element
+           chessdict[(pos[0], pos[1])] = element
+
+       #计算剩余位置, 2021/05/22
+       possible_uncertainties_positions = other_possible_positions - set(positions_of_alived_uncovered_chesses)
+
+       for key in chessdict:
+       	   if chessdict[key] == 0:
+       	   	  continue
+       	   if chessdict[key] & common.MASK_COLOR == common.MASK_COLOR:
+       	   	  red += 1
+       	   else:
+       	   	  black += 1
+       
+       red, black = 16-red, 16-black
+       
+       set_red_uncertainty_positions = set()
+       if red > 0:
+          num_of_red_uncertainties = random.choice(range(1, red+1))
+          _, set_red_uncertainty_positions = common.random_select(possible_uncertainties_positions, return_type=set, num=num_of_red_uncertainties)
+          for pos in set_red_uncertainty_positions:
+              chessdict[pos] = new_board[pos[0]][pos[1]] = 40
+
+       set_black_uncertainty_positions = set()
+       if black > 0:
+          possible_uncertainties_positions -= set_red_uncertainty_positions
+          num_of_black_uncertainties = random.choice(range(1, black+1))
+          _, set_black_uncertainty_positions = common.random_select(possible_uncertainties_positions, return_type=set, num=num_of_black_uncertainties)
+          for pos in set_black_uncertainty_positions:
+              chessdict[pos] = new_board[pos[0]][pos[1]] = 32
+
        return new_board, mapping, (RED_SHUAI_POS, BLACK_JIANG_POS), chessdict
 
    def generate_and_check(self):
@@ -724,6 +802,15 @@ class Board:
             x, y = 12 - i, 3 + j
             pos = x * 16 + y
             chess = board[i][j]
+            ######################################################
+            #Handle the Uncertainty Case   
+            ######################################################
+            if chess & common.MASK_CHESS_UNCERTAIN != 0:
+               if chess & common.MASK_COLOR != 0:
+               	  new_board[pos] = 'U'
+               else:
+               	  new_board[pos] = 'u'
+               continue
             covered = ((chess & common.MASK_CHESS_ISCOVERED) != 0)
             color = chess & common.MASK_COLOR
             chess_type = chess & common.MASK_CHESS
@@ -771,8 +858,12 @@ class Board:
           newmapping[pos] = T
       return newmapping
 
-   def generate(self, turn, check=False, file=False, verbose=False):
-      board, mapping, shuaijiang, chessdict = self.random_board()
+   def generate(self, turn, check=False, file=False, verbose=False, uncertainty=False):
+      board, mapping, shuaijiang, chessdict = None, None, None, None
+      if uncertainty:
+         board, mapping, shuaijiang, chessdict = self.random_board_uncertainty()
+      else:
+         board, mapping, shuaijiang, chessdict = self.random_board()
       original_board = deepcopy(board)
       original_mapping = deepcopy(mapping)
       legal_moves = list(self.get_legal_moves_speedup(board=board, turn=turn, shuaijiang=shuaijiang, chessdict=chessdict))

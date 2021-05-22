@@ -243,14 +243,15 @@ class Position(namedtuple('Position', 'board score')):
         # as defined in the 'directions' map. The rays are broken e.g. by
         # captures or immediately in case of pieces such as knights.
         for i, p in enumerate(self.board):
+
+            if not p.isupper() or p == 'U': continue
+
             if p == 'K': 
                 for scanpos in range(i - 16, A9, -16):
                     if self.board[scanpos] == 'k':
                         yield (i,scanpos)
                     elif self.board[scanpos] != '.':
                         break
-
-            if not p.isupper(): continue
 
             if p in ('C', 'H'): #明暗炮
                 for d in directions[p]:
