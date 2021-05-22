@@ -8,6 +8,7 @@ from itertools import count
 from collections import namedtuple
 import random
 from board import board
+from board import common
 
 B = board.Board()
 piece = {'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}

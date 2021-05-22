@@ -105,14 +105,14 @@ COVERED_POSITIONS = set(RED_POSITIONS + BLACK_POSITIONS)
 LEN_COVERED_POSITIONS = len(COVERED_POSITIONS)
 ALL_POSITIONS = set()
 for i in range(10):
-	for j in range(9):
-		ALL_POSITIONS.add((i, j))
+    for j in range(9):
+        ALL_POSITIONS.add((i, j))
 RED_JIUGONG = {(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)} #红方九宫格
 BLACK_JIUGONG = {(9, 3), (9, 4), (9, 5), (8, 3), (8, 4), (8, 5), (7, 3), (7, 4), (7, 5)} #黑方九宫格
-COVERED_COUNTER = {(1<<4)+(1<<3)+1: 2, (1<<4)+(1<<3)+2: 2, (1<<4)+(1<<3)+3: 2, (1<<4)+(1<<3)+4: 2, (1<<4)+(1<<3)+6: 2, (1<<4)+(1<<3)+7: 5,
-(1<<4)+(0<<3)+1: 2, (1<<4)+(0<<3)+2: 2, (1<<4)+(0<<3)+3: 2, (1<<4)+(0<<3)+4: 2, (1<<4)+(0<<3)+6: 2, (1<<4)+(0<<3)+7: 5}
-UNCOVERED_COUNTER = {(0<<4)+(1<<3)+1: 2, (0<<4)+(1<<3)+2: 2, (0<<4)+(1<<3)+3: 2, (0<<4)+(1<<3)+4: 2, (0<<4)+(1<<3)+5: 1, (0<<4)+(1<<3)+6: 2, (0<<4)+(1<<3)+7: 5,
-(0<<4)+(0<<3)+1: 2, (0<<4)+(0<<3)+2: 2, (0<<4)+(0<<3)+3: 2, (0<<4)+(0<<3)+4: 2, (0<<4)+(0<<3)+5: 1, (0<<4)+(0<<3)+6: 2, (0<<4)+(0<<3)+7: 5}
+COVERED_COUNTER = {(1 << 4)+(1 << 3)+1: 2, (1 << 4)+(1 << 3)+2: 2, (1 << 4)+(1 << 3)+3: 2, (1 << 4)+(1 << 3)+4: 2, (1 << 4)+(1 << 3)+6: 2, (1 << 4)+(1 << 3)+7: 5,
+(1 << 4)+(0 << 3)+1: 2, (1 << 4)+(0 << 3)+2: 2, (1 << 4)+(0 << 3)+3: 2, (1 << 4)+(0 << 3)+4: 2, (1 << 4)+(0 << 3)+6: 2, (1 << 4)+(0 << 3)+7: 5}
+UNCOVERED_COUNTER = {(0 << 4)+(1 << 3)+1: 2, (0 << 4)+(1 << 3)+2: 2, (0 << 4)+(1 << 3)+3: 2, (0 << 4)+(1 << 3)+4: 2, (0 << 4)+(1 << 3)+5: 1, (0 << 4)+(1 << 3)+6: 2, (0 << 4)+(1 << 3)+7: 5,
+(0 << 4)+(0 << 3)+1: 2, (0 << 4)+(0 << 3)+2: 2, (0 << 4)+(0 << 3)+3: 2, (0 << 4)+(0 << 3)+4: 2, (0 << 4)+(0 << 3)+5: 1, (0 << 4)+(0 << 3)+6: 2, (0 << 4)+(0 << 3)+7: 5}
 RED_BING_FORBIDDEN = {(0, 0), (0, 8), (1, 2), (1, 6)}
 BLACK_ZU_FORBIDDEN = {(9, 0), (9, 8), (8, 2), (8, 6)}
 '''
@@ -163,7 +163,7 @@ def random_select(s, return_type=None, num=None):
     #s is a (multi-)set. This function selects one element from the power set of s.
     lens = len(s)
     if num is None:
-	    num = random.randint(0, lens)
+       num = random.randint(0, lens)
     sampled = random.sample(s, num)
     if return_type:
         sampled = return_type(sampled)
@@ -172,8 +172,8 @@ def random_select(s, return_type=None, num=None):
 
 def addsub(A, B, op):
     if op == '+':
-        return (A[0] + B[0], A[1] + B[1])
+        return A[0] + B[0], A[1] + B[1]
     elif op == '-':
-	    return (A[0] - B[0], A[1] - B[1])
+        return A[0] - B[0], A[1] - B[1]
     elif op == '==':
         return A == B
