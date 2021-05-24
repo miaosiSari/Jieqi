@@ -70,6 +70,7 @@ class Board:
        self.chessdict = dict()
        self.initialize()
        self.original_board = deepcopy(self.board)
+       self.pst = deepcopy(common.pst)
        self.turn = True #turn == True: 红方行棋, turn == False: 黑方行棋
        self.history = []
        self.shuai = (0, 4)
@@ -1004,8 +1005,101 @@ class Board:
       l2_black = list(map(f2, blackitems))
       d_red = {'1': dict(l1_red), '2': dict(l2_red)}
       d_black = {'1': dict(l1_black), '2': dict(l2_black)}
-      return d_red, d_black
-      
+      d_dict = {'r': finalreddict, 'b': finalblackdict}
+      return d_red, d_black, d_dict
+
+   def evaluate(self, board, dict_red, dict_black, verbose=False):
+       '''
+       核心! 揭棋局面评分函数
+       board: icybee 字符串表示
+       dict_red: 红方剩余暗子的可能集合
+       dict_black: 黑方剩余暗子
+       '''
+
+       def _helper(pos):
+          return chr(ord('a') + pos % 16 - 3) + str(12 - pos//16)
+
+       bonus_anche = 130
+       discount_factor = 3
+
+       sum_red, sum_black = 0, 0
+       average_coveredr, average_coveredb = 0, 0
+       averager, averageb = {}, {}
+       lenkeyr, lenkeyb = sum(dict_red[key] for key in dict_red), sum(dict_black[key] for key in dict_black)
+       
+       if lenkeyr == 0:
+          average_coveredr = 0
+       else:
+          for key in dict_red:
+              sum_red += self.pst["1"][key] * dict_red[key] // discount_factor
+          average_coveredr = sum_red / lenkeyr
+
+
+       if lenkeyb == 0:
+          average_coveredb = 0
+       else:
+          for key in dict_black:
+              sum_black += self.pst["1"][key.swapcase()] * dict_black[key] // discount_factor
+          average_coveredb = sum_black / lenkeyb
+
+       for cnt in range(51, 204):
+          sum_red = 0
+          sum_black = 0
+          if lenkeyr == 0:
+              averager[cnt] = 0
+          else:
+              for key in dict_red:
+                  sum_red += self.pst[key][cnt] * dict_red[key]
+              averager[cnt] = sum_red / lenkeyr
+          if lenkeyb == 0:
+              averageb[cnt] = 0
+          else:
+              for key in dict_black:
+                  sum_black += self.pst[key.swapcase()][cnt] * dict_black[key]
+              averageb[cnt] = sum_black / lenkeyb
+       #print(averager, averageb)
+
+       #评分函数
+       score_red = 0
+       score_black = 0
+       for cnt in range(51, 204):
+          if board[cnt] in 'DEFGHI':
+             if verbose:
+                print("\033[31m 红暗: (%s): %s + %s --> %s \033[0m"%(_helper(cnt), score_red, average_coveredr, score_red+average_coveredr))
+             score_red += average_coveredr
+          elif board[cnt] in 'RNBAKCP':
+             if verbose:
+                print("\033[31m 红明: (%s): %s + %s --> %s \033[0m"%(_helper(cnt), score_red, self.pst[board[cnt]][cnt], score_red+self.pst[board[cnt]][cnt]))
+             score_red += self.pst[board[cnt]][cnt]
+          elif board[cnt] == 'U':
+             if verbose:
+                print("\033[31m 红不: (%s): %s + %s --> %s \033[0m"%(_helper(cnt), score_red, averager[cnt], score_red+averager[cnt]))
+             score_red += averager[cnt]
+          elif board[cnt] in 'defghi':
+             if verbose:
+                print(" 黑暗: (%s): %s + %s --> %s"%(_helper(cnt), score_black, average_coveredb, score_black+average_coveredb))  
+             score_black += average_coveredb
+          elif board[cnt] in 'rnbakcp':
+             if verbose:
+                print(" 黑明: (%s): %s + %s --> %s"%(_helper(cnt), score_black, self.pst[board[cnt].swapcase()][254-cnt], score_black+self.pst[board[cnt].swapcase()][254-cnt]))  
+             score_black += self.pst[board[cnt].swapcase()][254-cnt]
+          elif board[cnt] == 'u':
+             if verbose:
+                print(" 黑不: (%s): %s + %s --> %s"%(_helper(cnt), score_black, averageb[254-cnt], score_black+averageb[254-cnt]))  
+             score_black += averageb[254-cnt]
+
+       #暗车开出，扣分!
+       if board[195] != 'D':
+          score_red -= bonus_anche
+       if board[203] != 'D':
+          score_red -= bonus_anche
+       if board[51] != 'd':
+       	  score_black -= bonus_anche
+       if board[59] != 'd':
+       	  score_black -= bonus_anche
+
+       return score_red, score_black
+
    def render(self, i):
       #num to ucci representation
       rank, fil = divmod(i - Board.A0, 16)

@@ -11,6 +11,8 @@ CHECK = False
 
 pst = deepcopy(common.pst)
 for key in pst:
+    if key == "1":
+        continue
     for i in range(10):
         for j in range(4):
             k = 8 - j
@@ -48,9 +50,11 @@ for cnt in range(2000000):
     ########################################
     #Finish Checking
     ########################################
-    rdict, bdict = B.scan_translate(original_board)
+    rdict, bdict, d = B.scan_translate(original_board)
     print("\033[31m 红: %s \033[0m"%str(rdict))
     print("黑: %s"%str(bdict))
+    score_red, score_black = B.evaluate(rb, rdict['1'], bdict['1'], True)
+    print("\033[31m 红方得分: %s \033[0m, 黑方得分: %s"%(score_red, score_black))
     print("cnt=%d FINISHED!\n\n"%cnt)
     continue
     p = elephantfish_pvs.Position(rb, 0)
