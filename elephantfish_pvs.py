@@ -307,8 +307,11 @@ class Position(namedtuple('Position', 'board score turn')):
         i, j = move
         p, q = self.board[i], self.board[j].upper()
         # Actual move
+        if q == 'k':
+            return 2500 
         if p in 'RNBAKCP':
-            score = pst[p][j] - pst[p][i]
+            score = pst[p][j] - pst[p][i] #这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
+            #因此，当对方是老将时应直接返回最大值，不能考虑己方。
         else:
             # 不确定明子的平均价值计算算法:
             # 假设某一方可能的暗子是 两车一炮。
@@ -393,7 +396,9 @@ class Searcher:
             # piece left on the board, since otherwise zugzwangs are too dangerous.
         if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
             val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-2, root=False)
-            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 2,root=False): return val
+            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 2,root=False):
+               #print("depth=%s, Return from nullmove! val=%s"%(depth, val))
+               return val
         # For QSearch we have a different kind of null-move, namely we can just stop
         # and not capture anything else.
         if depth == 0:
