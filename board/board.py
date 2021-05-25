@@ -252,12 +252,10 @@ class Board:
        self.initialize_soldiers()
        self.turn = True
 
-
    def reset(self):
        self.mapping = {}
        self.initialize_board()
        self.turn = False
-
 
    def return_turn(self, verbose=True):
        if self.turn:
