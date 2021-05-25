@@ -310,7 +310,7 @@ class Position(namedtuple('Position', 'board score turn')):
         if p == 'H' and ((i == 164 and j == 52) or (i == 170and j == 58)): #TODO: 使用更智能的方式处理博子
             return -200
         if q == 'K':
-            return 2500 
+            return 3500
         if p in 'RNBAKCP':
             score = pst[p][j] - pst[p][i] #这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
             #因此，当对方是老将时应直接返回最大值，不能考虑己方。
