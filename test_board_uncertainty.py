@@ -7,6 +7,17 @@ from copy import deepcopy
 ########################################
 #Check the symmetry of the scoring table
 ########################################
+
+x = time.time()
+for i in range(100000000):
+    y = 23.34 + 31.35
+print(time.time() - x)
+
+x = time.time()
+for i in range(100000000):
+    y = 23+31
+print(time.time() - x)
+input()
 CHECK = False
 
 pst = deepcopy(common.pst)
@@ -56,7 +67,7 @@ for cnt in range(2000000):
     score_red, score_black = B.evaluate(rb, rdict['1'], bdict['1'], True)
     print("\033[31m 红方得分: %s \033[0m, 黑方得分: %s"%(score_red, score_black))
     print("cnt=%d FINISHED!\n\n"%cnt)
-    continue
+    #continue
     p = elephantfish_pvs.Position(rb, 0)
     start = time.time()
     results = p.gen_moves()

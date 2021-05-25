@@ -14,9 +14,19 @@ from copy import deepcopy
 B = board.Board()
 piece = {'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
 put = lambda board, i, p: board[:i] + p + board[i+1:]
+r = {'R': 2, 'N': 2, 'B': 2, 'A': 2, 'C': 2, 'P': 5}
+b = {'r': 2, 'n': 2, 'b': 2, 'a': 2, 'c': 2, 'p': 5}
 # 子力价值表参考“象眼”
 
+
+def resetrbdict():
+    global r, b
+    r = {'R': 2, 'N': 2, 'B': 2, 'A': 2, 'C': 2, 'P': 5}
+    b = {'r': 2, 'n': 2, 'b': 2, 'a': 2, 'c': 2, 'p': 5}
+
+
 pst = deepcopy(common.pst)
+discount_factor = common.discount_factor
 
 A0, I0, A9, I9 = 12 * 16 + 3, 12 * 16 + 11, 3 * 16 + 3,  3 * 16 + 11
 
@@ -134,13 +144,14 @@ THINK_TIME = 0.5
 # To be more convenient, we initialize the mapping as a global const dictionary
 ###############################################################################
 mapping = {}
+average = {}
 
 
 ###############################################################################
 # Chess logic
 ###############################################################################
 
-class Position(namedtuple('Position', 'board score')):
+class Position(namedtuple('Position', 'board score turn')):
     """ A state of a chess game
     board -- a 256 char representation of the board
     score -- the board evaluation
@@ -149,8 +160,9 @@ class Position(namedtuple('Position', 'board score')):
         # For each of our pieces, iterate through each possible 'ray' of moves,
         # as defined in the 'directions' map. The rays are broken e.g. by
         # captures or immediately in case of pieces such as knights.
-        for i, p in enumerate(self.board):
+        for i in range(51, 204):
 
+            p = self.board[i]
             if not p.isupper() or p == 'U': continue
 
             if p == 'K': 
@@ -198,7 +210,7 @@ class Position(namedtuple('Position', 'board score')):
     def rotate(self):
         ''' Rotates the board, preserving enpassant '''
         return Position(
-            self.board[-2::-1].swapcase() + " ", -self.score)
+            self.board[-2::-1].swapcase() + " ", -self.score, not self.turn)
 
     def nullmove(self):
         ''' Like rotate, but clears ep and kp '''
@@ -210,32 +222,15 @@ class Position(namedtuple('Position', 'board score')):
         board = self.board
         score = self.score + self.value(move)
         # Actual move
-        board = put(board, j, board[i])
-        board = put(board, i, '.')
-        return Position(board, score).rotate()
-
-    def mymove(self, move):
-        i, j = move
-        put = lambda board, i, p: board[:i] + p + board[i+1:]
-        # Copy variables and reset ep and kp
-        board = self.board
-        ############################################################################
-        # TODO: Evaluate the score of each move!
-        # The following line is NOT implemented. However, it is extremely important!
-        # score = self.score + self.value(move)
-        ############################################################################
-        # Actual move
-        # put = lambda board, i, p: board[:i] + p + board[i + 1:]
-        if board[i] in "RNBAKCP":
+        if board[i] in 'RNBAKCP':
             board = put(board, j, board[i])
         else:
-            board = put(board, j, mapping[i])
+            board = put(board, j, 'U')
         board = put(board, i, '.')
-        return Position(board, self.score).rotate()
+        return Position(board, score, self.turn).rotate()
 
-    def mymove_check(self, move):
+    def mymove_check(self, move, discount_red=True, discount_black=False):
         i, j = move
-        put = lambda board, i, p: board[:i] + p + board[i+1:]
         # Copy variables and reset ep and kp
         board = self.board
         ############################################################################
@@ -254,22 +249,71 @@ class Position(namedtuple('Position', 'board score')):
 
         if board[j] in "defghi":
             dst = mapping[j]
+            #这里是吃暗子的逻辑
+            #在这个简易程序中，假设AI执黑，玩家执红。
+            #那么AI其实是不知道玩家吃了自己什么暗子的
+            #因此在玩家执红吃黑暗子时，黑方的暗子集合并不会更新。
+            #本程序设置了discount_red/black开关处理这一逻辑。
+            if self.turn:
+               if discount_black:
+                   dst2 = dst.lower()
+                   b[dst2] -= 1
+                   if b[dst2] == 0:
+                      b.pop(dst2)
+            else:
+               if discount_red: #2021/05/25 BUGGY!!!!!!!!!!!!!!!!
+                   #BUGGY: KeyError: 'A'
+                   ##########################
+                   #TODO: Reproduce this bug.
+                   ##########################
+                   print("BUGGY! self.turn = %s, dst = %s"%(self.turn, dst))
+                   dst2 = dst.upper()
+                   r[dst2] -= 1
+                   if r[dst2] == 0:
+                       r.pop(dst2)
+
         if board[i] in "RNBAKCP":
             board = put(board, j, board[i])
         else:
             board = put(board, j, mapping[i])
+            if self.turn:
+               dst2 = mapping[i].upper()
+               r[dst2] -= 1
+               if r[dst2] == 0:
+                  r.pop(dst2)
+            else:
+               dst2 = mapping[i].lower()
+               b[dst2] -= 1
+               if b[dst2] == 0:
+                   b.pop(dst2)
         board = put(board, i, '.')
 
-        return Position(board, self.score).rotate(), checkmate, eat, dst
+        return Position(board, self.score, self.turn).rotate(), checkmate, eat, dst
 
     def value(self, move):
         i, j = move
-        p, q = self.board[i], self.board[j]
+        p, q = self.board[i], self.board[j].upper()
         # Actual move
-        score = pst[p][j] - pst[p][i]
+        if p in 'RNBAKCP':
+            score = pst[p][j] - pst[p][i]
+        else:
+            # 不确定明子的平均价值计算算法:
+            # 假设某一方可能的暗子是 两车一炮。
+            # 则在某位置处不确定明子的价值为 (车在该处的价值*2 + 炮在该处的价值)/(2+1)。
+            # 为了加速计算，这一数值已经被封装到了average这一字典中并预先计算(Pre-compute)。
+            score = average[self.turn][True][j] - average[self.turn][False]  # 相应位置不确定明子的平均价值 - 暗子
+            if p == 'D':
+               score -= 80  # 暗车溜出，扣分!
+
         # Capture
-        if q.islower():
-            score += pst[q.upper()][255-j-1]
+        if q.isupper():
+            k = 254 - j
+            if q in 'RNBAKCP':
+               score += pst[q][k]
+            else:
+               score += average[not self.turn][False]
+               if q == 'D':
+                   score += 130 #吃对方暗车，加分!
         return score
 
 ###############################################################################
@@ -285,6 +329,7 @@ class Searcher:
         self.tp_move = {}
         self.history = set()
         self.nodes = 0
+        self.average = {}
 
     def alphabeta(self, pos, alpha, beta, depth, root=True):
         """ returns r where
@@ -332,10 +377,10 @@ class Searcher:
             # First try not moving at all. We only do this if there is at least one major
             # piece left on the board, since otherwise zugzwangs are too dangerous.
         if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
-            val = -self.alphabet(pos.nullmove(), -beta,1-beta, depth-3, root=False)
-            if val >= beta and self.alphabet(pos,alpha,beta,depth - 3,root=False): return val
+            val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-3, root=False)
+            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 3,root=False): return val
         # For QSearch we have a different kind of null-move, namely we can just stop
-        # and not capture anythign else.
+        # and not capture anything else.
         if depth == 0:
             return pos.score
         # Then killer move. We search it twice, but the tp will fix things for us.
@@ -351,13 +396,14 @@ class Searcher:
         #for val, move in sorted(((pos.value(move), move) for move in pos.gen_moves()), reverse=True):
             # If depth == 0 we only try moves with high intrinsic score (captures and
             # promotions). Otherwise we do all moves.
+            #print(depth, move)
             if (move is not None) and (depth > 0):
                 if best == -MATE_UPPER:
-                    val = -self.alphabet(pos.move(move), -beta, -alpha, depth - 1, root=False)
+                    val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False)
                 else:
-                    val = -self.alphabet(pos.move(move), -alpha - 1, -alpha, depth - 1, root=False)
+                    val = -self.alphabeta(pos.move(move), -alpha - 1, -alpha, depth - 1, root=False)
                     if val > alpha and val < beta:
-                        val = -self.alphabet(pos.move(move), -beta, -alpha, depth - 1, root=False)
+                        val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False)
                 if val > best:
                     best = val
                     if val > beta:
@@ -401,6 +447,7 @@ class Searcher:
     def search(self, pos, history=()):
         """ Iterative deepening MTD-bi search """
         self.nodes = 0
+        self.calc_average()
         if DRAW_TEST:
             self.history = set(history)
             # print('# Clearing table due to new history')
@@ -408,18 +455,64 @@ class Searcher:
 
         # In finished games, we could potentially go far enough to cause a recursion
         # limit exception. Hence we bound the ply.
-        for depth in range(1, 1000):
+        for depth in range(5, 6):
             # The inner loop is a binary search on the score of the position.
             # Inv: lower <= score <= upper
             # 'while lower != upper' would work, but play tests show a margin of 20 plays
             # better.
             lower, upper = -MATE_UPPER, MATE_UPPER
-            self.alphabeta(pos, lower,upper, depth)
-            yield depth, self.tp_move.get(pos), self.tp_score.get((pos, depth, True),Entry(-MATE_UPPER, MATE_UPPER)).lower
+            self.alphabeta(pos, lower, upper, depth)
+            yield depth, self.tp_move.get(pos), self.tp_score.get((pos, depth, True), Entry(-MATE_UPPER, MATE_UPPER)).lower
+
+    def calc_average(self):
+        global average
+
+        numr, numb = sum(r[key] for key in r), sum(b[key] for key in b)
+        averagecoveredr, averagecoveredb = 0, 0
+        averager, averageb = {}, {}
+
+        if numr == 0:
+            averagecoveredr = 0
+            for i in range(51, 204):
+                averager[i] = 0
+
+        else:
+            sumr = 0
+            for key in r.keys():
+                sumr += pst["1"][key] * r[key] / discount_factor
+            averagecoveredr = int(sumr//numr)
+
+            for i in range(51, 204):
+                sumr = 0
+                for key in r.keys():
+                    sumr += pst[key][i] * r[key]
+                averager[i] = sumr//numr
+
+        if numb == 0:
+            averagecoveredb = 0
+            for i in range(51, 204):
+                averageb[i] = 0
+
+        else:
+            sumb = 0
+            for key in b.keys():
+                sumb += pst["1"][key.swapcase()] * b[key] / discount_factor
+            averagecoveredb = int(sumb//numb)
+
+            for i in range(51, 204):
+                sumb = 0
+                for key in b.keys():
+                    sumb += pst[key.swapcase()][i] * b[key]
+                averageb[i] = sumb//numb
+
+        self.average = {True: {False: averagecoveredr, True: averager}, False: {False: averagecoveredb, True: averageb}}
+        average = deepcopy(self.average)
+        return self.average
 
 ###############################################################################
 # User interface
 ###############################################################################
+
 
 def parse(c):
     fil, rank = ord(c[0]) - ord('a'), int(c[1])
@@ -479,15 +572,20 @@ def translate_eat(eat, dst, turn, type):
 
 def main(random_move=False, AI=True):
     global mapping
+    resetrbdict()
     mapping = B.translate_mapping(B.mapping)
-    hist = [Position(initial_covered, 0)]
+    print(mapping)
+    hist = [Position(initial_covered, 0, True)]
     searcher = Searcher()
+    searcher.calc_average()
     myeatlist = []
     AIeatlist = []
 
     while True:
-        print("\033[31m玩家吃子:\033[0m" + " " + " ".join(myeatlist))
+        print("\033[31m玩家吃子\033[0m: " + " ".join(myeatlist))
         print("电脑吃子:" + " " + " ".join(AIeatlist))
+        print({'r': r, 'b': b})
+        #print(average)
         print_pos(hist[-1])
 
         if hist[-1].score <= -MATE_LOWER:
@@ -519,8 +617,10 @@ def main(random_move=False, AI=True):
 
         # After our move we rotate the board and print it again.
         # This allows us to see the effect of our move.
-        print("\033[31m玩家吃子:\033[0m" + " " + " ".join(myeatlist))
+        print("\033[31m玩家吃子\033[0m:" + " ".join(myeatlist))
         print("电脑吃子:" + " " + " ".join(AIeatlist))
+        print({'r': r, 'b': b})
+        #print(average)
         print_pos(hist[-1].rotate())
 
         if hist[-1].score <= -MATE_LOWER:
@@ -571,4 +671,4 @@ def main(random_move=False, AI=True):
 
 
 if __name__ == '__main__':
-    main(True, True)
+    main(random_move=False, AI=True)
