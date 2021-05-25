@@ -66,7 +66,7 @@ class Board:
        self.W = W
        self.num = num #每方16个棋子
        self.board = []
-       self.mapping = {} #记录暗子到名字的映射
+       self.mapping = {} #记录暗子到明子的映射
        self.chessdict = dict()
        self.initialize()
        self.original_board = deepcopy(self.board)
