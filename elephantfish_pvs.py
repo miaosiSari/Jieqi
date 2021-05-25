@@ -307,11 +307,23 @@ class Position(namedtuple('Position', 'board score turn')):
         i, j = move
         p, q = self.board[i], self.board[j].upper()
         # Actual move
-        if q == 'k':
+        if p == 'H' and ((i == 164 and j == 52) or (i == 170and j == 58)): #TODO: 使用更智能的方式处理博子
+            return -200
+        if q == 'K':
             return 2500 
         if p in 'RNBAKCP':
             score = pst[p][j] - pst[p][i] #这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
             #因此，当对方是老将时应直接返回最大值，不能考虑己方。
+            cnt = 0
+            if p == 'C' and i & 15 == 7:
+                for scanpos in range(i - 16, A9, -16):
+                    if self.board[scanpos] == 'k':
+                        score += 70 #空头炮奖励
+                        if cnt >= 4:
+                            score += 30
+                    elif self.board[scanpos] != '.':
+                        break
+                    cnt += 1
         else:
             # 不确定明子的平均价值计算算法:
             # 假设某一方可能的暗子是 两车一炮。
@@ -321,7 +333,10 @@ class Position(namedtuple('Position', 'board score turn')):
             if p == 'D':
                score -= 80  # 暗车溜出，扣分!
             if p == 'P':
-               score += 20
+               if self.board[i-32] in 'RP':
+                   score -= average[self.turn][False]//3
+               else:
+                   score += 20
 
         # Capture
         if q.isupper():
@@ -395,8 +410,8 @@ class Searcher:
             # First try not moving at all. We only do this if there is at least one major
             # piece left on the board, since otherwise zugzwangs are too dangerous.
         if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
-            val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-2, root=False)
-            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 2,root=False):
+            val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-3, root=False)
+            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 3,root=False):
                #print("depth=%s, Return from nullmove! val=%s"%(depth, val))
                return val
         # For QSearch we have a different kind of null-move, namely we can just stop
@@ -475,7 +490,7 @@ class Searcher:
 
         # In finished games, we could potentially go far enough to cause a recursion
         # limit exception. Hence we bound the ply.
-        for depth in range(6, 7):
+        for depth in range(7, 8):
             # The inner loop is a binary search on the score of the position.
             # Inv: lower <= score <= upper
             # 'while lower != upper' would work, but play tests show a margin of 20 plays
@@ -626,7 +641,7 @@ def main(random_move=False, AI=True):
         print({'r': r, 'b': b})
         #print(average)
         print_pos(hist[-1])
-        print(hist[-1].turn, hist[-1].score)
+        #print(hist[-1].turn, hist[-1].score)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You lost")
@@ -670,7 +685,7 @@ def main(random_move=False, AI=True):
         print({'r': r, 'b': b})
         #print(average)
         print_pos(hist[-1].rotate())
-        print(hist[-1].turn, hist[-1].score)
+        #print(hist[-1].turn, hist[-1].score)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You win!")
@@ -680,7 +695,7 @@ def main(random_move=False, AI=True):
         score = 0
         _depth = 0
 
-        move = None
+        move, score = None, None
         if AI:
             if random_move:
                 move = random_policy(hist[-1])
@@ -709,14 +724,14 @@ def main(random_move=False, AI=True):
             print("You win!")
             break
 
-        print("Think depth: {} My move: {}".format(_depth, render(254 - move[0]) + render(254 - move[1])))
+        print("Think depth: {} My move: {} (score {})".format(_depth, render(254 - move[0]) + render(254 - move[1]), score))
         pos, win, eat, dst = hist[-1].mymove_check(move)
 
         if win:
             print("You lose, HAHAHAHAHAHAHAHAHAHA!")
             break
 
-        rendered_eat = translate_eat(eat, dst, "BLACK", "DARKMODE")
+        rendered_eat = translate_eat(eat, dst, "BLACK", "CLEARMODE")
         if rendered_eat:
             AIeatlist.append(rendered_eat)
 
