@@ -248,7 +248,11 @@ class Position(namedtuple('Position', 'board score turn')):
             checkmate = True
 
         if board[j] in "defghi":
-            dst = mapping[j]
+            dst = None
+            if self.turn:
+                dst = mapping[j]
+            else:
+                dst = mapping[254-j]
             #这里是吃暗子的逻辑
             #在这个简易程序中，假设AI执黑，玩家执红。
             #那么AI其实是不知道玩家吃了自己什么暗子的
@@ -262,12 +266,15 @@ class Position(namedtuple('Position', 'board score turn')):
                       b.pop(dst2)
             else:
                if discount_red: #2021/05/25 BUGGY!!!!!!!!!!!!!!!!
+                   '''
                    #BUGGY: KeyError: 'A'
                    ##########################
                    #TODO: Reproduce this bug.
                    ##########################
-                   print("BUGGY! self.turn = %s, dst = %s, j = %s, board[%s] = %s"%(self.turn, dst, j, j, board[j]))
-                   print(mapping)
+                   print("BUGGY1! self.turn = %s, dst = %s, j = %s (%s), board[%s] = %s"%(self.turn, dst, j, render(j), j, board[j]))
+                   for k, v in mapping.items():
+                       print(render(k), v)
+                   '''
                    dst2 = dst.upper()
                    r[dst2] -= 1
                    if r[dst2] == 0:
@@ -278,8 +285,11 @@ class Position(namedtuple('Position', 'board score turn')):
         else:
             board = put(board, j, mapping[i])
             if self.turn:
-               print("BUGGY! self.turn = %s, dst = %s, j = %s, board[%s] = %s" % (self.turn, dst, j, j, board[j]))
-               print(mapping)
+               '''
+               print("BUGGY2! self.turn = %s, dst = %s, i = %s (%s), board[%s] = %s" % (self.turn, dst, i, render(i), i, board[i]))
+               for k, v in mapping.items():
+                   print(render(k), v)
+               '''
                dst2 = mapping[i].upper()
                r[dst2] -= 1
                if r[dst2] == 0:
@@ -678,6 +688,10 @@ def main(random_move=False, AI=True):
 
         # The black player moves from a rotated position, so we have to
         # 'back rotate' the move before printing it.
+        if move is None:
+            print("You win!")
+            break
+
         print("Think depth: {} My move: {}".format(_depth, render(254 - move[0]) + render(254 - move[1])))
         pos, win, eat, dst = hist[-1].mymove_check(move)
 
