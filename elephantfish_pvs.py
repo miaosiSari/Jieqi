@@ -266,7 +266,8 @@ class Position(namedtuple('Position', 'board score turn')):
                    ##########################
                    #TODO: Reproduce this bug.
                    ##########################
-                   print("BUGGY! self.turn = %s, dst = %s"%(self.turn, dst))
+                   print("BUGGY! self.turn = %s, dst = %s, j = %s, board[%s] = %s"%(self.turn, dst, j, j, board[j]))
+                   print(mapping)
                    dst2 = dst.upper()
                    r[dst2] -= 1
                    if r[dst2] == 0:
@@ -277,6 +278,8 @@ class Position(namedtuple('Position', 'board score turn')):
         else:
             board = put(board, j, mapping[i])
             if self.turn:
+               print("BUGGY! self.turn = %s, dst = %s, j = %s, board[%s] = %s" % (self.turn, dst, j, j, board[j]))
+               print(mapping)
                dst2 = mapping[i].upper()
                r[dst2] -= 1
                if r[dst2] == 0:
@@ -574,7 +577,26 @@ def main(random_move=False, AI=True):
     global mapping
     resetrbdict()
     mapping = B.translate_mapping(B.mapping)
-    print(mapping)
+
+    '''
+    while True:
+        mapping = B.translate_mapping(B.mapping)
+        R, BL = {}, {}
+        for map in mapping:
+            if mapping[map].isupper():
+                if mapping[map] in R:
+                    R[mapping[map]] += 1
+                else:
+                    R[mapping[map]] = 1
+            if mapping[map].islower():
+                if mapping[map] in BL:
+                    BL[mapping[map]] += 1
+                else:
+                    BL[mapping[map]] = 1
+        assert R == r and BL == b
+        print("CHECKED!")
+    '''
+
     hist = [Position(initial_covered, 0, True)]
     searcher = Searcher()
     searcher.calc_average()
