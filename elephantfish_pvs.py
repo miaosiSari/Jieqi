@@ -468,7 +468,7 @@ class Searcher:
 
         # In finished games, we could potentially go far enough to cause a recursion
         # limit exception. Hence we bound the ply.
-        for depth in range(5, 6):
+        for depth in range(6, 7):
             # The inner loop is a binary search on the score of the position.
             # Inv: lower <= score <= upper
             # 'while lower != upper' would work, but play tests show a margin of 20 plays
@@ -628,9 +628,17 @@ def main(random_move=False, AI=True):
         move = None
         genmoves = set(hist[-1].gen_moves())
         while move not in genmoves:
+            inp = input('Your move: ').strip()
+            if inp.upper() == 'R':
+                print("You resign!")
+                exit(0)
             match = re.match('([a-i][0-9])'*2, input('Your move: '))
             if match:
                 move = parse(match.group(1)), parse(match.group(2))
+                if inp.upper() == 'R':
+                    print("You RESIGNED!")
+                    break
+
             else:
                 # Inform the user when invalid input (e.g. "help") is entered
                 print("Please enter a move like h2e2")
