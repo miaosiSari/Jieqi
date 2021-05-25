@@ -317,6 +317,8 @@ class Position(namedtuple('Position', 'board score turn')):
             score = average[self.turn][True][j] - average[self.turn][False]  # 相应位置不确定明子的平均价值 - 暗子
             if p == 'D':
                score -= 80  # 暗车溜出，扣分!
+            if p == 'P':
+               score += 20
 
         # Capture
         if q.isupper():
@@ -326,7 +328,7 @@ class Position(namedtuple('Position', 'board score turn')):
             else:
                score += average[not self.turn][False]
                if q == 'D':
-                   score += 130 #吃对方暗车，加分!
+                   score += 100 #吃对方暗车，加分!
         return score
 
 ###############################################################################
@@ -390,8 +392,8 @@ class Searcher:
             # First try not moving at all. We only do this if there is at least one major
             # piece left on the board, since otherwise zugzwangs are too dangerous.
         if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
-            val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-3, root=False)
-            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 3,root=False): return val
+            val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-2, root=False)
+            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 2,root=False): return val
         # For QSearch we have a different kind of null-move, namely we can just stop
         # and not capture anything else.
         if depth == 0:
@@ -619,6 +621,7 @@ def main(random_move=False, AI=True):
         print({'r': r, 'b': b})
         #print(average)
         print_pos(hist[-1])
+        print(hist[-1].turn, hist[-1].score)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You lost")
@@ -632,7 +635,7 @@ def main(random_move=False, AI=True):
             if inp.upper() == 'R':
                 print("You resign!")
                 exit(0)
-            match = re.match('([a-i][0-9])'*2, input('Your move: '))
+            match = re.match('([a-i][0-9])'*2, inp)
             if match:
                 move = parse(match.group(1)), parse(match.group(2))
                 if inp.upper() == 'R':
@@ -662,6 +665,7 @@ def main(random_move=False, AI=True):
         print({'r': r, 'b': b})
         #print(average)
         print_pos(hist[-1].rotate())
+        print(hist[-1].turn, hist[-1].score)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You win!")
