@@ -742,7 +742,7 @@ def main(random_move=False, AI=True):
         hist.append(pos)  # move的过程Rotate了一次, 这里pos是电脑视角
         rotated = hist[-1].rotate()  # 玩家视角
         setcache(rotated.board)
-        print_cache()
+        # print_cache()
 
         # After our move we rotate the board and print it again.
         # This allows us to see the effect of our move.
@@ -801,7 +801,7 @@ def main(random_move=False, AI=True):
 
         hist.append(pos)
         setcache(hist[-1].board)
-        print_cache()
+        # print_cache()
 
 
 if __name__ == '__main__':
