@@ -324,16 +324,28 @@ class Position(namedtuple('Position', 'board score turn')):
         if p in 'RNBAKCP':
             score = pst[p][j] - pst[p][i]  # 这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
             # 因此，当对方是老将时应直接返回最大值，不能考虑己方。
-            cnt = 0
             if p == 'C' and i & 15 == 7 and j & 15 != 7:
+                cnt = 0
+                # j & 15 ！= 7很重要，如果没有这句话，AI就不停地直线走来走去赚空头炮积分
                 for scanpos in range(i - 16, A9, -16):
                     if self.board[scanpos] == 'k':
-                        score += 70 #空头炮奖励
-                        if cnt >= 4:
-                            score += 30
+                        score -= 70  # 空头炮奖励
+                        if cnt >= 4 or self.che > 0:
+                            score -= 30
                     elif self.board[scanpos] != '.':
                         break
                     cnt += 1
+
+            if p == 'C' and i & 15 != 7 and j & 15 == 7:
+                cnt = 0
+                # i & 15 ！= 7很重要，如果没有这句话，AI就不停地直线走来走去赚空头炮积分
+                for scanpos in range(j - 16, A9, -16):
+                    if self.board[scanpos] == 'k':
+                        score += 70  # 空头炮奖励
+                        if cnt >= 4 or self.che > 0:
+                            score += 30
+                    elif self.board[scanpos] != '.':
+                        break
         else:
             # 不确定明子的平均价值计算算法:
             # 假设某一方可能的暗子是 两车一炮。

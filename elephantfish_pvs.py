@@ -325,10 +325,22 @@ class Position(namedtuple('Position', 'board score turn')):
         if p in 'RNBAKCP':
             score = pst[p][j] - pst[p][i] # 这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
             # 因此，当对方是老将时应直接返回最大值，不能考虑己方。
-            cnt = 0
             if p == 'C' and i & 15 == 7 and j & 15 != 7:
+                cnt = 0
                 # j & 15 ！= 7很重要，如果没有这句话，AI就不停地直线走来走去赚空头炮积分
                 for scanpos in range(i - 16, A9, -16):
+                    if self.board[scanpos] == 'k':
+                        score -= 70  # 空头炮奖励
+                        if cnt >= 4 or self.che > 0:
+                            score -= 30
+                    elif self.board[scanpos] != '.':
+                        break
+                    cnt += 1
+
+            if p == 'C' and i & 15 != 7 and j & 15 == 7:
+                cnt = 0
+                # i & 15 ！= 7很重要，如果没有这句话，AI就不停地直线走来走去赚空头炮积分
+                for scanpos in range(j - 16, A9, -16):
                     if self.board[scanpos] == 'k':
                         score += 70  # 空头炮奖励
                         if cnt >= 4 or self.che > 0:
@@ -336,6 +348,19 @@ class Position(namedtuple('Position', 'board score turn')):
                     elif self.board[scanpos] != '.':
                         break
                     cnt += 1
+
+            if p == 'R' and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a':
+                if j & 15 == 6 and i & 15 != 6:
+                    score += 30  # 如果对方暗车出动，相应侧又没有士的防守，抓紧抢占肋道
+                if j & 15 != 6 and i & 15 == 6:
+                    score -= 20
+
+            if p == 'R' and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a':
+                if j & 15 == 8 and i & 15 != 8:
+                    score += 30  # 如果对方暗车出动，相应侧又没有士的防守，抓紧抢占肋道
+                if j & 15 != 8 and i & 15 == 8:
+                    score -= 20
+
         else:
             # 不确定明子的平均价值计算算法:
             # 假设某一方可能的暗子是 两车一炮。
@@ -372,7 +397,7 @@ class Position(namedtuple('Position', 'board score turn')):
             k = 254 - j
             if q in 'RNBAKCP':
                 score += pst[q][k]
-                if q in 'RCN' and self.score > 200:
+                if (p not in 'RCND' or p == q or (p == 'C' and q == 'R') or (p == 'N' and q == 'R') or (p == 'N' and q == 'C')) and q in 'RCN' and self.score > 200:
                     score += 40  # 优势棋鼓励兑子
             else:
                 score += average[not self.turn][False]
@@ -402,6 +427,7 @@ class Searcher:
         """ returns r where
                 s(pos) <= r < gamma    if gamma > s(pos)
                 gamma <= r <= s(pos)   if gamma <= s(pos)"""
+        #print(self.tp_score)
         if root:
             self.tp_score = {}
             self.tp_move = {}
