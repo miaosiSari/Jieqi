@@ -327,7 +327,7 @@ class Position(namedtuple('Position', 'board score turn')):
             if self.che < self.che_opponent:
                 return -200
             if self.che == self.che_opponent:
-                if (i == 164 and self.board[148] == 'p') or (i == 170 and self.board[154] == 'p'):
+                if (i == 164 and self.board[148] in 'pr') or (i == 170 and self.board[154] in 'pr'):
                     return 100
                 else:
                     return -100

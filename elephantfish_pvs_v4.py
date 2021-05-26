@@ -327,7 +327,7 @@ class Position(namedtuple('Position', 'board score turn')):
             if self.che < self.che_opponent:
                 return -200
             if self.che == self.che_opponent:
-                if (i == 164 and self.board[148] == 'p') or (i == 170 and self.board[154] == 'p'):
+                if (i == 164 and self.board[148] in 'pr') or (i == 170 and self.board[154] in 'pr'):
                     return 100
                 else:
                     return -100
@@ -335,8 +335,8 @@ class Position(namedtuple('Position', 'board score turn')):
         if q == 'K':
             return 3500
         if p in 'RNBAKCP':
-            score = pst[p][j] - pst[p][i] #这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
-            #因此，当对方是老将时应直接返回最大值，不能考虑己方。
+            score = pst[p][j] - pst[p][i]  # 这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
+            # 因此，当对方是老将时应直接返回最大值，不能考虑己方。
             cnt = 0
             if p == 'C' and i & 15 == 7:
                 for scanpos in range(i - 16, A9, -16):
