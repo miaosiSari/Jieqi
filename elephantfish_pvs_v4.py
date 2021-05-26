@@ -310,7 +310,7 @@ class Position(namedtuple('Position', 'board score turn')):
         i, j = move
         p, q = self.board[i], self.board[j].upper()
         # Actual move
-        if p == 'H' and ((i == 164 and j == 52) or (i == 170 and j == 58)):  # TODO: 使用更智能的方式处理博子
+        if p == 'H' and ((i == 164 and j == 52 and self.board[51] in 'dr') or (i == 170 and j == 58 and self.board[59] in 'dr')):   # TODO: 使用更智能的方式处理博子
             if self.che < self.che_opponent:
                 return -200
             if self.che == self.che_opponent:
