@@ -1,6 +1,8 @@
-# Jieqi
+# 揭棋
 
-engine: ElephantFish, https://github.com/bupticybee/elephantfish (GPL License: https://github.com/bupticybee/elephantfish/blob/master/LICENSE.md)
+本项目基于bupticybee大佬的项目二次开发: https://github.com/bupticybee/elephantfish
+
+严格遵守原项目的GPL License: https://github.com/bupticybee/elephantfish/blob/master/LICENSE.md
 
 Random Policy Test: `python elephantfish_pvs_v1.py`
 
