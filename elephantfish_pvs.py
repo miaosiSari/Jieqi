@@ -275,33 +275,20 @@ class Position(namedtuple('Position', 'board score turn')):
                    dst2 = dst.lower()
                    di[False][dst2] -= 1
             else:
-               if discount_red: # 2021/05/25 BUGGY!!!!!!!!!!!!!!!!
-                    '''
-                    #BUGGY: KeyError: 'A'
-                    ##########################
-                    #TODO: Reproduce this bug.
-                    ##########################
-                    print("BUGGY1! self.turn = %s, dst = %s, j = %s (%s), board[%s] = %s"%(self.turn, dst, j, render(j), j, board[j]))
-                    for k, v in mapping.items():
-                        print(render(k), v)
-                    '''
+               if discount_red:
                     dst2 = dst.upper()
                     di[True][dst2] -= 1
 
         if self.board[i] in "RNBAKCP":
             board = put(self.board, j, self.board[i])
         else:
-            board = put(self.board, j, mapping[i])
             if self.turn:
-                '''
-                print("BUGGY2! self.turn = %s, dst = %s, i = %s (%s), board[%s] = %s" % (self.turn, dst, i, render(i), i, board[i]))
-                for k, v in mapping.items():
-                   print(render(k), v)
-                '''
+                board = put(self.board, j, mapping[i])
                 dst2 = mapping[i].upper()
                 di[True][dst2] -= 1
             else:
-                dst2 = mapping[i].lower()
+                board = put(self.board, j, mapping[254 - i].upper())
+                dst2 = mapping[254 - i].lower()
                 di[False][dst2] -= 1
         board = put(board, i, '.')
 
@@ -321,7 +308,10 @@ class Position(namedtuple('Position', 'board score turn')):
                     if (i == 164 and self.board[51] in 'dr') or (i == 170 and self.board[59] in 'dr'):
                         return -100
                     else:
-                        return average[not self.turn][False] - 3*average[self.turn][False]//5
+                        if (i == 164 or self.board[196] in 'DEFGHI') or (i == 170 and self.board[203] in 'DEFGHI'):
+                            return average[not self.turn][False] - 3*average[self.turn][False]//5
+                        else:
+                            return average[not self.turn][False]
         if q == 'K':
             return 3500
         if p in 'RNBAKCP':
@@ -439,11 +429,10 @@ class Searcher:
             # First try not moving at all. We only do this if there is at least one major
             # piece left on the board, since otherwise zugzwangs are too dangerous.
 
-        #if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
-        #    val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-3, root=False)
-        #    if val >= beta and self.alphabeta(pos,alpha,beta,depth - 3,root=False):
-        #       #print("depth=%s, Return from nullmove! val=%s"%(depth, val))
-        #       return val
+        if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
+            val = -self.alphabeta(pos.nullmove(), -beta, 1-beta, depth-3, root=False)
+            if val >= beta and self.alphabeta(pos, alpha, beta, depth - 3, root=False):
+               return val
 
         # For QSearch we have a different kind of null-move, namely we can just stop
         # and not capture anything else.
@@ -660,30 +649,15 @@ def print_cache():
     print("print_cache ends!")
 
 
+def printmapping():
+    for k, v in mapping.items():
+        print(render(k), ':', v)
+
+
 def main(random_move=False, AI=True):
     global mapping
     resetrbdict()
     mapping = B.translate_mapping(B.mapping)
-
-    '''
-    while True:
-        mapping = B.translate_mapping(B.mapping)
-        R, BL = {}, {}
-        for map in mapping:
-            if mapping[map].isupper():
-                if mapping[map] in R:
-                    R[mapping[map]] += 1
-                else:
-                    R[mapping[map]] = 1
-            if mapping[map].islower():
-                if mapping[map] in BL:
-                    BL[mapping[map]] += 1
-                else:
-                    BL[mapping[map]] = 1
-        assert R == r and BL == b
-        print("CHECKED!")
-    '''
-
     hist = [Position(initial_covered, 0, True).set()]
     setcache(hist[-1].board)
     searcher = Searcher()
@@ -694,6 +668,7 @@ def main(random_move=False, AI=True):
     while True:
         print("\033[31m玩家吃子\033[0m: " + " ".join(myeatlist))
         print("电脑吃子:" + " " + " ".join(AIeatlist))
+        # printmapping()
 
         print_pos(hist[-1])
 
@@ -739,6 +714,7 @@ def main(random_move=False, AI=True):
         # This allows us to see the effect of our move.
         print("\033[31m玩家吃子\033[0m:" + " ".join(myeatlist))
         print("电脑吃子:" + " " + " ".join(AIeatlist))
+        # printmapping()
 
         print_pos(rotated)
 
