@@ -7,8 +7,7 @@ import re, sys, time
 from itertools import count
 from collections import namedtuple
 import random
-from board import board
-from board import common
+from board import board, common, library
 from copy import deepcopy
 import readline
 
@@ -21,6 +20,7 @@ di = {True: deepcopy(r), False: deepcopy(b)}
 # 子力价值表参考“象眼”
 cache = {}
 forbidden_moves = set()
+kaijuku = deepcopy(library.kaijuku)
 
 
 def setcache(bo):
@@ -51,25 +51,6 @@ H: 暗炮
 I: 暗车
 '''
 
-initial = (
-    '               \n'  # 0
-    '               \n'  # 1
-    '               \n'  # 2
-    '   rnbakabnr   \n'  # 3
-    '   .........   \n'  # 4
-    '   .c.....c.   \n'  # 5
-    '   p.p.p.p.p   \n'  # 6
-    '   .........   \n'  # 7
-    '   .........   \n'  # 8
-    '   P.P.P.P.P   \n'  # 9
-    '   .C.....C.   \n'  # 10
-    '   .........   \n'  # 11
-    '   RNBAKABNR   \n'  # 12
-    '               \n'  # 13
-    '               \n'  # 14
-    '               \n'  # 15
-)
-
 initial_covered = (
     '               \n'  # 0
     '               \n'  # 1
@@ -86,7 +67,7 @@ initial_covered = (
     '   DEFGKGFED   \n'  # 12
     '               \n'  # 13
     '               \n'  # 14
-    '               \n'  # 15
+    '                '  # 15
 )
 
 
@@ -337,18 +318,21 @@ class Position(namedtuple('Position', 'board score turn')):
                 if (i == 164 and self.board[148] in 'pr') or (i == 170 and self.board[154] in 'pr'):
                     return 100
                 else:
-                    return -100
+                    if (i == 164 and self.board[51] in 'dr') or (i == 170 and self.board[59] in 'dr'):
+                        return -100
+                    else:
+                        return average[not self.turn][False] - 3*average[self.turn][False]//5
 
         if q == 'K':
             return 3500
         if p in 'RNBAKCP':
-            score = pst[p][j] - pst[p][i] #这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
-            #因此，当对方是老将时应直接返回最大值，不能考虑己方。
+            score = pst[p][j] - pst[p][i] # 这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
+            # 因此，当对方是老将时应直接返回最大值，不能考虑己方。
             cnt = 0
             if p == 'C' and i & 15 == 7:
                 for scanpos in range(i - 16, A9, -16):
                     if self.board[scanpos] == 'k':
-                        score += 70 #空头炮奖励
+                        score += 70  # 空头炮奖励
                         if cnt >= 4:
                             score += 30
                     elif self.board[scanpos] != '.':
@@ -363,9 +347,9 @@ class Position(namedtuple('Position', 'board score turn')):
             if p == 'D':
                key = 'R' if not self.turn else 'r'  # 对方车
                score -= (20+40*(di[not self.turn][key]+self.che_opponent))  # 暗车溜出，扣分! 扣的分数和对方剩余车的个数有关
-            if p == 'P':
+            if p == 'I':
                 if self.board[i - 32] in 'rp':  # 原先是RP, 这是个BUG!现解决
-                    score -= average[self.turn][False] // 3
+                    score -= average[self.turn][False]//2
                 elif self.board[i - 32] == 'n':  # 之前是N, 不正确，已更正!
                     score += 40
                 else:
@@ -764,10 +748,13 @@ def main(random_move=False, AI=True):
             if random_move:
                 move = random_policy(hist[-1])
             else:
-                start = time.time()
-                for _depth, move, score in searcher.search(hist[-1], hist):
-                    if time.time() - start > THINK_TIME:
-                        break
+                if hist[-1].board in kaijuku:
+                    move = kaijuku[hist[-1].board]
+                else:
+                    start = time.time()
+                    for _depth, move, score in searcher.search(hist[-1], hist):
+                        if time.time() - start > THINK_TIME:
+                            break
         else:
             genmoves = set(hist[-1].gen_moves())
             while move not in genmoves:

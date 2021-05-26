@@ -356,7 +356,7 @@ class Position(namedtuple('Position', 'board score turn')):
             if p == 'D':
                key = 'R' if not self.turn else 'r'  # 对方车
                score -= (20+40*(di[not self.turn][key]+self.che_opponent))  # 暗车溜出，扣分! 扣的分数和对方剩余车的个数有关
-            if p == 'P':
+            if p == 'I':
                 if self.board[i - 32] in 'rp':  # 原先是RP, 这是个BUG!现解决
                     score -= average[self.turn][False] // 3
                 elif self.board[i - 32] == 'n':  # 之前是N, 不正确，已更正!

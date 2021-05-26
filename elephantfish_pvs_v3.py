@@ -361,7 +361,7 @@ class Position(namedtuple('Position', 'board score turn')):
             score = average[self.turn][True][j] - average[self.turn][False]  # 相应位置不确定明子的平均价值 - 暗子
             if p == 'D':
                score -= 80  # 暗车溜出，扣分!
-            if p == 'P':
+            if p == 'I':
                if self.board[i - 32] in 'rp': # 原先是RP, 这是个BUG!现解决
                    score -= average[self.turn][False]//3
                elif self.board[i - 32] == 'n': # 之前是N, 不正确，已更正!
