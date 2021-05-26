@@ -153,6 +153,7 @@ class Position(namedtuple('Position', 'board score turn')):
     def set(self):
         self.che = 0
         self.che_opponent = 0
+        self.zu = 0
         return self
 
     def gen_moves(self):
@@ -176,6 +177,9 @@ class Position(namedtuple('Position', 'board score turn')):
 
             if p == 'r':
                 self.che_opponent += 1
+
+            if p == 'p':
+                self.zu += 1
 
             if p in ('C', 'H'): #明暗炮
                 for d in directions[p]:
@@ -302,6 +306,8 @@ class Position(namedtuple('Position', 'board score turn')):
             if self.che < self.che_opponent:
                 return -200
             if self.che == self.che_opponent:
+                if (i == 164 and self.board[148] == 'p') or (i == 170 and self.board[154] == 'p'):
+                    return 100
                 return -100
             else:
                 if (i == 164 and self.board[148] in 'pr') or (i == 170 and self.board[154] in 'pr'):
@@ -340,6 +346,17 @@ class Position(namedtuple('Position', 'board score turn')):
             if p == 'D':
                key = 'R' if not self.turn else 'r'  # 对方车
                score -= (20+40*(di[not self.turn][key]+self.che_opponent))  # 暗车溜出，扣分! 扣的分数和对方剩余车的个数有关
+
+            elif p == 'G':
+                if self.zu <= 2 and di[self.turn]['P' if self.turn else 'p'] >= 2:
+                    score -= 30  # 当前明兵过少翻士容易翻出窝心兵
+
+            elif p == 'H':  # 暗炮进四
+                if i == 164 and j == 100 and self.board[83] == 'a' or self.board[85] == 'a' or self.board[115] == 'a' or self.board[117] == 'a':
+                    score -= average[self.turn][False] // 2
+                if i == 170 and j == 106 and self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
+                    score -= average[self.turn][False] // 2
+
             elif p == 'I':
                 if self.board[i - 32] in 'rp':  # 原先是RP, 这是个BUG!现解决
                     score -= average[self.turn][False]//2
@@ -347,17 +364,16 @@ class Position(namedtuple('Position', 'board score turn')):
                     score += 40
                 else:
                     score += 20
-            elif p == 'H':  # 暗炮进四
-                if i == 164 and j == 100 and self.board[83] == 'a' or self.board[85] == 'a' or self.board[115] == 'a' or self.board[117] == 'a':
-                    score -= average[self.turn][False] // 2
-                if i == 170 and j == 106 and self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
-                    score -= average[self.turn][False] // 2
+
+
 
         # Capture
         if q.isupper():
             k = 254 - j
             if q in 'RNBAKCP':
                 score += pst[q][k]
+                if q in 'RCN' and self.score > 200:
+                    score += 40  # 优势棋鼓励兑子
             else:
                 score += average[not self.turn][False]
                 if q == 'D':
