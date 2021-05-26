@@ -322,18 +322,18 @@ class Position(namedtuple('Position', 'board score turn')):
                         return -100
                     else:
                         return average[not self.turn][False] - 3*average[self.turn][False]//5
-
         if q == 'K':
             return 3500
         if p in 'RNBAKCP':
             score = pst[p][j] - pst[p][i] # 这里有一个隐藏的很深的BUG。如果对手走出将帅对饮的一步棋，score应该很高(因为直接赢棋)。但由于减了pst[p][i], 减了自己的皇上，所以代码中的score是接近0的。
             # 因此，当对方是老将时应直接返回最大值，不能考虑己方。
             cnt = 0
-            if p == 'C' and i & 15 == 7:
+            if p == 'C' and i & 15 == 7 and j & 15 != 7:
+                # j & 15 ！= 7很重要，如果没有这句话，AI就不停地直线走来走去赚空头炮积分
                 for scanpos in range(i - 16, A9, -16):
                     if self.board[scanpos] == 'k':
                         score += 70  # 空头炮奖励
-                        if cnt >= 4:
+                        if cnt >= 4 or self.che > 0:
                             score += 30
                     elif self.board[scanpos] != '.':
                         break
@@ -343,17 +343,23 @@ class Position(namedtuple('Position', 'board score turn')):
             # 假设某一方可能的暗子是 两车一炮。
             # 则在某位置处不确定明子的价值为 (车在该处的价值*2 + 炮在该处的价值)/(2+1)。
             # 为了加速计算，这一数值已经被封装到了average这一字典中并预先计算(Pre-compute)。
-            score = average[self.turn][True][j] - average[self.turn][False]  # 相应位置不确定明子的平均价值 - 暗子
+            score = average[self.turn][True][j] - average[self.turn][False] + 20  # 相应位置不确定明子的平均价值 - 暗子
+
             if p == 'D':
                key = 'R' if not self.turn else 'r'  # 对方车
                score -= (20+40*(di[not self.turn][key]+self.che_opponent))  # 暗车溜出，扣分! 扣的分数和对方剩余车的个数有关
-            if p == 'I':
+            elif p == 'I':
                 if self.board[i - 32] in 'rp':  # 原先是RP, 这是个BUG!现解决
                     score -= average[self.turn][False]//2
                 elif self.board[i - 32] == 'n':  # 之前是N, 不正确，已更正!
                     score += 40
                 else:
                     score += 20
+            elif p == 'H':  # 暗炮进四
+                if i == 164 and j == 100 and self.board[83] == 'a' or self.board[85] == 'a' or self.board[115] == 'a' or self.board[117] == 'a':
+                    score -= average[self.turn][False] // 2
+                if i == 170 and j == 106 and self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
+                    score -= average[self.turn][False] // 2
 
         # Capture
         if q.isupper():
@@ -432,11 +438,13 @@ class Searcher:
         # This allows us to define the moves, but only calculate them if needed.
             # First try not moving at all. We only do this if there is at least one major
             # piece left on the board, since otherwise zugzwangs are too dangerous.
-        if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
-            val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-3, root=False)
-            if val >= beta and self.alphabeta(pos,alpha,beta,depth - 3,root=False):
-               #print("depth=%s, Return from nullmove! val=%s"%(depth, val))
-               return val
+
+        #if depth > 0 and not root and any(c in pos.board for c in 'RNC'):
+        #    val = -self.alphabeta(pos.nullmove(), -beta,1-beta, depth-3, root=False)
+        #    if val >= beta and self.alphabeta(pos,alpha,beta,depth - 3,root=False):
+        #       #print("depth=%s, Return from nullmove! val=%s"%(depth, val))
+        #       return val
+
         # For QSearch we have a different kind of null-move, namely we can just stop
         # and not capture anything else.
         if depth == 0:
@@ -515,7 +523,7 @@ class Searcher:
 
         # In finished games, we could potentially go far enough to cause a recursion
         # limit exception. Hence we bound the ply.
-        for depth in range(6, 8):
+        for depth in range(5, 8):
             # The inner loop is a binary search on the score of the position.
             # Inv: lower <= score <= upper
             # 'while lower != upper' would work, but play tests show a margin of 20 plays
@@ -638,7 +646,7 @@ def generate_forbiddenmoves(pos):
     moves = pos.gen_moves()
     for move in moves:
         posnew = pos.move(move)
-        if cache.get(posnew.board, 0) > 2:
+        if cache.get(posnew.board, 0) > 0:
             forbidden_moves.add(move)
     return forbidden_moves
 
