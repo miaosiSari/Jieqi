@@ -10,6 +10,7 @@ import random
 from board import board
 from board import common
 from copy import deepcopy
+import readline
 
 B = board.Board()
 piece = {'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
@@ -361,8 +362,10 @@ class Position(namedtuple('Position', 'board score turn')):
             if p == 'D':
                score -= 80  # 暗车溜出，扣分!
             if p == 'P':
-               if self.board[i-32] in 'RP':
+               if self.board[i - 32] in 'rp': #BUG!
                    score -= average[self.turn][False]//3
+               elif self.board[i - 32] == 'N':
+                   score += 40
                else:
                    score += 20
 
@@ -522,7 +525,7 @@ class Searcher:
 
         # In finished games, we could potentially go far enough to cause a recursion
         # limit exception. Hence we bound the ply.
-        for depth in range(7, 8):
+        for depth in range(6, 8):
             # The inner loop is a binary search on the score of the position.
             # Inv: lower <= score <= upper
             # 'while lower != upper' would work, but play tests show a margin of 20 plays
