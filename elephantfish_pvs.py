@@ -390,8 +390,6 @@ class Position(namedtuple('Position', 'board score turn')):
                 else:
                     score += 20
 
-
-
         # Capture
         if q.isupper():
             k = 254 - j
