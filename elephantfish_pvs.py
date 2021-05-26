@@ -265,17 +265,17 @@ class Position(namedtuple('Position', 'board score turn')):
                 dst = mapping[j]
             else:
                 dst = mapping[254-j]
-            #这里是吃暗子的逻辑
-            #在这个简易程序中，假设AI执黑，玩家执红。
-            #那么AI其实是不知道玩家吃了自己什么暗子的
-            #因此在玩家执红吃黑暗子时，黑方的暗子集合并不会更新。
-            #本程序设置了discount_red/black开关处理这一逻辑。
+            # 这里是吃暗子的逻辑
+            # 在这个简易程序中，假设AI执黑，玩家执红。
+            # 那么AI其实是不知道玩家吃了自己什么暗子的
+            # 因此在玩家执红吃黑暗子时，黑方的暗子集合并不会更新。
+            # 本程序设置了discount_red/black开关处理这一逻辑。
             if self.turn:
                if discount_black:
                    dst2 = dst.lower()
                    di[False][dst2] -= 1
             else:
-               if discount_red: #2021/05/25 BUGGY!!!!!!!!!!!!!!!!
+               if discount_red: # 2021/05/25 BUGGY!!!!!!!!!!!!!!!!
                     '''
                     #BUGGY: KeyError: 'A'
                     ##########################
@@ -610,12 +610,11 @@ def random_policy(pos):
 
 def translate_eat(eat, dst, turn, type):
     assert turn in {'RED', 'BLACK'} and type in {'CLEARMODE', 'DARKMODE'}
+    print("translate_eat: turn = %s, type = %s, eat = %s, dst = %s"%(turn, type, eat, dst))
     if eat == '.':
         return None
     if turn == 'BLACK':
         eat = eat.swapcase()
-        if dst:
-            dst = dst.swapcase()
     if type == 'DARKMODE':
         return uni_pieces[eat]
     else:

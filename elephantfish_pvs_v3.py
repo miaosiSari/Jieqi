@@ -624,8 +624,6 @@ def translate_eat(eat, dst, turn, type):
         return None
     if turn == 'BLACK':
         eat = eat.swapcase()
-        if dst:
-            dst = dst.swapcase()
     if type == 'DARKMODE':
         return uni_pieces[eat]
     else:
