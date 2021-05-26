@@ -23,6 +23,13 @@ cache = {}
 forbidden_moves = set()
 
 
+def setcache(bo):
+    if bo not in cache:
+        cache[bo] = 1
+    else:
+        cache[bo] += 1
+
+
 def resetrbdict():
     global r, b, di
     r = {'R': 2, 'N': 2, 'B': 2, 'A': 2, 'C': 2, 'P': 5}
@@ -31,7 +38,7 @@ def resetrbdict():
 
 
 pst = deepcopy(common.pst)
-discount_factor = common.discount_factor
+discount_factor = common.discount_factor  # 1.6
 
 A0, I0, A9, I9 = 12 * 16 + 3, 12 * 16 + 11, 3 * 16 + 3,  3 * 16 + 11
 
@@ -464,6 +471,8 @@ class Searcher:
             # If depth == 0 we only try moves with high intrinsic score (captures and
             # promotions). Otherwise we do all moves.
             #print(depth, move)
+            if root and move in forbidden_moves:
+                continue
             if (move is not None) and (depth > 0):
                 if best == -MATE_UPPER:
                     val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False)
@@ -637,6 +646,29 @@ def translate_eat(eat, dst, turn, type):
             return dst
 
 
+def generate_forbiddenmoves(pos):
+    # 生成禁着
+    # 这里禁着判断比较简单，如果走了这步棋以后形成的局面在过往局面中超过3次，不允许电脑走。
+    # 这里的pos是电脑视角
+    global forbidden_moves
+    forbidden_moves = set()
+    moves = pos.gen_moves()
+    for move in moves:
+        posnew = pos.move(move)
+        if cache.get(posnew.board, 0) > 2:
+            forbidden_moves.add(move)
+    return forbidden_moves
+
+
+def print_cache():
+    # 内部调试函数，打印cache
+    print("print_cache starts!")
+    for cnt, key in enumerate(cache):
+        print("Cache " + str(cnt) + ":")
+        print_pos(Position(key, 0, True).set())
+    print("print_cache ends!")
+
+
 def main(random_move=False, AI=True):
     global mapping
     resetrbdict()
@@ -662,6 +694,7 @@ def main(random_move=False, AI=True):
     '''
 
     hist = [Position(initial_covered, 0, True).set()]
+    setcache(hist[-1].board)
     searcher = Searcher()
     searcher.calc_average()
     myeatlist = []
@@ -670,10 +703,8 @@ def main(random_move=False, AI=True):
     while True:
         print("\033[31m玩家吃子\033[0m: " + " ".join(myeatlist))
         print("电脑吃子:" + " " + " ".join(AIeatlist))
-        print(di)
-        #print(average)
+
         print_pos(hist[-1])
-        #print(hist[-1].turn, hist[-1].score)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You lost")
@@ -708,27 +739,28 @@ def main(random_move=False, AI=True):
         if rendered_eat:
             myeatlist.append(rendered_eat)
 
-        hist.append(pos) #move的过程Rotate了一次
+        hist.append(pos)  # move的过程Rotate了一次, 这里pos是电脑视角
+        rotated = hist[-1].rotate()  # 玩家视角
+        setcache(rotated.board)
+        print_cache()
 
         # After our move we rotate the board and print it again.
         # This allows us to see the effect of our move.
         print("\033[31m玩家吃子\033[0m:" + " ".join(myeatlist))
         print("电脑吃子:" + " " + " ".join(AIeatlist))
-        print(di)
-        #print(average)
-        print_pos(hist[-1].rotate())
-        #print(hist[-1].turn, hist[-1].score)
+
+        print_pos(rotated)
 
         if hist[-1].score <= -MATE_LOWER:
             print("You win!")
             break
 
         # Fire up the engine to look for a move.
-        score = 0
         _depth = 0
 
-        move, score = None, None
+        move, score = None, 0
         if AI:
+            generate_forbiddenmoves(hist[-1])
             if random_move:
                 move = random_policy(hist[-1])
             else:
@@ -768,6 +800,8 @@ def main(random_move=False, AI=True):
             AIeatlist.append(rendered_eat)
 
         hist.append(pos)
+        setcache(hist[-1].board)
+        print_cache()
 
 
 if __name__ == '__main__':
