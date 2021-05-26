@@ -156,6 +156,12 @@ class Position(namedtuple('Position', 'board score turn')):
     board -- a 256 char representation of the board
     score -- the board evaluation
     """
+
+    def set(self):
+        self.che = 0
+        self.che_opponent = 0
+        return self
+
     def gen_moves(self):
         # For each of our pieces, iterate through each possible 'ray' of moves,
         # as defined in the 'directions' map. The rays are broken e.g. by
@@ -171,6 +177,12 @@ class Position(namedtuple('Position', 'board score turn')):
                         yield (i,scanpos)
                     elif self.board[scanpos] != '.':
                         break
+
+            if p == 'R':
+                self.che += 1
+
+            if p == 'r':
+                self.che_opponent += 1
 
             if p in ('C', 'H'): #明暗炮
                 for d in directions[p]:
@@ -209,8 +221,17 @@ class Position(namedtuple('Position', 'board score turn')):
 
     def rotate(self):
         ''' Rotates the board, preserving enpassant '''
-        return Position(
+        p = Position(
             self.board[-2::-1].swapcase() + " ", -self.score, not self.turn)
+        p.set()
+        return p
+
+    @staticmethod
+    def rotate_new(board, score, turn):
+        p = Position(
+            board[-2::-1].swapcase() + " ", -score, not turn)
+        p.set()
+        return p
 
     def nullmove(self):
         ''' Like rotate, but clears ep and kp '''
@@ -227,7 +248,7 @@ class Position(namedtuple('Position', 'board score turn')):
         else:
             board = put(board, j, 'U')
         board = put(board, i, '.')
-        return Position(board, score, self.turn).rotate()
+        return Position.rotate_new(board, score, self.turn)
 
     def mymove_check(self, move, discount_red=True, discount_black=False):
         i, j = move
@@ -301,14 +322,21 @@ class Position(namedtuple('Position', 'board score turn')):
                    b.pop(dst2)
         board = put(board, i, '.')
 
-        return Position(board, self.score, self.turn).rotate(), checkmate, eat, dst
+        return Position.rotate_new(board, self.score, self.turn), checkmate, eat, dst
 
     def value(self, move):
         i, j = move
         p, q = self.board[i], self.board[j].upper()
         # Actual move
-        if p == 'H' and ((i == 164 and j == 52) or (i == 170and j == 58)): #TODO: 使用更智能的方式处理博子
-            return -200
+        if p == 'H' and ((i == 164 and j == 52) or (i == 170 and j == 58)):  # TODO: 使用更智能的方式处理博子
+            if self.che < self.che_opponent:
+                return -200
+            if self.che == self.che_opponent:
+                if (i == 164 and self.board[148] == 'p') or (i == 170 and self.board[154] == 'p'):
+                    return 100
+                else:
+                    return -100
+
         if q == 'K':
             return 3500
         if p in 'RNBAKCP':
@@ -356,6 +384,7 @@ class Position(namedtuple('Position', 'board score turn')):
 # lower <= s(pos) <= upper
 Entry = namedtuple('Entry', 'lower upper')
 
+
 class Searcher:
     def __init__(self):
         self.tp_score = {}
@@ -368,6 +397,9 @@ class Searcher:
         """ returns r where
                 s(pos) <= r < gamma    if gamma > s(pos)
                 gamma <= r <= s(pos)   if gamma <= s(pos)"""
+        if root:
+            self.tp_score = {}
+            self.tp_move = {}
         self.nodes += 1
 
         # Depth <= 0 is QSearch. Here any position is searched as deeply as is needed for
@@ -629,7 +661,7 @@ def main(random_move=False, AI=True):
         print("CHECKED!")
     '''
 
-    hist = [Position(initial_covered, 0, True)]
+    hist = [Position(initial_covered, 0, True).set()]
     searcher = Searcher()
     searcher.calc_average()
     myeatlist = []
