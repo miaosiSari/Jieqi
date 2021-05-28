@@ -50,6 +50,10 @@
 
 运行方法: `python elephantfish_pvs_20210528_fixed.py`。
 
+### 9. 开局库
+
+在board/library.py中增加了开局的哈希函数。
+
 ## 注:
 带有`fixed`的版本永久固定，如果您发现有bug，欢迎提Issues，我会在新的版本中改正。您可以使用pypy3运行我的代码，只需要将`python`替换成`pypy3`即可。
 
