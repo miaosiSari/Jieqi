@@ -12,7 +12,7 @@
 
 `python elephant_pvs_v4_fixed.py`
 
-## 20210529/加入了很多逻辑:
+## 20210528/加入了很多逻辑:
 
 ### 1. 空头炮
 
@@ -46,7 +46,7 @@
 
 支持pypy3运行程序。pypy使用JIT编译技术，规避了GIL。
 
-运行方法: `python elephantfish_pvs_20210529_fixed.py`。
+运行方法: `python elephantfish_pvs_20210528_fixed.py`。
 
 ## 注:
 带有`fixed`的版本永久固定，如果您发现有bug，欢迎提Issues，我会在新的版本中改正。您可以使用pypy3(不支持pypy2)运行我的代码，只需要将`python`替换成`pypy3`即可。为了您的方便，我在`getpip_pypy3`文件夹中提供了pypy3的getpip代码。
@@ -54,7 +54,7 @@
 ## 后续:
 如果您对我的拙作感兴趣，可以联系我:
 
-邮箱 miaosi2018@gmail.com
+邮箱: miaosi2018@gmail.com
 或者QQ:
 2904661326@qq.com。
 
