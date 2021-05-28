@@ -884,11 +884,11 @@ def generate_forbiddenmoves(pos, check_bozi=True):
                     continue
                 if (i == 164 and pos.board[148] == 'p') or (i == 170 and pos.board[154] == 'p'):
                     continue
-                print("move = %s"%render_tuple(move), pos.che, pos.che_opponent)
+                #print("move = %s"%render_tuple(move), pos.che, pos.che_opponent)
                 #if pos.che <= pos.che_opponent:
                 if pos.che != 2:
                     forbidden_moves.add(move)
-                    print("ADD %s"%render_tuple(move))
+                    #print("ADD %s"%render_tuple(move))
     pos.set()
     return forbidden_moves
 

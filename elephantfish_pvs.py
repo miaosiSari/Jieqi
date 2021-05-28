@@ -1014,7 +1014,7 @@ def main(random_move=False, AI=True):
             print("You lose, HAHAHAHAHAHAHAHAHAHA!")
             break
 
-        rendered_eat = translate_eat(eat, dst, "BLACK", "CLEARMODE")
+        rendered_eat = translate_eat(eat, dst, "BLACK", "DARKMODE")
         if rendered_eat:
             AIeatlist.append(rendered_eat)
 
