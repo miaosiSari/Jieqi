@@ -8,7 +8,7 @@ from itertools import count
 from collections import namedtuple
 import random
 from board import board
-from board import common_v2 as common
+from board import common_v2_fixed as common
 from copy import deepcopy
 import readline
 

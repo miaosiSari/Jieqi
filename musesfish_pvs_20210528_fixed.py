@@ -7,7 +7,7 @@ import re, sys, time
 from itertools import count
 from collections import namedtuple
 import random
-from board import board, common_20210528 as common, library
+from board import board, common_20210528_fixed as common, library
 from copy import deepcopy
 import readline
 
