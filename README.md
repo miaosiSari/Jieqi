@@ -1,3 +1,4 @@
+![揭棋](https://img.shields.io/badge/Jieqi-python3-brightgreen)
 # 揭棋
 
 这是一个揭棋AI项目，提供命令行对战UI和基于概率/pvs算法的AI。
