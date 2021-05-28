@@ -53,6 +53,8 @@
 ## 注:
 带有`fixed`的版本永久固定，如果您发现有bug，欢迎提Issues，我会在新的版本中改正。您可以使用pypy3运行我的代码，只需要将`python`替换成`pypy3`即可。
 
+在UI中，个人可以看到电脑吃的暗子，电脑也可以看到个人吃的暗子。这并不是一个BUG。在搜索算法里面，电脑是不知道个人吃的暗子的(在pos类的mymove_check中discount_red和discount_black的注释)，例如`elephantfish_pvs_20210528_fixed.py`的277-281行。我在UI中输出的目的是打消您对作弊的怀疑。事实上，暗子到明子的映射早就在`main`函数开始的`mapping = B.translate_mapping(B.mapping)`中完成了。如果您不喜欢该设置，可以将`rendered_eat = translate_eat(eat, dst, "BLACK", "CLEARMODE")`改为`rendered_eat = translate_eat(eat, dst, "BLACK", "DARKMODE")`
+
 ## 后续:
 如果您对我的拙作感兴趣，可以联系我:
 
