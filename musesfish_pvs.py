@@ -1035,3 +1035,4 @@ def main(random_move=False, AI=True):
 
 if __name__ == '__main__':
     main(random_move=False, AI=True)
+

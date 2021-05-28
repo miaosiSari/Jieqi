@@ -1,104 +1,89 @@
 #!/usr/bin/env pypy
 # -*- coding: utf-8 -*-
 
+#Updated by Si Miao 2021/05/20
 from __future__ import print_function
 import re, sys, time
 from itertools import count
 from collections import namedtuple
+import random
+from board import board
+import readline
 
-piece = { 'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
+B = board.Board()
+piece = {'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
 put = lambda board, i, p: board[:i] + p + board[i+1:]
 # 子力价值表参考“象眼”
 
 pst = {
-    "P": ( #兵
+    "P": (
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  9, 12, 15, 17, 22, 17, 15, 12,  9,  0,  0,  0,  0,
-      0,  0,  0, 19, 24, 69, 81, 93, 81, 69, 24, 19,  0,  0,  0,  0,
-      0,  0,  0, 19, 24, 42, 69, 87, 69, 42, 24, 19,  0,  0,  0,  0,
+      0,  0,  0,  9,  9,  9, 11, 13, 11,  9,  9,  9,  0,  0,  0,  0,
+      0,  0,  0, 19, 24, 34, 42, 44, 42, 34, 24, 19,  0,  0,  0,  0,
+      0,  0,  0, 19, 24, 32, 37, 37, 37, 32, 24, 19,  0,  0,  0,  0,
       0,  0,  0, 19, 23, 27, 29, 30, 29, 27, 23, 19,  0,  0,  0,  0,
       0,  0,  0, 14, 18, 20, 27, 29, 27, 20, 18, 14,  0,  0,  0,  0,
-      0,  0,  0,  7,  9, 13, 14, 16, 14, 13,  9,  7,  0,  0,  0,  0,
-      0,  0,  0,  7,  7,  7, 11, 15, 11,  7,  7,  7,  0,  0,  0,  0,
-      0,  0,  0,  5,  5,  6,  4,  5,  4,  6,  5,  5,  0,  0,  0,  0,
-      0,  0,  0,  4,  4,  5, -6, -10, -6, 5,  4,  4,  0,  0,  0,  0,
-      0,  0,  0,  2,  2,  3, -9, -12, -9, 3,  2,  2,  0,  0,  0,  0,
+      0,  0,  0,  7,  0, 13,  0, 16,  0, 13,  0,  7,  0,  0,  0,  0,
+      0,  0,  0,  7,  0,  7,  0, 15,  0,  7,  0,  7,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  2,  2,  2,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0, 11, 15, 11,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
     ),
-    "B": ( #相
-    # *   *   *   a   b   c   d   e   f   g   h   i   *   *   *   *
+    "B":(
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0, 70, 39, 12, 35, 72, 35, 12, 39, 70,  0,  0,  0,  0,  #  对方底线
-      0,  0,  0, 65, 15, 15, 20, 68, 20, 15, 15, 65,  0,  0,  0,  0,
-      0,  0,  0, 12, 41, 75, 41,  6, 41, 75, 41, 12,  0,  0,  0,  0,
-      0,  0,  0, 27, 31, 70, 30, 25, 30, 70, 31, 27,  0,  0,  0,  0,  #  a6/i6相可以阻挡暗车
-      0,  0,  0, 65, 35, 12, 35, 70, 35, 12, 35, 65,  0,  0,  0,  0,
-      0,  0,  0, 60, 30, 31, 30, 65, 30, 31, 30, 60,  0,  0,  0,  0,
-      0,  0,  0, 10, 35, 65, 35, 10, 35, 65, 35, 10,  0,  0,  0,  0,
-      0,  0,  0, 35, 30, 49, 30, 43, 30, 49, 30, 35,  0,  0,  0,  0,
-      0,  0,  0, 55, 27,  6, 27, 30, 27,  6, 27, 55,  0,  0,  0,  0,
-      0,  0,  0, 35, 16, 40, 16, 20, 16, 40, 16, 35,  0,  0,  0,  0,  #  本方底线
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    ),
-    "A": ( #士
-    # *   *   *   a   b   c   d   e   f   g   h   i   *   *   *   *
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0, 58, 59, 50, 55, 50, 55, 50, 59, 58,  0,  0,  0,  0,
-      0,  0,  0, 58, 63, 62, 85, 70, 85, 62, 63, 58,  0,  0,  0,  0,  #  对方底线
-      0,  0,  0, 58, 58, 69, 79, 76, 79, 69, 58, 58,  0,  0,  0,  0,
-      0,  0,  0, 55, 59, 58, 61, 58, 61, 58, 59, 55,  0,  0,  0,  0,
-      0,  0,  0, 53, 55, 58, 56, 58, 56, 58, 55, 53,  0,  0,  0,  0,
-      0,  0,  0, 51, 52, 55, 52, 55, 52, 55, 52, 51,  0,  0,  0,  0,
-      0,  0,  0, 43, 55, 45, 55, 45, 55, 45, 55, 43,  0,  0,  0,  0,
-      0,  0,  0, 52, 39, 59, 39, 63, 39, 59, 39, 52,  0,  0,  0,  0,
-      0,  0,  0, 29, 60, 35, 70, 31, 70, 35, 60, 29,  0,  0,  0,  0,
-      0,  0,  0, 35, 27, 65, 39, 75, 39, 65, 27, 35,  0,  0,  0,  0,
-      0,  0,  0, 25, 54, 27, 74, 25, 74, 27, 54, 25,  0,  0,  0,  0,  #  本方底线
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0, 40,  0,  0,  0, 40,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0, 38,  0,  0, 40, 43, 40,  0,  0, 38,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0, 43,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0, 40, 40,  0, 40, 40,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
     ),
-    "N": ( #马
+    "N": (
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0, 90, 90, 90, 96, 90, 96, 90, 90, 90,  0,  0,  0,  0,
-      0,  0,  0, 80, 86,113, 87, 94, 87,113, 86, 80,  0,  0,  0,  0,
-      0,  0,  0, 87, 83, 84, 105, 99, 105, 84, 83, 87,  0,  0,  0,  0,
-      0,  0,  0, 83, 98, 92, 97, 90, 97, 92, 98, 83,  0,  0,  0,  0,
-      0,  0,  0, 80, 90, 89,103,104,103, 89, 90, 80,  0,  0,  0,  0,
-      0,  0,  0, 80, 88, 91, 92, 93, 92, 91, 88, 80,  0,  0,  0,  0,
-      0,  0,  0, 82, 84, 88, 85, 88, 85, 88, 84, 82,  0,  0,  0,  0,
-      0,  0,  0, 83, 83, 84, 85, 95, 85, 84, 83, 83,  0,  0,  0,  0,
-      0,  0,  0, 69, 75, 69, 69, 78, 69, 69, 75, 69,  0,  0,  0,  0,
-      0,  0,  0, 55, 55, 60, 75, 65, 75, 60, 55, 55,  0,  0,  0,  0,
+      0,  0,  0, 90, 96,103, 97, 94, 97,103, 96, 90,  0,  0,  0,  0,
+      0,  0,  0, 92, 98, 99,103, 99,103, 99, 98, 92,  0,  0,  0,  0,
+      0,  0,  0, 93,108,100,107,100,107,100,108, 93,  0,  0,  0,  0,
+      0,  0,  0, 90,100, 99,103,104,103, 99,100, 90,  0,  0,  0,  0,
+      0,  0,  0, 90, 98,101,102,103,102,101, 98, 90,  0,  0,  0,  0,
+      0,  0,  0, 92, 94, 98, 95, 98, 95, 98, 94, 92,  0,  0,  0,  0,
+      0,  0,  0, 93, 92, 94, 95, 92, 95, 94, 92, 93,  0,  0,  0,  0,
+      0,  0,  0, 85, 90, 92, 93, 78, 93, 92, 90, 85,  0,  0,  0,  0,
+      0,  0,  0, 88, 85, 90, 88, 90, 88, 90, 85, 88,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
     ),
-    "R": (#车
+    "R": (
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,246,248,247,256,254,256,247,248,246,  0,  0,  0,  0,
-      0,  0,  0,246,252,252,259,273,259,252,252,246,  0,  0,  0,  0,
-      0,  0,  0,246,252,252,259,266,259,252,252,246,  0,  0,  0,  0,
-      0,  0,  0,246,253,253,259,256,259,253,253,246,  0,  0,  0,  0,
-      0,  0,  0,248,251,251,257,255,257,251,251,248,  0,  0,  0,  0,
-      0,  0,  0,248,242,252,257,255,257,252,242,248,  0,  0,  0,  0,
-      0,  0,  0,244,244,244,257,254,257,244,244,244,  0,  0,  0,  0,
-      0,  0,  0,238,244,244,259,242,259,244,244,238,  0,  0,  0,  0,
-      0,  0,  0,240,248,246,259,230,259,246,248,240,  0,  0,  0,  0,
-      0,  0,  0,244,246,244,252,220,252,244,246,244,  0,  0,  0,  0,
+      0,  0,  0,206,208,207,213,214,213,207,208,206,  0,  0,  0,  0,
+      0,  0,  0,206,212,209,216,233,216,209,212,206,  0,  0,  0,  0,
+      0,  0,  0,206,208,207,214,216,214,207,208,206,  0,  0,  0,  0,
+      0,  0,  0,206,213,213,216,216,216,213,213,206,  0,  0,  0,  0,
+      0,  0,  0,208,211,211,214,215,214,211,211,208,  0,  0,  0,  0,
+      0,  0,  0,208,212,212,214,215,214,212,212,208,  0,  0,  0,  0,
+      0,  0,  0,204,209,204,212,214,212,204,209,204,  0,  0,  0,  0,
+      0,  0,  0,198,208,204,212,212,212,204,208,198,  0,  0,  0,  0,
+      0,  0,  0,200,208,206,212,200,212,206,208,200,  0,  0,  0,  0,
+      0,  0,  0,194,206,204,212,200,212,204,206,194,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
@@ -107,64 +92,27 @@ pst = {
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,145,145,132,132,120,132,132,145,145,  0,  0,  0,  0,
-      0,  0,  0,128,128,126,122,129,122,126,128,128,  0,  0,  0,  0,
-      0,  0,  0,127,127,126,121,122,121,126,127,127,  0,  0,  0,  0,
-      0,  0,  0,126,129,129,128,130,128,129,129,126,  0,  0,  0,  0,
-      0,  0,  0,126,126,126,126,130,126,126,126,126,  0,  0,  0,  0,
-      0,  0,  0,125,126,129,126,130,126,129,126,125,  0,  0,  0,  0,
-      0,  0,  0,126,126,126,126,140,126,126,126,126,  0,  0,  0,  0,
-      0,  0,  0,127,126,100,129,140,129,100,126,127,  0,  0,  0,  0,
-      0,  0,  0,126,127,128,128,135,128,128,127,126,  0,  0,  0,  0,
-      0,  0,  0,126,126,127,129,129,129,127,126,126,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    ),
-    "K": ( #帅
-    # *   *   *   a   b   c   d   e   f   g   h   i   *   *   *   *
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  2460,  2470,  2460,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  2470,  2480,  2470,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  2490,  2500,  2490,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    ),
-    "0": ( #Bonus
-    # *   *   *   a   b   c   d   e   f   g   h   i   *   *   *   *
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  100,  0,  0,  0,  0,  0,  0,  0,  100,  0,  0,  0,  0, #  对方底线
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  30,  0,  30,  0, 30,  0, 30,  0, 30,  0,  0,  0,  0, #翻动暗兵有奖励
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-      0,  0,  0,  -80,  0,  0,  0,  0,  0,  0,  0,  -80,  0,  0,  0,  0, #  本方底线
+      0,  0,  0,100,100, 96, 91, 90, 91, 96,100,100,  0,  0,  0,  0,
+      0,  0,  0, 98, 98, 96, 92, 89, 92, 96, 98, 98,  0,  0,  0,  0,
+      0,  0,  0, 97, 97, 96, 91, 92, 91, 96, 97, 97,  0,  0,  0,  0,
+      0,  0,  0, 96, 99, 99, 98,100, 98, 99, 99, 96,  0,  0,  0,  0,
+      0,  0,  0, 96, 96, 96, 96,100, 96, 96, 96, 96,  0,  0,  0,  0,
+      0,  0,  0, 95, 96, 99, 96,100, 96, 99, 96, 95,  0,  0,  0,  0,
+      0,  0,  0, 96, 96, 96, 96, 96, 96, 96, 96, 96,  0,  0,  0,  0,
+      0,  0,  0, 97, 96,100, 99,101, 99,100, 96, 97,  0,  0,  0,  0,
+      0,  0,  0, 96, 97, 98, 98, 98, 98, 98, 97, 96,  0,  0,  0,  0,
+      0,  0,  0, 96, 96, 97, 99, 99, 99, 97, 96, 96,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
     )
 }
 
-print(pst["0"])
+pst["A"] = pst["B"]
+pst["K"] = pst["P"]
+pst["K"] = [i + piece["K"] if i > 0 else 0 for i in pst["K"]]
 
-
-A0, I0, A9, I9 = 12 * 16 + 3,12 * 16 + 11, 3 * 16 + 3,  3 * 16 + 11
+A0, I0, A9, I9 = 12 * 16 + 3, 12 * 16 + 11, 3 * 16 + 3,  3 * 16 + 11
 
 '''
 D: 暗车
@@ -176,41 +124,41 @@ I: 暗车
 '''
 
 initial = (
-    '               \n'  #0
-    '               \n'  #1
-    '               \n'  #2
-    '   rnbakabnr   \n'  #3
-    '   .........   \n'  #4
-    '   .c.....c.   \n'  #5
-    '   p.p.p.p.p   \n'  #6
-    '   .........   \n'  #7
-    '   .........   \n'  #8
-    '   P.P.P.P.P   \n'  #9
-    '   .C.....C.   \n'  #10
-    '   .........   \n'  #11
-    '   RNBAKABNR   \n'  #12
-    '               \n'  #13
-    '               \n'  #14
-    '               \n'  #15
+    '               \n'  # 0
+    '               \n'  # 1
+    '               \n'  # 2
+    '   rnbakabnr   \n'  # 3
+    '   .........   \n'  # 4
+    '   .c.....c.   \n'  # 5
+    '   p.p.p.p.p   \n'  # 6
+    '   .........   \n'  # 7
+    '   .........   \n'  # 8
+    '   P.P.P.P.P   \n'  # 9
+    '   .C.....C.   \n'  # 10
+    '   .........   \n'  # 11
+    '   RNBAKABNR   \n'  # 12
+    '               \n'  # 13
+    '               \n'  # 14
+    '               \n'  # 15
 )
 
 initial_covered = (
-    '               \n'  #0
-    '               \n'  #1
-    '               \n'  #2
-    '   defgkgfed   \n'  #3
-    '   .........   \n'  #4
-    '   .h.....h.   \n'  #5
-    '   i.i.i.i.i   \n'  #6
-    '   .........   \n'  #7
-    '   .........   \n'  #8
-    '   I.I.I.I.I   \n'  #9
-    '   .H.....H.   \n'  #10
-    '   .........   \n'  #11
-    '   DEFGKGFED   \n'  #12
-    '               \n'  #13
-    '               \n'  #14
-    '               \n'  #15
+    '               \n'  # 0
+    '               \n'  # 1
+    '               \n'  # 2
+    '   defgkgfed   \n'  # 3
+    '   .........   \n'  # 4
+    '   .h.....h.   \n'  # 5
+    '   i.i.i.i.i   \n'  # 6
+    '   .........   \n'  # 7
+    '   .........   \n'  # 8
+    '   I.I.I.I.I   \n'  # 9
+    '   .H.....H.   \n'  # 10
+    '   .........   \n'  # 11
+    '   DEFGKGFED   \n'  # 12
+    '               \n'  # 13
+    '               \n'  # 14
+    '               \n'  # 15
 )
 
 
@@ -232,6 +180,36 @@ directions = {
     'K': (N, E, S, W)
 }
 
+uni_pieces = {
+    '.': '．',
+    'R': '\033[31m俥\033[0m',
+    'N': '\033[31m傌\033[0m',
+    'B': '\033[31m相\033[0m',
+    'A': '\033[31m仕\033[0m',
+    'K': '\033[31m帅\033[0m',
+    'P': '\033[31m兵\033[0m',
+    'C': '\033[31m炮\033[0m',
+    'D': '\033[31m暗\033[0m',
+    'E': '\033[31m暗\033[0m',
+    'F': '\033[31m暗\033[0m',
+    'G': '\033[31m暗\033[0m',
+    'H': '\033[31m暗\033[0m',
+    'I': '\033[31m暗\033[0m',
+    'r': '车',
+    'n': '马',
+    'b': '象',
+    'a': '士',
+    'k': '将',
+    'p': '卒',
+    'c': '炮',
+    'd': '暗',
+    'e': '暗',
+    'f': '暗',
+    'g': '暗',
+    'h': '暗',
+    'i': '暗'
+}
+
 MATE_LOWER = piece['K'] - (2*piece['R'] + 2*piece['N'] + 2*piece['B'] + 2*piece['A'] + 2*piece['C'] + 5*piece['P'])
 MATE_UPPER = piece['K'] + (2*piece['R'] + 2*piece['N'] + 2*piece['B'] + 2*piece['A'] + 2*piece['C'] + 5*piece['P'])
 
@@ -243,6 +221,14 @@ QS_LIMIT = 219
 EVAL_ROUGHNESS = 13
 DRAW_TEST = True
 THINK_TIME = 0.5
+
+
+###############################################################################
+# Mapping
+# To be more convenient, we initialize the mapping as a global const dictionary
+###############################################################################
+mapping = {}
+
 
 ###############################################################################
 # Chess logic
@@ -259,7 +245,7 @@ class Position(namedtuple('Position', 'board score')):
         # captures or immediately in case of pieces such as knights.
         for i, p in enumerate(self.board):
             if p == 'K': 
-                for scanpos in range(i - 16,A9,-16):
+                for scanpos in range(i - 16, A9, -16):
                     if self.board[scanpos] == 'k':
                         yield (i,scanpos)
                     elif self.board[scanpos] != '.':
@@ -287,9 +273,8 @@ class Position(namedtuple('Position', 'board score')):
                     # 过河的卒/兵才能横着走
                     if p == 'P' and d in (E, W) and i > 128: break
                     # j & 15 等价于 j % 16但是更快
-                    elif p in ('A','K') and (j < 160 or j & 15 > 8 or j & 15 < 6): break
+                    elif p == 'K' and (j < 160 or j & 15 > 8 or j & 15 < 6): break
                     elif p == 'G' and j != 183: break #暗士, 花心坐标: (11, 7), 11 * 16 + 7 = 183
-                    elif p == 'B' and j < 128: break
                     elif p in ('N', 'E'): #暗马
                         n_diff_x = (j - i) & 15
                         if n_diff_x == 14 or n_diff_x == 2:
@@ -322,12 +307,59 @@ class Position(namedtuple('Position', 'board score')):
         board = put(board, i, '.')
         return Position(board, score).rotate()
 
+    def mymove(self, move):
+        i, j = move
+        put = lambda board, i, p: board[:i] + p + board[i+1:]
+        # Copy variables and reset ep and kp
+        board = self.board
+        ############################################################################
+        # TODO: Evaluate the score of each move!
+        # The following line is NOT implemented. However, it is extremely important!
+        # score = self.score + self.value(move)
+        ############################################################################
+        # Actual move
+        # put = lambda board, i, p: board[:i] + p + board[i + 1:]
+        if board[i] in "RNBAKCP":
+            board = put(board, j, board[i])
+        else:
+            board = put(board, j, mapping[i])
+        board = put(board, i, '.')
+        return Position(board, self.score).rotate()
+
+    def mymove_check(self, move):
+        i, j = move
+        put = lambda board, i, p: board[:i] + p + board[i+1:]
+        # Copy variables and reset ep and kp
+        board = self.board
+        ############################################################################
+        # TODO: Evaluate the score of each move!
+        # The following line is NOT implemented. However, it is extremely important!
+        # score = self.score + self.value(move)
+        ############################################################################
+        # Actual move
+        # put = lambda board, i, p: board[:i] + p + board[i + 1:]
+        eat = board[j]
+        dst = None
+
+        checkmate = False
+        if board[j] == 'k':
+            checkmate = True
+
+        if board[j] in "defghi":
+            dst = mapping[j]
+        if board[i] in "RNBAKCP":
+            board = put(board, j, board[i])
+        else:
+            board = put(board, j, mapping[i])
+        board = put(board, i, '.')
+
+        return Position(board, self.score).rotate(), checkmate, eat, dst
+
     def value(self, move):
         i, j = move
         p, q = self.board[i], self.board[j]
         # Actual move
         score = pst[p][j] - pst[p][i]
-        print(pst[p][j], pst[p][i])
         # Capture
         if q.islower():
             score += pst[q.upper()][255-j-1]
@@ -347,7 +379,7 @@ class Searcher:
         self.history = set()
         self.nodes = 0
 
-    def alphabet(self, pos, alpha, beta, depth, root=True):
+    def alphabeta(self, pos, alpha, beta, depth, root=True):
         """ returns r where
                 s(pos) <= r < gamma    if gamma > s(pos)
                 gamma <= r <= s(pos)   if gamma <= s(pos)"""
@@ -423,7 +455,7 @@ class Searcher:
                     best = val
                     if val > beta:
                         mvBest = move
-                        break;
+                        break
                     if val > alpha:
                         alpha = val
                         mvBest = move
@@ -475,17 +507,12 @@ class Searcher:
             # 'while lower != upper' would work, but play tests show a margin of 20 plays
             # better.
             lower, upper = -MATE_UPPER, MATE_UPPER
-            self.alphabet(pos, lower,upper, depth)
+            self.alphabeta(pos, lower,upper, depth)
             yield depth, self.tp_move.get(pos), self.tp_score.get((pos, depth, True),Entry(-MATE_UPPER, MATE_UPPER)).lower
 
 ###############################################################################
 # User interface
 ###############################################################################
-
-# Python 2 compatability
-if sys.version_info[0] == 2:
-    input = raw_input
-
 
 def parse(c):
     fil, rank = ord(c[0]) - ord('a'), int(c[1])
@@ -496,18 +523,64 @@ def render(i):
     rank, fil = divmod(i - A0, 16)
     return chr(fil + ord('a')) + str(-rank)
 
-def print_pos(pos):
-    print()
-    uni_pieces = {'R':'车', 'N':'马', 'B':'相', 'A':'仕', 'K':'帅', 'P':'兵', 'C':'炮',
-                  'r':'俥', 'n':'傌', 'b':'象', 'a':'士', 'k':'将', 'p':'卒', 'c':'砲', '.':'．'}
-    for i, row in enumerate(pos.board.split()):
-        print(' ', 9-i, ''.join(uni_pieces.get(p, p) for p in row))
-    print('    ａｂｃｄｅｆｇｈｉ\n\n')
 
-def main():
-    hist = [Position(initial, 0)]
+def render_tuple(t):
+    return render(t[0]) + render(t[1])
+
+
+def print_pos(pos):
+    chessstr = ''
+    for i, row in enumerate(pos.board.split()):
+        joinstr = ''.join(uni_pieces.get(p, p) for p in row)
+        print(' ', 9 - i, joinstr)
+        chessstr += (' ' + str(9 - i) + joinstr)
+    print('    ａｂｃｄｅｆｇｈｉ\n\n')
+    chessstr += '    ａｂｃｄｅｆｇｈｉ\n\n\n'
+    return chessstr
+
+
+def random_policy(pos):
+    '''
+    A test function that generates a random policy
+    '''
+    all_moves = list(pos.gen_moves())
+    stupid_AI_move = random.choice(all_moves)
+    return stupid_AI_move
+
+
+def translate_eat(eat, dst, turn, type):
+    assert turn in {'RED', 'BLACK'} and type in {'CLEARMODE', 'DARKMODE'}
+    if eat == '.':
+        return None
+    if turn == 'BLACK':
+        eat = eat.swapcase()
+        if dst:
+            dst = dst.swapcase()
+    if type == 'DARKMODE':
+        return uni_pieces[eat]
+    else:
+        if dst is None: #吃明子
+            return uni_pieces[eat]
+        else: #吃暗子
+            dst = uni_pieces[dst]
+            if turn == 'RED':
+                dst += "(暗)"
+            else:
+                dst += "\033[31m(暗)\033[0m"
+            return dst
+
+
+def main(random_move=False, AI=True):
+    global mapping
+    mapping = B.translate_mapping(B.mapping)
+    hist = [Position(initial_covered, 0)]
     searcher = Searcher()
+    myeatlist = []
+    AIeatlist = []
+
     while True:
+        print("\033[31m玩家吃子:\033[0m" + " " + " ".join(myeatlist))
+        print("电脑吃子:" + " " + " ".join(AIeatlist))
         print_pos(hist[-1])
 
         if hist[-1].score <= -MATE_LOWER:
@@ -516,39 +589,79 @@ def main():
 
         # We query the user until she enters a (pseudo) legal move.
         move = None
-        while move not in hist[-1].gen_moves():
+        genmoves = set(hist[-1].gen_moves())
+        while move not in genmoves:
             match = re.match('([a-i][0-9])'*2, input('Your move: '))
             if match:
                 move = parse(match.group(1)), parse(match.group(2))
             else:
                 # Inform the user when invalid input (e.g. "help") is entered
                 print("Please enter a move like h2e2")
-        hist.append(hist[-1].move(move))
+
+        pos, win, eat, dst = hist[-1].mymove_check(move)
+
+        if win:
+            print("You win!")
+            break
+
+        rendered_eat = translate_eat(eat, dst, "RED", "CLEARMODE")
+        if rendered_eat:
+            myeatlist.append(rendered_eat)
+
+        hist.append(pos) #move的过程Rotate了一次
 
         # After our move we rotate the board and print it again.
         # This allows us to see the effect of our move.
-        print("Before Rotate!")
+        print("\033[31m玩家吃子:\033[0m" + " " + " ".join(myeatlist))
+        print("电脑吃子:" + " " + " ".join(AIeatlist))
         print_pos(hist[-1].rotate())
-        print("After Rotate!")
 
         if hist[-1].score <= -MATE_LOWER:
-            print("You won")
+            print("You win!")
             break
 
         # Fire up the engine to look for a move.
-        start = time.time()
-        for _depth, move, score in searcher.search(hist[-1], hist):
-            if time.time() - start > THINK_TIME:
-                break
+        score = 0
+        _depth = 0
+
+        move = None
+        if AI:
+            if random_move:
+                move = random_policy(hist[-1])
+            else:
+                start = time.time()
+                for _depth, move, score in searcher.search(hist[-1], hist):
+                    if time.time() - start > THINK_TIME:
+                        break
+        else:
+            genmoves = set(hist[-1].gen_moves())
+            while move not in genmoves:
+                match = re.match('([a-i][0-9])' * 2, input('Your move: '))
+                if match:
+                    move = parse(match.group(1)), parse(match.group(2))
+                    move = (254 - move[0], 254 - move[1])
+                else:
+                    # Inform the user when invalid input (e.g. "help") is entered
+                    print("Please enter a move like h2e2")
 
         if score == MATE_UPPER:
             print("Checkmate!")
 
         # The black player moves from a rotated position, so we have to
         # 'back rotate' the move before printing it.
-        print("Think depth: {} My move: {}".format(_depth, render(255-move[0] - 1) + render(255-move[1]-1)))
-        hist.append(hist[-1].move(move))
+        print("Think depth: {} My move: {}".format(_depth, render(254 - move[0]) + render(254 - move[1])))
+        pos, win, eat, dst = hist[-1].mymove_check(move)
+
+        if win:
+            print("You lose, HAHAHAHAHAHAHAHAHAHA!")
+            break
+
+        rendered_eat = translate_eat(eat, dst, "BLACK", "DARKMODE")
+        if rendered_eat:
+            AIeatlist.append(rendered_eat)
+
+        hist.append(pos)
 
 
 if __name__ == '__main__':
-    main()
+    main(True, True)
