@@ -443,13 +443,23 @@ class Position(namedtuple('Position', 'board score turn')):
             score = average[self.turn][True][j] - average[self.turn][False] + 20  # 相应位置不确定明子的平均价值 - 暗子
 
             if p == 'D':
-               key = 'R' if not self.turn else 'r'  # 对方车
-               minus = 30*(di[not self.turn][key]//2+self.che_opponent)
-               score -= 10  # 暗车溜出，扣分! 扣的分数和对方剩余车的个数有关
-               if self.che < self.che_opponent:
-                   score -= minus//2
-               if self.che == 0:
-                   score -= minus//2
+                key = 'R' if not self.turn else 'r'  # 对方车
+                minus = 30 * (di[not self.turn][key] // 2 + self.che_opponent)
+                score -= 10  # 暗车溜出，扣分! 扣的分数和对方剩余车的个数有关
+                if self.che < self.che_opponent:
+                    score -= minus // 2
+                if self.che == 0:
+                    score -= minus // 2
+                if i == 203 and j == 202:
+                    if self.board[j] in 'rnc':
+                        score += pst[self.board[j].upper()][52]  # 254-202=52
+                    elif self.board[j] == 'p':
+                        score += minus // 2
+                if i == 195 and j == 196:
+                    if self.board[j] in 'rnc':
+                        score += pst[self.board[j].upper()][58]  # 254-196=58
+                    elif self.board[j] == 'p':
+                        score += minus // 2
 
             elif p == 'G':
                 # 1 2 3 4 5 6 7 8 9
