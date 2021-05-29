@@ -617,9 +617,9 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[101] in 'icn':
                             count += 1
                         if count >= 2 and self.board[86] != 'h':
-                            score += average[self.version][not self.turn][False] * prob_bing
+                            score += average[self.version][not self.turn][False] * prob_bing // 2
                         else:
-                            score += average[self.version][not self.turn][False] * prob_bing // 3
+                            score += average[self.version][not self.turn][False] * prob_bing // 6
 
                 if i == 170 and j == 106:
                     if self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
@@ -633,9 +633,9 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[107] == 'i':
                             count += 1
                         if count == 3 or (count == 2 and self.board[90] != 'h') or (self.board[107] == 'i' and self.board[139] in 'rp'):
-                            score += average[self.version][not self.turn][False] * prob_bing
+                            score += average[self.version][not self.turn][False] * prob_bing // 2
                         else:
-                            score += average[self.version][not self.turn][False] * prob_bing // 3
+                            score += average[self.version][not self.turn][False] * prob_bing // 6
 
                 # 炮压暗马
                 if i == 164 and j == 68 and self.board[52] == 'e':
@@ -683,8 +683,6 @@ class Position(namedtuple('Position', 'board score turn version')):
             k = 254 - j
             if q in 'RNBAKCP':
                 score += pst[q][k]
-                if q in 'CNR':
-                     score += pst[q][k] // 3
 
             else:
                 if q != 'U':
