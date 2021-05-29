@@ -7,7 +7,7 @@ import re, sys, time
 from itertools import count
 from collections import namedtuple
 import random
-from board import board, common_20210529_fixed as common, library
+from board import board, common, library
 from copy import deepcopy
 import readline
 
@@ -363,6 +363,9 @@ class Position(namedtuple('Position', 'board score turn version')):
         p, q = self.board[i], self.board[j].upper()
         possible_che = 0 if sumall[self.version][self.turn] == 0 else self.covered * di[self.version][self.turn][
             'R' if self.turn else 'r']/sumall[self.version][self.turn]
+        prob_bing = 0 if sumall[self.version][self.turn] == 0 else di[self.version][self.turn][
+            'P' if self.turn else 'p'] / sumall[self.version][self.turn]
+        possible_bing = self.covered * prob_bing
         possible_che_opponent = 0 if sumall[self.version][not self.turn] == 0 else self.covered_opponent * di[self.version][not self.turn][
             'r' if self.turn else 'R'] / sumall[self.version][not self.turn]
         # Actual move
@@ -582,8 +585,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                     if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
                         score += (40 * calc())
 
-                elif sumall[self.version][self.turn] > 0 and \
-                        (di[self.version][self.turn]['P' if self.turn else 'p'] * self.covered/sumall[self.version][self.turn] <= 2):
+                elif possible_bing >= 2:
                     score -= 20  # 如果当前暗子中兵过多，翻士容易翻出窝心兵，不利于防守!
 
             elif p == 'E':
@@ -605,7 +607,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                 # 暗炮进四
                 if i == 164 and j == 100:
                     if self.board[83] == 'a' or self.board[85] == 'a' or self.board[115] == 'a' or self.board[117] == 'a':
-                        score -= average[self.version][self.turn][False] // 2
+                        score -= average[self.version][self.turn][True][j] // 2
                     else:
                         count = 0
                         if self.board[84] in 'hcn':
@@ -615,13 +617,13 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[101] in 'icn':
                             count += 1
                         if count >= 2 and self.board[86] != 'h':
-                            score += average[self.version][not self.turn][False] // 2
+                            score += average[self.version][not self.turn][False] * prob_bing
                         else:
-                            score += average[self.version][not self.turn][False] // 4
+                            score += average[self.version][not self.turn][False] * prob_bing // 3
 
                 if i == 170 and j == 106:
                     if self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
-                        score -= average[self.version][self.turn][False] // 2
+                        score -= average[self.version][self.turn][True][j] // 2
                     else:
                         count = 0
                         if self.board[90] == 'h':
@@ -631,9 +633,9 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[107] == 'i':
                             count += 1
                         if count == 3 or (count == 2 and self.board[90] != 'h') or (self.board[107] == 'i' and self.board[139] in 'rp'):
-                            score += average[self.version][not self.turn][False] // 2
+                            score += average[self.version][not self.turn][False] * prob_bing
                         else:
-                            score += average[self.version][not self.turn][False] // 4
+                            score += average[self.version][not self.turn][False] * prob_bing // 3
 
                 # 炮压暗马
                 if i == 164 and j == 68 and self.board[52] == 'e':
@@ -673,14 +675,15 @@ class Position(namedtuple('Position', 'board score turn version')):
                 elif self.board[i - 32] == 'n':  # 之前是N, 不正确，已更正!
                     score += 20
                 else:
-                    score += 5
+                    #20210529 score += 5
+                    score += 10
 
         # Capture
         if q.isupper():
             k = 254 - j
             if q in 'RNBAKCP':
                 score += pst[q][k]
-                if q in 'CNRA':
+                if q in 'CNR':
                      score += pst[q][k] // 3
 
             else:
@@ -737,7 +740,7 @@ class Searcher:
         # the remaining code has to be comfortable with being mated, stalemated
         # or able to capture the opponent king.
         if pos.score <= -MATE_LOWER:
-            print("depth=%s"%depth, " return from pos.score <= -MATE_LOWER")
+            #print("depth=%s"%depth, " return from pos.score <= -MATE_LOWER")
             return -MATE_UPPER
 
         # Look in the table if we have already searched this position before.
@@ -803,7 +806,7 @@ class Searcher:
                 if val >= MATE_UPPER:
                     mvBest = move
                     best = val
-                    print("depth=%s Early return hits!"%depth)
+                    #print("depth=%s Early return hits!"%depth)
                     break
 
         if not mvBest and moves:
