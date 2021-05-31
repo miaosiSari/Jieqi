@@ -85,6 +85,7 @@ Fixed in `musesfish_pvs_20210531_fixed.py`.
 
 1. 关闭空着裁剪。空着裁剪对于杀棋的计算不够犀利。
 2. 在alpha-beta pruning的时候设置了短路逻辑(804-808行)。该短路逻辑有助于AI快速杀棋。
+3. 将value的内部函数calc改为了pos的成员函数。
 
 ## 注:
 带有`fixed`的版本永久固定，如果您发现有bug，欢迎提Issues，我会在新的版本中改正。您可以使用pypy3运行我的代码，只需要将`python`替换成`pypy3`即可。
