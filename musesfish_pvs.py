@@ -7,7 +7,7 @@ import re, sys, time
 from itertools import count
 from collections import namedtuple
 import random
-from board import board, common_20210531_fixed as common, library
+from board import board, common, library
 from copy import deepcopy
 import readline
 
@@ -359,6 +359,15 @@ class Position(namedtuple('Position', 'board score turn version')):
         sumall[self.version][False] = sum(di[self.version][False][key] for key in di[self.version][False])
         return Position.rotate_new(board, self.score, self.turn, self.version), checkmate, eat, dst
 
+    def calc(self):
+        shi_possibility = 0 if sumall[self.version][not self.turn] == 0 else di[self.version][not self.turn]['a' if self.turn else 'A']/sumall[self.version][not self.turn]
+        base_possibility = 1
+        if self.board[54] == 'g':
+            base_possibility *= (1 - shi_possibility)
+        if self.board[56] == 'g':
+            base_possibility *= (1 - shi_possibility)
+        return base_possibility
+
     def value(self, move):
         i, j = move
         p, q = self.board[i], self.board[j].upper()
@@ -551,15 +560,6 @@ class Position(namedtuple('Position', 'board score turn version')):
                 # 195 - 16x + y
 
                 # 对手9路暗车出动， 己方可以考虑出将/出帅助攻。翻开四路暗士， 查看四路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
-                def calc():
-                    shi_possibility = 0 if sumall[self.version][not self.turn] == 0 else di[self.version][not self.turn]['a' if self.turn else 'A']/sumall[self.version][not self.turn]
-                    base_possibility = 1
-                    if self.board[54] == 'g':
-                        base_possibility *= (1 - shi_possibility)
-                    if self.board[56] == 'g':
-                        base_possibility *= (1 - shi_possibility)
-                    return base_possibility
-
                 if i == 200 and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n'):
                     cheonleidao = 0
                     che_opponent_onleidao = 0
@@ -569,7 +569,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                         elif self.board[scanpos] == 'r':
                             che_opponent_onleidao += 1
                     if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
-                        score += (40 * calc())
+                        score += (40 * self.calc())
 
                 # 对手1路暗车出动， 己方可以考虑出将/出帅助攻。翻开六路暗士， 查看六路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
                 if i == 198 and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n') :
@@ -581,7 +581,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                         elif self.board[scanpos] == 'r':
                             che_opponent_onleidao += 1
                     if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
-                        score += (40 * calc())
+                        score += (40 * self.calc())
 
                 elif sumall[self.version][self.turn] > 0 and \
                         (di[self.version][self.turn]['P' if self.turn else 'p'] * self.covered/sumall[self.version][self.turn] <= 2):

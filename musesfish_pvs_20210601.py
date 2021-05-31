@@ -362,9 +362,9 @@ class Position(namedtuple('Position', 'board score turn version')):
     def calc(self):
          shi_possibility = 0 if sumall[self.version][not self.turn] == 0 else di[self.version][not self.turn]['a' if self.turn else 'A']/sumall[self.version][not self.turn]
          base_possibility = 1
-         if self.board[56] == 'G':
+         if self.board[54] == 'g':
              base_possibility *= (1 - shi_possibility)
-         if self.board[54] == 'G':
+         if self.board[56] == 'g':
              base_possibility *= (1 - shi_possibility)
          return base_possibility
 
