@@ -268,7 +268,7 @@ pst = {
 }
 
 usefulkeys = 'RBNAKCP'
-discount_factor = 1.5
+discount_factor = 1.1
 pst["1"] = {}
 s = 0
 for key in usefulkeys:

@@ -524,7 +524,7 @@ class Position(namedtuple('Position', 'board score turn version')):
             # 假设某一方可能的暗子是 两车一炮。
             # 则在某位置处不确定明子的价值为 (车在该处的价值*2 + 炮在该处的价值)/(2+1)。
             # 为了加速计算，这一数值已经被封装到了average这一字典中并预先计算(Pre-compute)。
-            score = average[self.version][self.turn][True][j] - average[self.version][self.turn][False] + 20 # 相应位置不确定明子的平均价值 - 暗子
+            score = average[self.version][self.turn][True][j] - average[self.version][self.turn][False] + 35 # 相应位置不确定明子的平均价值 - 暗子
 
             if p == 'D':
                 minus = 30*(possible_che_opponent // 2 + self.che_opponent)
