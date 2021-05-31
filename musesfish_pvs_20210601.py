@@ -618,23 +618,23 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if count >= 2:
                             score += average[self.version][not self.turn][False] // 2
                         else:
-                            score += 20
+                            score += 5
 
                 if i == 170 and j == 106:
                     if self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
                         score -= average[self.version][self.turn][False] // 2
                     else:
                         count = 0
-                        if self.board[90] == 'h':
+                        if self.board[90] in 'hcn':
                             count += 1
-                        if self.board[105] == 'i':
+                        if self.board[105] in 'icn':
                             count += 1
-                        if self.board[107] == 'i':
+                        if self.board[107] in 'icn':
                             count += 1
                         if count >= 2:
                             score += average[self.version][not self.turn][False] // 2
                         else:
-                            score += 20
+                            score += 5
 
                 # 炮压暗马
                 if i == 164 and j == 68 and self.board[52] == 'e':
