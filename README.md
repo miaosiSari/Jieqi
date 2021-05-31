@@ -5,7 +5,8 @@
 
 这是一个揭棋AI项目，提供命令行对战UI和基于概率/pvs算法的AI。您可以使用python3和pypy3运行。本项目不支持python2/pypy2。
 
-本项目基于bupticybee大佬的项目二次开发: https://github.com/bupticybee/elephantfish, 并严格遵守bupticybee设置的GPL License V3: https://github.com/bupticybee/elephantfish/blob/master/LICENSE.md 。
+本项目基于bupticybee大佬的项目elephantfish二次开发: https://github.com/bupticybee/elephantfish, 并严格遵守bupticybee设置的GPL License V3: https://github.com/bupticybee/elephantfish/blob/master/LICENSE.md 。我的项目和elephantfish
+都给予sunfish开发: https://github.com/thomasahle/sunfish 。
 
 ## v1/随机走子(Random Policy Test): 
 `python musesfish_pvs_v1_fixed.py`
@@ -77,11 +78,13 @@ pos.gen_moves是一个生成器，不应该在这个函数中统计一些棋盘�
 见Issue: https://github.com/miaosiSari/Jieqi/issues/1. 
 Fixed in `musesfish_pvs_20210531_fixed.py`.
 
-## 20210631:
+### 中马防守
+在抢占肋道和翻动暗士的时候，考虑中马的防守(486,492,563,575行)。
 
-1. 在抢占肋道和翻动暗士的时候，考虑中马的防守。(486,492,564,575行)
-2. 关闭空着裁剪。空着裁剪对于杀棋的计算不够犀利。
-3. 在alpha-beta pruning的时候设置了短路逻辑(804-808行)。该短路逻辑有助于AI快速杀棋。
+## 20210601:
+
+1. 关闭空着裁剪。空着裁剪对于杀棋的计算不够犀利。
+2. 在alpha-beta pruning的时候设置了短路逻辑(804-808行)。该短路逻辑有助于AI快速杀棋。
 
 ## 注:
 带有`fixed`的版本永久固定，如果您发现有bug，欢迎提Issues，我会在新的版本中改正。您可以使用pypy3运行我的代码，只需要将`python`替换成`pypy3`即可。
