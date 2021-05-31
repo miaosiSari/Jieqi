@@ -74,7 +74,8 @@ pos.gen_moves是一个生成器，不应该在这个函数中统计一些棋盘�
 
 ### 暗炮打暗马，兵顶马的坐标计算失误。
 
-见Issue: https://github.com/miaosiSari/Jieqi/issues/1
+见Issue: https://github.com/miaosiSari/Jieqi/issues/1. 
+Fixed in `musesfish_pvs_20210531_fixed.py`.
 
 
 ## 注:
