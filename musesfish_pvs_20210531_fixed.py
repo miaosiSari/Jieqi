@@ -7,10 +7,11 @@ import re, sys, time
 from itertools import count
 from collections import namedtuple
 import random
-from board import board, common_20210531_fixed as common, library
+from board import board, common_20210601_fixed as common, library
 from copy import deepcopy
 import readline
 
+NULLMOVE = False
 B = board.Board()
 piece = {'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
 put = lambda board, i, p: board[:i] + p + board[i+1:]
@@ -482,15 +483,15 @@ class Position(namedtuple('Position', 'board score turn version')):
                             cnt += 1
 
             elif p == 'R':
-                if self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a':
+                if self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n'):
                     if j & 15 == 6 and i & 15 != 6:
-                        score += 30  # 如果对方暗车出动，相应侧又没有士的防守，抓紧抢占肋道
+                        score += 30  # 如果对方暗车出动，相应侧又没有士或者中马的防守，抓紧抢占肋道
                     if j & 15 != 6 and i & 15 == 6:
                         score -= 20
 
-                if self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a':
+                if self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n'):
                     if j & 15 == 8 and i & 15 != 8:
-                        score += 30  # 如果对方暗车出动，相应侧又没有士的防守，抓紧抢占肋道
+                        score += 30  # 如果对方暗车出动，相应侧又没有士或者中马的防守，抓紧抢占肋道
                     if j & 15 != 8 and i & 15 == 8:
                         score -= 20
 
@@ -559,7 +560,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                         base_possibility *= (1 - shi_possibility)
                     return base_possibility
 
-                if i == 200 and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a':
+                if i == 200 and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n'):
                     cheonleidao = 0
                     che_opponent_onleidao = 0
                     for scanpos in range(184, 51, -16):
@@ -571,7 +572,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                         score += (40 * calc())
 
                 # 对手1路暗车出动， 己方可以考虑出将/出帅助攻。翻开六路暗士， 查看六路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
-                if i == 198 and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a':
+                if i == 198 and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n') :
                     cheonleidao = 0
                     che_opponent_onleidao = 0
                     for scanpos in range(182, 51, -16):
@@ -758,8 +759,8 @@ class Searcher:
             # piece left on the board, since otherwise zugzwangs are too dangerous.
 
         if nullmove and depth > 0 and not root and any(c in pos.board for c in 'RNC'):
-            val = -self.alphabeta(pos.nullmove(), -beta, 1-beta, depth-3, root=False)
-            if val >= beta and self.alphabeta(pos, alpha, beta, depth - 3, root=False):
+            val = -self.alphabeta(pos.nullmove(), -beta, 1-beta, depth-3, root=False, nullmove=nullmove)
+            if val >= beta and self.alphabeta(pos, alpha, beta, depth - 3, root=False, nullmove=nullmove):
                return val
 
         # For QSearch we have a different kind of null-move, namely we can just stop
@@ -787,11 +788,11 @@ class Searcher:
                 continue
             if (move is not None) and (depth > 0):
                 if best == -MATE_UPPER:
-                    val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False)
+                    val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False, nullmove=nullmove)
                 else:
-                    val = -self.alphabeta(pos.move(move), -alpha - 1, -alpha, depth - 1, root=False)
+                    val = -self.alphabeta(pos.move(move), -alpha - 1, -alpha, depth - 1, root=False, nullmove=nullmove)
                     if val > alpha and val < beta:
-                        val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False)
+                        val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False, nullmove=nullmove)
                 if val > best:
                     best = val
                     if val > beta:
@@ -860,7 +861,7 @@ class Searcher:
             # 'while lower != upper' would work, but play tests show a margin of 20 plays
             # better.
             lower, upper = -MATE_UPPER, MATE_UPPER
-            val = self.alphabeta(pos, lower, upper, depth)
+            val = self.alphabeta(pos, lower, upper, depth, nullmove=NULLMOVE)
             print(depth, val)
             yield depth, self.tp_move.get(pos), self.tp_score.get((pos, depth, True), Entry(-MATE_UPPER, MATE_UPPER)).lower
 

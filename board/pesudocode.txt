@@ -1,0 +1,30 @@
+def evaluate(pos, version=0, depths = (2, 3)):
+      '''
+     version: 递归深度。如果version == 0，则局面为当前局面。
+      '''
+     if version >= len(depths):
+         return pos.score
+     if version == 0:
+         return alphabeta(pos, depths[version], depths, version, root=True, ...)
+     else:
+         sum = 0.0
+         Mapping pos to a set of positions S. # For each position s in S, the uncertain chesses of s are replaced by definite chesses.
+         for s in S:
+                 update s.score # 如不确定子是车，把不确定子替换成车肯定加分。反之如不确定子是兵，把不确定子替换兵减分
+                 p = probability of s
+                 sum += p * alphabeta(s, depths[version], depths, version, root=True, ...)
+         return sum
+                     
+def alphabeta(pos, depth, depths, version, root, ...):
+     ...
+     ...
+     if depth <= 0:
+        # return pos.score # Previous implementation
+       return evalutate(pos, version=version+1, depths)  # My idea: Double Recursion, 双递归
+     ... 
+     ...
+
+
+# Call from Searcher.search:
+
+val = evaluate(pos, 0, depths)
