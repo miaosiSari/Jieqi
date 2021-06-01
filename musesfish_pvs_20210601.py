@@ -545,6 +545,44 @@ class Position(namedtuple('Position', 'board score turn version')):
                     elif self.board[j] == 'p':
                         score += minus//2
 
+            elif p == 'E':
+                if i == 196 and j == 165 and self.board[149] == 'I':  # 对方车从3,7线杀出，翻动暗马保住暗兵
+                    for scanpos in range(133, 51, -16):
+                        if self.board[scanpos] == 'r':
+                            score += average[self.version][self.turn][False]//2
+                        elif self.board[scanpos] != '.':
+                            break
+
+                if i == 202 and j == 169 and self.board[153] == 'I':
+                    for scanpos in range(137, 51, -16):
+                        if self.board[scanpos] == 'r':
+                            score += average[self.version][self.turn][False]//2
+                        elif self.board[scanpos] != '.':
+                            break
+
+            elif p == 'F':
+                if (i == 197 or i == 201) and j == 167 and self.board[151] == 'I':
+                    findche = False
+                    for scanpos in range(135, 51, -16):
+                        if self.board[scanpos] == 'r':
+                            score += average[self.version][self.turn][False]//2
+                            findche = True
+                        elif self.board[scanpos] != '.':
+                            break
+                    if not findche:
+                        for scanpos in range(135, 130, -1):
+                            if self.board[scanpos] == 'r':
+                                score += average[self.version][self.turn][False] // 2
+                                findche = True
+                            elif self.board[scanpos] != '.':
+                                break
+                    if not findche:
+                        for scanpos in range(135, 140, 1):
+                            if self.board[scanpos] == 'r':
+                                score += average[self.version][self.turn][False] // 2
+                            elif self.board[scanpos] != '.':
+                                break
+
             elif p == 'G':
                 # 1 2 3 4 5 6 7 8 9
                 # i
@@ -560,7 +598,8 @@ class Position(namedtuple('Position', 'board score turn version')):
                 # 195 - 16x + y
 
                 # 对手9路暗车出动， 己方可以考虑出将/出帅助攻。翻开四路暗士， 查看四路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
-                if i == 200 and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n'):
+                if i == 200 and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a' and (
+                        self.board[71] == 'p' or self.board[87] != 'n'):
                     cheonleidao = 0
                     che_opponent_onleidao = 0
                     for scanpos in range(184, 51, -16):
@@ -572,7 +611,8 @@ class Position(namedtuple('Position', 'board score turn version')):
                         score += (40 * self.calc())
 
                 # 对手1路暗车出动， 己方可以考虑出将/出帅助攻。翻开六路暗士， 查看六路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
-                if i == 198 and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n') :
+                if i == 198 and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a' and (
+                        self.board[71] == 'p' or self.board[87] != 'n'):
                     cheonleidao = 0
                     che_opponent_onleidao = 0
                     for scanpos in range(182, 51, -16):
@@ -584,23 +624,9 @@ class Position(namedtuple('Position', 'board score turn version')):
                         score += (40 * self.calc())
 
                 elif sumall[self.version][self.turn] > 0 and \
-                        (di[self.version][self.turn]['P' if self.turn else 'p'] * self.covered/sumall[self.version][self.turn] <= 2):
-                    score -= 20  # 如果当前暗子中兵过多，翻士容易翻出窝心兵，不利于防守!
-
-            elif p == 'E':
-                if i == 196 and j == 165 and self.board[149] == 'I':  # 对方车从3,7线杀出，翻动暗马保住暗兵
-                    for scanpos in range(133, 51, -16):
-                        if self.board[scanpos] == 'r':
-                            score += average[self.version][self.turn][False]//2
-                        elif self.board[scanpos] != '.':
-                            break
-
-                if i == 202 and j == 169 and self.board[153] == 'I':
-                    for scanpos in range(137, 51, -16):
-                        if self.board[scanpos] == 'r':
-                            score += average[self.version][self.turn][False]//2
-                        elif self.board[scanpos] != '.':
-                            break
+                        (di[self.version][self.turn]['P' if self.turn else 'p'] * self.covered /
+                         sumall[self.version][self.turn] <= 2):
+                            score -= 20  # 如果当前暗子中兵过多，翻士容易翻出窝心兵，不利于防守!
 
             elif p == 'H':
                 # 暗炮进四
