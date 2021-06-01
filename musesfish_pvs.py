@@ -625,11 +625,11 @@ class Position(namedtuple('Position', 'board score turn version')):
                         score -= average[self.version][self.turn][False] // 2
                     else:
                         count = 0
-                        if self.board[90] == 'h':
+                        if self.board[90] in 'hcn':
                             count += 1
-                        if self.board[105] == 'i':
+                        if self.board[105] in 'icn':
                             count += 1
-                        if self.board[107] == 'i':
+                        if self.board[107] in 'icn':
                             count += 1
                         if count >= 2:
                             score += average[self.version][not self.turn][False] // 4
