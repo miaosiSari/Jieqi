@@ -6,7 +6,7 @@
 这是一个揭棋AI项目，提供命令行对战UI和基于概率/pvs算法的AI。您可以使用python3和pypy3运行。本项目不支持python2/pypy2。
 
 本项目基于bupticybee大佬的项目elephantfish二次开发: https://github.com/bupticybee/elephantfish, 并严格遵守bupticybee设置的GPL License V3: https://github.com/bupticybee/elephantfish/blob/master/LICENSE.md 。我的项目和elephantfish
-都给予sunfish开发: https://github.com/thomasahle/sunfish 。
+都基于sunfish开发: https://github.com/thomasahle/sunfish 。
 
 ## v1/随机走子(Random Policy Test): 
 `python musesfish_pvs_v1_fixed.py`
@@ -89,7 +89,10 @@ Fixed in `musesfish_pvs_20210531_fixed.py`.
 
 ## 注:
 带有`fixed`的版本永久固定，如果您发现有bug，欢迎提Issues，我会在新的版本中改正。您可以使用pypy3运行我的代码，只需要将`python`替换成`pypy3`即可。
-在UI中，个人可以看到电脑吃的暗子，电脑也可以看到个人吃的暗子。这并不是一个BUG。在搜索算法里面，电脑是不知道个人吃的暗子的(在pos类的mymove_check中discount_red和discount_black的注释)，例如`musesfish_pvs_20210528_fixed.py`的277-281行。我在UI中输出的目的是打消您对作弊的怀疑。事实上，暗子到明子的映射早就在`main`函数开始的`mapping = B.translate_mapping(B.mapping)`中完成了。如果您不喜欢该设置，可以将`rendered_eat = translate_eat(eat, dst, "BLACK", "CLEARMODE")`改为`rendered_eat = translate_eat(eat, dst, "BLACK", "DARKMODE")`。musesfish_pvs.py是正在开发的版本。
+
+在UI中，个人可以看到电脑吃的暗子，电脑也可以看到个人吃的暗子。这并不是一个BUG。在搜索算法里面，电脑是不知道个人吃的暗子的(在pos类的mymove_check中discount_red和discount_black的注释)，例如`musesfish_pvs_20210528_fixed.py`的277-281行。我在UI中输出的目的是打消您对作弊的怀疑。事实上，暗子到明子的映射早就在`main`函数开始的`mapping = B.translate_mapping(B.mapping)`中完成了。如果您不喜欢该设置，可以将`rendered_eat = translate_eat(eat, dst, "BLACK", "CLEARMODE")`改为`rendered_eat = translate_eat(eat, dst, "BLACK", "DARKMODE")`。
+
+`musesfish_pvs.py`是正在开发的版本。`musesfish_pvs_exp.py`是正在尝试新算法的版本，这两个版本可能存在诸多bugs。
 
 ## 后续:
 如果您对我的拙作感兴趣，可以联系我:
