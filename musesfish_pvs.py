@@ -607,7 +607,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                 if i == 164 and j == 100:
                     if self.board[83] == 'a' or self.board[85] == 'a' or self.board[115] == 'a' or self.board[117] == 'a':
                         score -= average[self.version][self.turn][False] // 2
-                    else:
+                    elif self.score_rough > 0:
                         count = 0
                         if self.board[84] in 'hcn':
                             count += 1
@@ -623,7 +623,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                 if i == 170 and j == 106:
                     if self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
                         score -= average[self.version][self.turn][False] // 2
-                    else:
+                    elif self.score_rough > 0:
                         count = 0
                         if self.board[90] in 'hcn':
                             count += 1
