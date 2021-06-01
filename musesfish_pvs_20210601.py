@@ -806,11 +806,13 @@ class Searcher:
                         alpha = val
                         mvBest = move
                 if val >= MATE_UPPER:
-                    mvBest = move
-                    best = val
-                    print("depth=%s Early return hits!"%depth)
-                    break
-
+                    updated = pos.move(move).nullmove()
+                    if any(updated.board[m[1]] == 'k' for m in updated.gen_moves()):
+                        print("depth=%s, hit!"%depth)
+                        mvBest = move
+                        best = val
+                        break
+                        
         if not mvBest and moves:
             mvBest = moves[0]
 
