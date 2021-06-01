@@ -616,11 +616,11 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[101] in 'icn':
                             count += 1
                         if count >= 2:
-                            score += average[self.version][not self.turn][False] // 2
+                            score += average[self.version][not self.turn][False] // 4
                             if self.board[84] == 'n':
                                 score += 10
                         elif self.score_rough > 150:
-                            score += 20
+                            score += 10
 
                 if i == 170 and j == 106:
                     if self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
@@ -634,11 +634,11 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[107] in 'icn':
                             count += 1
                         if count >= 2:
-                            score += average[self.version][not self.turn][False] // 2
+                            score += average[self.version][not self.turn][False] // 4
                             if self.board[90] == 'n':
                                score += 10
                         elif self.score_rough > 150:
-                            score += 20
+                            score += 10
 
                 # 炮压暗马
                 if i == 164 and j == 68 and self.board[52] == 'e':
@@ -787,6 +787,7 @@ class Searcher:
                 self.tp_move[pos] = move
                 return MATE_UPPER
 
+        anyokmoves = False
         for move in [killer] + moves:
             if root and move in forbidden_moves:
                 continue
@@ -797,14 +798,8 @@ class Searcher:
                     val = -self.alphabeta(pos.move(move), -alpha - 1, -alpha, depth - 1, root=False, nullmove=nullmove)
                     if val > alpha and val < beta:
                         val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False, nullmove=nullmove)
-                if val > best:
-                    best = val
-                    if val > beta:
-                        mvBest = move
-                        break
-                    if val > alpha:
-                        alpha = val
-                        mvBest = move
+                if val > -MATE_UPPER:
+                   anyokmoves = True
                 if val >= MATE_UPPER:
                     updated = pos.move(move).nullmove()
                     if any(updated.board[m[1]] == 'k' for m in updated.gen_moves()):
@@ -812,6 +807,17 @@ class Searcher:
                         mvBest = move
                         best = val
                         break
+                if val > best:
+                    best = val
+                    mvBest = move
+                    if val > beta:
+                        break
+                    if val > alpha:
+                        alpha = val
+
+        if not anyokmoves:
+            self.tp_move[pos] = None
+            return -MATE_UPPER
                         
         if not mvBest and moves:
             mvBest = moves[0]
