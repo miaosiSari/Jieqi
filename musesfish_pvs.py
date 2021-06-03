@@ -102,16 +102,16 @@ bug = (
     '               \n'  # 0
     '               \n'  # 1
     '               \n'  # 2
-    '   defgkgfed   \n'  # 3
+    '   d.fgkgf.d   \n'  # 3
     '   .........   \n'  # 4
-    '   .h.......   \n'  # 5
-    '   ..i.i.i.i   \n'  # 6
-    '   r........   \n'  # 7
-    '   N.......B   \n'  # 8
-    '   ..I.I.I..   \n'  # 9
-    '   .H.....H.   \n'  # 10
-    '   .........   \n'  # 11
-    '   DEFGKGFED   \n'  # 12
+    '   b.....p..   \n'  # 5
+    '   i.i...i..   \n'  # 6
+    '   ....p..np   \n'  # 7
+    '   .cP...P.B   \n'  # 8
+    '   I...I....   \n'  # 9
+    '   .H.R...H.   \n'  # 10
+    '   C........   \n'  # 11
+    '   DE.GKGFED   \n'  # 12
     '               \n'  # 13
     '               \n'  # 14
     '                '  # 15
@@ -687,7 +687,7 @@ class Position(namedtuple('Position', 'board score turn version')):
             k = 254 - j
             if q in 'RNBAKCP':
                 score += pst[q][k]
-                if q == 'P' and (self.board[j+16] == 'I' or self.board[j+32] == 'I'):
+                if q == 'P' and self.board[j+32] == 'I':
                     score += 30
             else:
                 if q != 'U':
