@@ -7,7 +7,7 @@ import re, sys, time
 from itertools import count
 from collections import namedtuple
 import random
-from board import board, common, library
+from board import board, common_20210601_fixed as common, library
 from copy import deepcopy
 import readline
 
@@ -360,13 +360,13 @@ class Position(namedtuple('Position', 'board score turn version')):
         return Position.rotate_new(board, self.score, self.turn, self.version), checkmate, eat, dst
 
     def calc(self):
-        shi_possibility = 0 if sumall[self.version][not self.turn] == 0 else di[self.version][not self.turn]['a' if self.turn else 'A']/sumall[self.version][not self.turn]
-        base_possibility = 1
-        if self.board[54] == 'g':
-            base_possibility *= (1 - shi_possibility)
-        if self.board[56] == 'g':
-            base_possibility *= (1 - shi_possibility)
-        return base_possibility
+         shi_possibility = 0 if sumall[self.version][not self.turn] == 0 else di[self.version][not self.turn]['a' if self.turn else 'A']/sumall[self.version][not self.turn]
+         base_possibility = 1
+         if self.board[54] == 'g':
+             base_possibility *= (1 - shi_possibility)
+         if self.board[56] == 'g':
+             base_possibility *= (1 - shi_possibility)
+         return base_possibility
 
     def value(self, move):
         i, j = move
@@ -524,7 +524,7 @@ class Position(namedtuple('Position', 'board score turn version')):
             # 假设某一方可能的暗子是 两车一炮。
             # 则在某位置处不确定明子的价值为 (车在该处的价值*2 + 炮在该处的价值)/(2+1)。
             # 为了加速计算，这一数值已经被封装到了average这一字典中并预先计算(Pre-compute)。
-            score = average[self.version][self.turn][True][j] - average[self.version][self.turn][False] + 35 # 相应位置不确定明子的平均价值 - 暗子
+            score = average[self.version][self.turn][True][j] - average[self.version][self.turn][False] + 20 # 相应位置不确定明子的平均价值 - 暗子
 
             if p == 'D':
                 minus = 30*(possible_che_opponent // 2 + self.che_opponent)
@@ -545,48 +545,6 @@ class Position(namedtuple('Position', 'board score turn version')):
                     elif self.board[j] == 'p':
                         score += minus//2
 
-            elif p == 'G':
-                # 1 2 3 4 5 6 7 8 9
-                # i
-                # h
-                # g
-                # f
-                # e
-                # d
-                # c
-                # b
-                # a
-                # 9 8 7 6 5 4 3 2 1
-                # 195 - 16x + y
-
-                # 对手9路暗车出动， 己方可以考虑出将/出帅助攻。翻开四路暗士， 查看四路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
-                if i == 200 and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n'):
-                    cheonleidao = 0
-                    che_opponent_onleidao = 0
-                    for scanpos in range(184, 51, -16):
-                        if self.board[scanpos] == 'R':
-                            cheonleidao += 1
-                        elif self.board[scanpos] == 'r':
-                            che_opponent_onleidao += 1
-                    if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
-                        score += (40 * self.calc())
-
-                # 对手1路暗车出动， 己方可以考虑出将/出帅助攻。翻开六路暗士， 查看六路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
-                if i == 198 and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a' and (self.board[71] == 'p' or self.board[87] != 'n') :
-                    cheonleidao = 0
-                    che_opponent_onleidao = 0
-                    for scanpos in range(182, 51, -16):
-                        if self.board[scanpos] == 'R':
-                            cheonleidao += 1
-                        elif self.board[scanpos] == 'r':
-                            che_opponent_onleidao += 1
-                    if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
-                        score += (40 * self.calc())
-
-                elif sumall[self.version][self.turn] > 0 and \
-                        (di[self.version][self.turn]['P' if self.turn else 'p'] * self.covered/sumall[self.version][self.turn] <= 2):
-                    score -= 20  # 如果当前暗子中兵过多，翻士容易翻出窝心兵，不利于防守!
-
             elif p == 'E':
                 if i == 196 and j == 165 and self.board[149] == 'I':  # 对方车从3,7线杀出，翻动暗马保住暗兵
                     for scanpos in range(133, 51, -16):
@@ -602,12 +560,81 @@ class Position(namedtuple('Position', 'board score turn version')):
                         elif self.board[scanpos] != '.':
                             break
 
+            elif p == 'F':
+                if (i == 197 or i == 201) and j == 167 and self.board[151] == 'I':
+                    findche = False
+                    for scanpos in range(135, 51, -16):
+                        if self.board[scanpos] == 'r':
+                            score += average[self.version][self.turn][False]//2
+                            findche = True
+                        elif self.board[scanpos] != '.':
+                            break
+                    if not findche:
+                        for scanpos in range(135, 130, -1):
+                            if self.board[scanpos] == 'r':
+                                score += average[self.version][self.turn][False] // 2
+                                findche = True
+                            elif self.board[scanpos] != '.':
+                                break
+                    if not findche:
+                        for scanpos in range(135, 140, 1):
+                            if self.board[scanpos] == 'r':
+                                score += average[self.version][self.turn][False] // 2
+                            elif self.board[scanpos] != '.':
+                                break
+
+            elif p == 'G':
+                # 1 2 3 4 5 6 7 8 9
+                # i
+                # h
+                # g
+                # f
+                # e
+                # d
+                # c
+                # b
+                # a
+                # 9 8 7 6 5 4 3 2 1
+                # 195 - 16x + y
+
+                # 对手9路暗车出动， 己方可以考虑出将/出帅助攻。翻开四路暗士， 查看四路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
+                if i == 200 and self.board[59] not in 'dr' and self.board[56] != 'a' and self.board[71] != 'a' and (
+                        self.board[71] == 'p' or self.board[87] != 'n'):
+                    cheonleidao = 0
+                    che_opponent_onleidao = 0
+                    for scanpos in range(184, 51, -16):
+                        if self.board[scanpos] == 'R':
+                            cheonleidao += 1
+                        elif self.board[scanpos] == 'r':
+                            che_opponent_onleidao += 1
+                    if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
+                        score += (40 * self.calc())
+
+                # 对手1路暗车出动， 己方可以考虑出将/出帅助攻。翻开六路暗士， 查看六路肋道车的数量。如果己方车数量大于对方车，鼓励翻动士助攻
+                if i == 198 and self.board[51] not in 'dr' and self.board[54] != 'a' and self.board[71] != 'a' and (
+                        self.board[71] == 'p' or self.board[87] != 'n'):
+                    cheonleidao = 0
+                    che_opponent_onleidao = 0
+                    for scanpos in range(182, 51, -16):
+                        if self.board[scanpos] == 'R':
+                            cheonleidao += 1
+                        elif self.board[scanpos] == 'r':
+                            che_opponent_onleidao += 1
+                    if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
+                        score += (40 * self.calc())
+
+                elif sumall[self.version][self.turn] > 0 and \
+                        (di[self.version][self.turn]['P' if self.turn else 'p'] * self.covered /
+                         sumall[self.version][self.turn] <= 2):
+                            score -= 20  # 如果当前暗子中兵过多，翻士容易翻出窝心兵，不利于防守!
+
             elif p == 'H':
+                '''
                 # 暗炮进四
                 if i == 164 and j == 100:
                     if self.board[83] == 'a' or self.board[85] == 'a' or self.board[115] == 'a' or self.board[117] == 'a':
                         score -= average[self.version][self.turn][False] // 2
-                    else:
+                    elif self.score_rough > 0:
                         count = 0
                         if self.board[84] in 'hcn':
                             count += 1
@@ -616,26 +643,30 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[101] in 'icn':
                             count += 1
                         if count >= 2:
-                            score += average[self.version][not self.turn][False] // 2
-                        else:
-                            score += 20
+                            score += average[self.version][not self.turn][False] // 4
+                            if self.board[84] == 'n':
+                                score += 10
+                        elif self.score_rough > 150:
+                            score += 10
 
                 if i == 170 and j == 106:
                     if self.board[89] == 'a' or self.board[91] == 'a' or self.board[121] == 'a' or self.board[123] == 'a':
                         score -= average[self.version][self.turn][False] // 2
-                    else:
+                    elif self.score_rough > 0:
                         count = 0
-                        if self.board[90] == 'h':
+                        if self.board[90] in 'hcn':
                             count += 1
-                        if self.board[105] == 'i':
+                        if self.board[105] in 'icn':
                             count += 1
-                        if self.board[107] == 'i':
+                        if self.board[107] in 'icn':
                             count += 1
                         if count >= 2:
-                            score += average[self.version][not self.turn][False] // 2
-                        else:
-                            score += 20
-
+                            score += average[self.version][not self.turn][False] // 4
+                            if self.board[90] == 'n':
+                               score += 10
+                        elif self.score_rough > 150:
+                            score += 10
+                '''
                 # 炮压暗马
                 if i == 164 and j == 68 and self.board[52] == 'e':
                     prob = 0 if sumall[self.version][self.turn] == 0 else (di[self.version][self.turn]['P' if self.turn else 'p']/sumall[self.version][self.turn])  # 平均可能卒的个数
@@ -783,6 +814,7 @@ class Searcher:
                 self.tp_move[pos] = move
                 return MATE_UPPER
 
+        anyokmoves = False
         for move in [killer] + moves:
             if root and move in forbidden_moves:
                 continue
@@ -793,20 +825,27 @@ class Searcher:
                     val = -self.alphabeta(pos.move(move), -alpha - 1, -alpha, depth - 1, root=False, nullmove=nullmove)
                     if val > alpha and val < beta:
                         val = -self.alphabeta(pos.move(move), -beta, -alpha, depth - 1, root=False, nullmove=nullmove)
+                if val > -MATE_UPPER:
+                   anyokmoves = True
+                if val >= MATE_UPPER:
+                    updated = pos.move(move).nullmove()
+                    if any(updated.board[m[1]] == 'k' for m in updated.gen_moves()):
+                        print("depth=%s, hit!"%depth)
+                        mvBest = move
+                        best = val
+                        break
                 if val > best:
                     best = val
+                    mvBest = move
                     if val > beta:
-                        mvBest = move
                         break
                     if val > alpha:
                         alpha = val
-                        mvBest = move
-                if val >= MATE_UPPER:
-                    mvBest = move
-                    best = val
-                    print("depth=%s Early return hits!"%depth)
-                    break
 
+        if not anyokmoves:
+            self.tp_move[pos] = None
+            return -MATE_UPPER
+                        
         if not mvBest and moves:
             mvBest = moves[0]
 
