@@ -89,7 +89,7 @@ Fixed in `musesfish_pvs_20210531_fixed.py`.
 4. 当暗中兵受到威胁的时候，鼓励翻动暗相
 
 ## 20210604:
-1. 修改average函数的重大BUG!
+1. 修改calc_average函数的重大BUG!
 2. 引入有根子和静态搜索(Quiescence)。
 3. 将空头炮逻辑写为静态逻辑。
 
