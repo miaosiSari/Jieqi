@@ -7,7 +7,7 @@ import re, sys, time
 from itertools import count
 from collections import namedtuple
 import random
-from board import board, common as common, library
+from board import board, common_20210604_fixed as common, library
 from copy import deepcopy
 import readline
 import json
@@ -141,24 +141,23 @@ bug = (
 )
 
 bug = (
-    '               \n'  # 0
+     '               \n'  # 0
     '               \n'  # 1
     '               \n'  # 2
-    '   ....k....   \n'  # 3
+    '   defgkgfed   \n'  # 3
     '   .........   \n'  # 4
-    '   .........   \n'  # 5
-    '   .........   \n'  # 6
-    '   .........   \n'  # 7
-    '   ....N....   \n'  # 8
-    '   ...rI....   \n'  # 9
-    '   .........   \n'  # 10
+    '   .P.....hp   \n'  # 5
+    '   ......i.i   \n'  # 6
+    '   b.c.p....   \n'  # 7
+    '   .........   \n'  # 8
+    '   I.I.I.I..   \n'  # 9
+    '   .H..B..H.   \n'  # 10
     '   .........   \n'  # 11
-    '   ....K....   \n'  # 12
+    '   DE.GKGFED   \n'  # 12
     '               \n'  # 13
     '               \n'  # 14
     '                '  # 15
 )
-
 # Lists of possible moves for each piece type.
 N, E, S, W = -16, 1, 16, -1
 directions = {
@@ -629,22 +628,18 @@ class Position(namedtuple('Position', 'board score turn version')):
                     elif self.score_rough < -150:
                         score -= 40
 
-            if self.board[i-32] == 'i':
-                score -= (average[self.version][not self.turn][True][270-i] - average[self.version][not self.turn][False])
-
         else:
             # 不确定明子的平均价值计算算法:
             # 假设某一方可能的暗子是 两车一炮。
             # 则在某位置处不确定明子的价值为 (车在该处的价值*2 + 炮在该处的价值)/(2+1)。
             # 为了加速计算，这一数值已经被封装到了average这一字典中并预先计算(Pre-compute)。
-            score = average[self.version][self.turn][True][j] - average[self.version][self.turn][False] + 40 # 相应位置不确定明子的平均价值 - 暗子
+            score = average[self.version][self.turn][True][j] - average[self.version][self.turn][False] + 20  # 相应位置不确定明子的平均价值 - 暗子
 
             if p == 'D':
-                minus = 30*(possible_che_opponent // 2 + self.che_opponent)
+                minus = 30*(possible_che_opponent / 2 + self.che_opponent)
                 score -= minus  # 暗车溜出，扣分! 扣的分数和对方剩余车的个数有关
                 if self.score_rough < -150:
                     score -= minus//2
-                    score -= minus//4 * self.che_opponent
 
             elif p == 'E':
                 if i == 196 and j == 165 and self.board[149] == 'I':  # 对方车从3,7线杀出，翻动暗马保住暗兵
@@ -751,12 +746,14 @@ class Position(namedtuple('Position', 'board score turn version')):
                         score += bonus
 
                 # 暗炮搏马
-                if ((i == 164 and j == 52 and self.board[51] == 'd') or (
-                        i == 170 and j == 58 and self.board[59] == 'd')):  # TODO: 使用更智能的方式处理博子
+                if ((i == 164 and j == 52 and self.board[52] == 'e' and self.board[51] in 'dr') or (
+                        i == 170 and j == 58 and self.board[58] == 'e' and self.board[59] in 'dr')):  # TODO: 使用更智能的方式处理博子
+                    if (i == 164 and self.board[148] == 'p') or (i == 170 and self.board[154] == 'p'):
+                        pass
                     if self.che < self.che_opponent or self.che == 0 or self.score_rough < 150:
                         score -= 100
                     elif self.che == self.che_opponent:
-                        if (i == 164 and self.board[148] == 'p') or (i == 170 and self.board[154] == 'p') or self.score_rough > 200:
+                        if self.score_rough > 200:
                             pass
                         elif (i == 164 and (self.board[131] != 'N' or self.board[115] != 'p')) and (i == 170 and (self.board[139] != 'N' or self.board[123] != 'p')):
                             score -= 30
@@ -767,9 +764,9 @@ class Position(namedtuple('Position', 'board score turn version')):
                 elif self.board[i - 32] == 'nc':  # 之前是N, 不正确，已更正!
                     score += 30
                 elif self.board[i - 48] == 'i':
-                    score += (average[self.version][not self.turn][False]+average[self.version][self.turn][False]* bing_possibility)/2
+                    score += 30
                 else:
-                    score += average[self.version][self.turn][False]//2
+                    score += 20
 
         # Capture
         if q.isupper():
@@ -788,11 +785,10 @@ class Position(namedtuple('Position', 'board score turn version')):
                     if j >> 4 == 7 and j & 1 == 1: 
                        score += 10 #吃由暗兵翻出来的不确定子加分，鼓励控制暗兵
                 if q == 'D':
-                    addition = 30*(possible_che//2+self.che)
+                    addition = 30*(possible_che/2 + self.che)
                     score += addition  # 吃对方暗车，加分! 加的分数和己方剩余车的个数相关，如果本方没有车了，那吃个暗车不算太大的收益
                     if self.score_rough > 150:
                         score += addition//2
-                        score += addition//4 * self.che
 
         return score
 
@@ -1102,7 +1098,7 @@ def translate_eat(eat, dst, turn, type):
             return dst
 
 
-def generate_forbiddenmoves(pos, check_bozi=True):
+def generate_forbiddenmoves(pos, check_bozi=True, step=0):
     # 生成禁着
     # 这里禁着判断比较简单，如果走了这步棋以后形成的局面在过往局面中超过3次，不允许电脑走。
     # 这里的pos是电脑视角
@@ -1124,12 +1120,15 @@ def generate_forbiddenmoves(pos, check_bozi=True):
                         j == 170 and pos.board[139] == 'N' and pos.board[123] == 'p'):  # 兵顶马
                     continue
                 if (i == 164 and pos.board[148] == 'p') or (i == 170 and pos.board[154] == 'p'):
+                    print("continue")
                     continue
-                if pos.score_rough < 160 or pos.che == 0:
+                if pos.score_rough < 150 or pos.che == 0:
                     forbidden_moves.add(move)
             if p == 'H' and ((i == 164 and j == 100) or (i == 170 and j == 106)):
                 if pos.score_rough < 160 or pos.che == 0:
                     forbidden_moves.add(move)
+            if step < 5 and ((i == 164 and j == 116) or (i == 170 and j == 122)):
+                forbidden_moves.add(move) 
     pos.set()
     return forbidden_moves
 
@@ -1172,6 +1171,7 @@ def main(random_move=False, AI=True, debug=False):
     searcher.calc_average()
     myeatlist = []
     AIeatlist = []
+    step = 0
 
     while True:
         print("\033[31m玩家吃子\033[0m: " + " ".join(myeatlist))
@@ -1235,7 +1235,7 @@ def main(random_move=False, AI=True, debug=False):
                     move = kaijuku[hist[-1].board]
                 else:
                     start = time.time()
-                    generate_forbiddenmoves(hist[-1])
+                    generate_forbiddenmoves(hist[-1], check_bozi=True, step=step)
                     for _depth, move, score in searcher.search(hist[-1], hist):
                         if time.time() - start > THINK_TIME:
                             break
@@ -1277,7 +1277,9 @@ def main(random_move=False, AI=True, debug=False):
            print("RETURN FROM DEBUG MODE!")
            print_pos(hist[-1])
            break
-    
+        
+        step += 1
+
     histdict = {}
     for i, history in enumerate(hist):
         histdict[i] = history.board
