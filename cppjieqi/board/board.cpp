@@ -1,7 +1,6 @@
 #include "board.h"
-#include "../global/global.h"
 
-const int board::Board::_chess_board_size = 256;
+const int board::Board::_chess_board_size = CHESS_BOARD_SIZE;
 const char board::Board::_initial_state[MAX] = 
                     "               \n"
                     "               \n"
@@ -52,17 +51,32 @@ const std::unordered_map<std::string, std::string> board::Board::_uni_pieces = {
 
 board::Board::Board() noexcept:_has_initialized(false),
                       _turn(true),
-                      _round(0) {
-    
+                      _round(0),
+                      _score_func(NULL),
+                      _num_of_legal_moves(0) {
     memset(_state, 0, sizeof(_state));
     strncpy(_state, _initial_state, _chess_board_size);
+    memset(_is_legal_move, false, sizeof(_is_legal_move));
+    _log = Singleton<log::Log>::get();
     _has_initialized = true;
+}
+
+void Reset() noexcept{
+	_turn = true;
+	_round = 0;
+	_score_func = NULL;
+	_num_of_legal_moves = 0;
+	memset(_state, 0, sizeof(_state));
+    strncpy(_state, _initial_state, _chess_board_size);
+    memset(_is_legal_move, false, sizeof(_is_legal_move));
+    _log = Singleton<log::Log>::get();
 }
 
 std::vector<int> board::Board::GetInfo() const{
     std::vector<int> ret(_state, _state+board::Board::_chess_board_size);
     ret.push_back(_turn?1:0);
     ret.push_back(_round);
+    _log -> Write("board::Board::GetInfo");
     return ret;
 }
 
@@ -73,18 +87,22 @@ const std::vector<std::string>& board::Board::GetHistory() const{
 std::string board::Board::GetStateString() const{
     std::string tmp(_state);
     tmp = tmp.substr(0, board::Board::_chess_board_size);
+    _log -> Write("board::Board::GetStateString");
     return tmp;
 }
 
 bool board::Board::GetTurn() const{
+	_log -> Write("board::Board::GetTurn");
     return _turn;
 }
 
 bool board::Board::GetRound() const{
+	_log -> Write("board::Board::GetRound");
     return _round;
 }
 
 std::tuple<int, bool, std::string> board::Board::GetTuple() const{
+	_log -> Write("board::Board::GetTuple");
     std::string tmp(_state);
     tmp = tmp.substr(0, board::Board::_chess_board_size);
     std::tuple<int, bool, std::string> ret(_round, _turn, tmp);
@@ -92,10 +110,12 @@ std::tuple<int, bool, std::string> board::Board::GetTuple() const{
 }
 
 const std::unordered_map<std::string, std::string>& board::Board::GetUniPieces() const{
+	_log -> Write("board::Board::GetUniPieces");
 	return _uni_pieces;
 }
 
 void board::Board::PrintPos() const{
+	_log -> Write("board::Board::PrintPos");
     if(_turn){
         printf("红方行棋:\n");
     }else{
@@ -112,14 +132,67 @@ void board::Board::PrintPos() const{
     std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
 }
 
-void board::Board::move(std::pair<int, int> start, std::pair<int, int> end, bool check=false){
-	move(start.first, start.second, end.first, end.second, check);
+void board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check){
+    _log -> Write("board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check)");
+    Move(start.first, start.second, end.first, end.second, check);
 }
 
-void board::Board::move(std::string ucci){
+void board::Board::Move(const std::string ucci, const bool check){
 	//the ucci string is in "a0a1“ format.
 	//Please check https://www.xqbase.com/protocol/cchess_ucci.htm
+	_log -> Write("board::Board::Move(const std::string ucci, const bool check)");
 	assert(ucci.size() == 4);
-    int x1 = (int)()
+    const int y1 = (int)(ucci[0] - 'a');
+    const int x1 = (int)(ucci[1] - '0');
+    const int y2 = (int)(ucci[2] - 'a');
+    const int x2 = (int)(ucci[3] - '0');
+    Move(x1, y1, x2, y2, check);
+}
+
+void board::Board::Move(const char* ucci, const bool check){
+	//the ucci string is in "a0a1“ format.
+	//Please check https://www.xqbase.com/protocol/cchess_ucci.htm
+	_log -> Write("board::Board::Move(const char* ucci, const bool check)");
+	assert(strlen(ucci) == 4);
+    const int y1 = (int)(ucci[0] - 'a');
+    const int x1 = (int)(ucci[1] - '0');
+    const int y2 = (int)(ucci[2] - 'a');
+    const int x2 = (int)(ucci[3] - '0');
+    Move(x1, y1, x2, y2, check);
+}
+
+void board::Board::Move(const int x1, const int y1, const int x2, const int y2, const bool check){
+	_log -> Write("board::Board::Move(const int x1, const int y1, const int x2, const int y2, const bool check)");
+	int encode_from = translate_x_y(x1, y1);
+	int encode_to = translate_x_y(x2, y2);
+	if(check) {
+        if(_is_legal_move[encode_from][encode_to] == false){
+        	return;
+        }
+	}
+	_state[encode_to] = _state[encode_from];
+	_state[encode_from] = '.';
+}
+
+void board::Board::GenMovesWithScore(){
+    //To make it more efficient, this implementation is rather dirty
+    _num_of_legal_moves = 0;
+    for(unsigned char i = 51; i <= 203; ++i){
+    	char p = _state[i];
+    	if(!(p >= 'A' && p <= 'Z') ! p == 'U') {
+    		continue;
+    	}
+    	if(p == 'K'){
+    		
+    	}
+    }
+}
+
+inline void board::Board::_reset_num_of_legal_moves() const{
+	_num_of_legal_moves = 0;
+}
+
+const int get_number_of_legal_moves() const{
+	return _num_of_legal_moves;
 }
 

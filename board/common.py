@@ -278,7 +278,7 @@ pst["1"]["a"] = s/len(usefulkeys)
 pst["1"]["d"] = pst["1"]["a"]//discount_factor
 
 piece = {'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
-'''
+
 #https://zhuanlan.zhihu.com/p/34433581
 def create_uci_labels2():
     labels_array = []
@@ -297,7 +297,7 @@ def create_uci_labels2():
                     labels_array.append(move)
 
     return labels_array
-'''
+
 
 def create_uci_labels():
     labels_array = []
@@ -319,7 +319,7 @@ def create_uci_labels():
 
 
 labels_array = create_uci_labels()
-#print(labels_array, len(labels_array))
+print(labels_array, len(labels_array))
 
 
 def random_select(s, return_type=None, num=None):

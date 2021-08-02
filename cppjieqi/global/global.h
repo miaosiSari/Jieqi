@@ -46,4 +46,26 @@ V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& d
    }
 }
 
+template<typename T>
+class Singleton{
+private:
+   static T* _t;
+public:
+   static T* get();
+   static void deleteT();
+};
+
+template<typename T>
+T* Singleton<T>::_t = new (std::nothrow) T;
+
+template<typename T>
+T* Singleton<T>::get(){
+   return _t;
+}
+
+template<typename T>
+void Singleton<T>::deleteT(){
+   delete Singleton<T>::_t;
+}
+
 #endif
