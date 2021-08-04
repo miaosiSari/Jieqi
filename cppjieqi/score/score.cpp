@@ -20,9 +20,21 @@ inline std::string trim(const std::string &s)
     return (wsback <= wsfront ? std::string() : std::string(wsfront,wsback));
 }
 
+inline std::string sub(const std::string &s){
+    std::string ret = "";
+    for(const char& c : s){
+        if(c == ','){
+            ret += ' ';
+        } else {
+            ret += c;
+        }
+    }
+    return ret;
+}
+
 void read_score_table(const char* score_file){
-	memset(pst, 0, sizeof(pst));
-	std::locale loc = std::locale::global(std::locale(""));
+    memset(pst, 0, sizeof(pst));
+    std::locale loc = std::locale::global(std::locale(""));
     std::ifstream instream(score_file);
     std::string line = "";
     constexpr int M = 10;
@@ -37,50 +49,50 @@ void read_score_table(const char* score_file){
     }
 
     while(std::getline(instream, line)){
-    	std::string tmpline = trim(line);
-    	int len = tmpline.size();
-    	if(len == 0){
-    		continue;
-    	}else if(len == 1 && isupper(tmpline[0])){
-    		if(state_machine == M){
-    			if(key != '\0'){
-    				printf("score --> score.cpp --> read_score_table --> Read %c finishes!\n", key);
-    			}
-    			state_machine = 0;
+        std::string tmpline = sub(trim(line));
+        int len = tmpline.size();
+        if(len == 0){
+            continue;
+        }else if(len == 1 && isupper(tmpline[0])){
+            if(state_machine == M){
+                if(key != '\0'){
+                    printf("score --> score.cpp --> read_score_table --> Read %c finishes!\n", key);
+                }
+                state_machine = 0;
                 key = tmpline[0];
                 if(MINGZI.find(key) == std::string::npos){
-                	printf("[FAILED 1]score --> score.cpp --> read_score_table --> Read key FAILED! state_machine = %d, key = %c\n", state_machine, key);
-                	RETURN;
+                    printf("[FAILED 1]score --> score.cpp --> read_score_table --> Read key FAILED! state_machine = %d, key = %c\n", state_machine, key);
+                    RETURN;
                 }
                 printf("score --> score.cpp --> read_score_table --> Start reading key %c!\n", key);
                 continue;
-    		} else{
-    			printf("[FAILED 2]score --> score.cpp --> read_score_table --> Read key FAILED! state_machine = %d\n", state_machine);
-    			RETURN;
-    		}
-    	}else{
-    		if(state_machine < 0 || state_machine >= M){
-    			printf("[FAILED 3]score --> score.cpp --> read_score_table --> Read key FAILED (counter != N)! state_machine = %d\n", state_machine);
-    			RETURN;
-    		}
+            } else{
+                printf("[FAILED 2]score --> score.cpp --> read_score_table --> Read key FAILED! state_machine = %d\n", state_machine);
+                RETURN;
+            }
+        }else{
+            if(state_machine < 0 || state_machine >= M){
+                printf("[FAILED 3]score --> score.cpp --> read_score_table --> Read key FAILED (counter != N)! state_machine = %d\n", state_machine);
+                RETURN;
+            }
             std::stringstream ss;
             ss << tmpline;
             int counter = 0;
             int tmpint = 0;
             while(ss >> tmpint){
-                pst[key][ENCODE(state_machine, counter)] = tmpint;
+                pst[(int)key][ENCODE(state_machine, counter)] = tmpint;
                 ++counter;
                 if(counter > N){
-                	break;
+                    break;
                 } //counter > N
             } // ss >> tmpint
             if(counter != N) {
-            	printf("[FAILED 4]score --> score.cpp --> read_score_table --> Read key FAILED (counter != N)! state_machine = %d, counter = %d, N = %d\n", state_machine, counter, N);
-    			RETURN;
+                printf("[FAILED 4]score --> score.cpp --> read_score_table --> Read key FAILED (counter != N)! state_machine = %d, counter = %d, N = %d\n", state_machine, counter, N);
+                RETURN;
             }
             ++state_machine;
         }
     }
-
+    printf("SUCCESSFUL reading score conf!\n");
     std::locale::global(loc);
 }

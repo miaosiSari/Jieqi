@@ -11,8 +11,4 @@ aux_source_directory(log/ DIR_SRCS)
 aux_source_directory(score/ DIR_SRCS)
 aux_source_directory(board/ DIR_SRCS)
 add_executable(cppjieqi ${DIR_SRCS})
-#import qt
-FIND_PACKAGE(Qt5Core)
-
-TARGET_LINK_LIBRARIES(cppjieqi Qt5::Core)
 

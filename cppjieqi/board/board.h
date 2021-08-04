@@ -89,7 +89,7 @@ private:
    static const char _initial_state[MAX];
    static const std::unordered_map<std::string, std::string> _uni_pieces;
    static char _dir[91][8];
-   log::Log* _log  = NULL;
+   logclass::Log* _log  = NULL;
    SCORE _score_func = NULL;
    std::function<std::string(const char)> _getstring = [](const char c) -> std::string {
         std::string ret;
