@@ -5,7 +5,7 @@
 */
 #ifndef board_h
 #define board_h
-#define MAX 400
+#define MAX 257
 #define CHESS_BOARD_SIZE 256
 #define MAX_POSSIBLE_MOVES 120
 #define A0 195 //(0, 0)坐标
@@ -43,13 +43,14 @@ extern std::unordered_map<std::string, SCORE> function_bean;
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
 
+
 namespace board{
 class Board{
 
 public:
    int num_of_legal_moves = 0;
    Board() noexcept;
-   Board(char another_state[MAX], bool turn, int stage) noexcept;
+   Board(const char another_state[MAX], bool turn, int round) noexcept;
    Board(const Board& another_board);
    void Reset() noexcept;
    void SetScoreFunction(std::string function_name);
@@ -66,11 +67,28 @@ public:
    void Move(const char* ucci, const bool = false);
    void Move(const int x1, const int y1, const int x2, const int y2, const bool = false);
    void GenMovesWithScore();
+   void CopyToIsLegalMove();
    std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
    std::function<int(int)> translate_y = [](const int y) -> int {return 3 + y;};
    std::function<int(int, int)> translate_x_y = [](const int x, const int y) -> int{return 195 - 16 * x + y;};
    std::function<int(int, int)> encode = [](const int x, const int y) -> int {return 16 * x + y;};  
    std::function<int(int)> reverse = [](const int x) -> int {return 254 - x;};
+   std::function<char(char)> swapcase = [](const char c) -> char{
+       if(isalpha(c)) {
+           return c ^ 32;
+       }
+       return c;
+   };
+
+   std::function<void(char*)> rotate = [this](char* p){
+       std::reverse(p, p+255);
+       std::transform(p, p+255, p, this -> swapcase);
+       p[255] = ' ';
+       for(int i = 256; i < MAX; ++i){
+           p[i] = '\0';
+       }
+   };
+
    std::tuple<unsigned short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
    static void Translate(unsigned char i, unsigned char j, char ucci[5]);
    static void Print_ij_ucci(unsigned char i, unsigned char j);

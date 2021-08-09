@@ -18,8 +18,6 @@ typedef unsigned short(*SCORE)(const char*, unsigned char, unsigned char);
 
 unsigned short trivial_score_function(const char*, unsigned char, unsigned char);
 void register_score_functions();
-inline std::string trim(const std::string &s);
-inline std::string sub(const std::string &s);
 void read_score_table(const char* score_file);
 
 #endif

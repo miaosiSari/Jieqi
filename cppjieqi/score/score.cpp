@@ -12,29 +12,8 @@ void register_score_functions(){
     function_bean.insert({"trivial_score_function", trivial_score_function});
 }
 
-
-inline std::string trim(const std::string &s)
-{
-    auto wsfront=std::find_if_not(s.begin(),s.end(),[](int c){return std::isspace(c);});
-    auto wsback=std::find_if_not(s.rbegin(),s.rend(),[](int c){return std::isspace(c);}).base();
-    return (wsback <= wsfront ? std::string() : std::string(wsfront,wsback));
-}
-
-inline std::string sub(const std::string &s){
-    std::string ret = "";
-    for(const char& c : s){
-        if(c == ','){
-            ret += ' ';
-        } else {
-            ret += c;
-        }
-    }
-    return ret;
-}
-
 void read_score_table(const char* score_file){
     memset(pst, 0, sizeof(pst));
-    std::locale loc = std::locale::global(std::locale(""));
     std::ifstream instream(score_file);
     std::string line = "";
     constexpr int M = 10;
@@ -49,7 +28,7 @@ void read_score_table(const char* score_file){
     }
 
     while(std::getline(instream, line)){
-        std::string tmpline = sub(trim(line));
+        std::string tmpline = subtrim(line);
         int len = tmpline.size();
         if(len == 0){
             continue;
@@ -94,5 +73,4 @@ void read_score_table(const char* score_file){
         }
     }
     printf("SUCCESSFUL reading score conf!\n");
-    std::locale::global(loc);
 }

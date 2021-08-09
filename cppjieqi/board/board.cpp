@@ -19,6 +19,7 @@ const char board::Board::_initial_state[MAX] =
                     "                "
                     "                ";
 
+
 const std::unordered_map<std::string, std::string> board::Board::_uni_pieces = {
     {".", "．"},
     {"R", "\033[31m俥\033[0m"},
@@ -62,8 +63,37 @@ board::Board::Board() noexcept: num_of_legal_moves(0),
     strncpy(_state_black, _initial_state, _chess_board_size);
     memset(_is_legal_move, false, sizeof(_is_legal_move));
     _log = Singleton<logclass::Log>::get();
-    _has_initialized = true;
     _initialize_dir();
+    _has_initialized = true;
+}
+
+board::Board::Board(const char another_state[MAX], bool turn, int round) noexcept {
+    _turn = turn;
+    _round = round;
+    strncpy(_state_red, another_state, _chess_board_size);
+    strncpy(_state_black, another_state, _chess_board_size);
+    _state_red[_chess_board_size] = '\0';
+    _state_black[_chess_board_size] = '\0';
+    if(turn){
+        rotate(_state_black);
+    }else{
+        rotate(_state_red);
+    }
+    memset(_is_legal_move, false, sizeof(_is_legal_move));
+    _log = Singleton<logclass::Log>::get();
+    _initialize_dir();
+    _has_initialized = true;
+}
+
+board::Board::Board(const board::Board& another_board){
+    this -> _turn = another_board._turn;
+    this -> _round = another_board._round;
+    strncpy(this -> _state_red, another_board._state_red, _chess_board_size);
+    strncpy(this -> _state_black, another_board._state_black, _chess_board_size);
+    memmove(this -> _is_legal_move, another_board._is_legal_move, sizeof(_is_legal_move));
+    this -> _log = another_board._log;
+    _initialize_dir();
+    _has_initialized = true;
 }
 
 void board::Board::Reset() noexcept{
@@ -243,6 +273,7 @@ void board::Board::Move(const int x1, const int y1, const int x2, const int y2, 
     int reverse_encode_to = reverse(encode_to);
 
     if(check) {
+        CopyToIsLegalMove();
         if(_is_legal_move[encode_from][encode_to] == false){
             return;
         }
@@ -313,7 +344,7 @@ void board::Board::GenMovesWithScore(){
                 if(_state_pointer[scanpos] == 'k'){
                     legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(_state_pointer, i, scanpos), i, scanpos);
                     ++num_of_legal_moves;
-                } else {
+                } else if(_state_pointer[scanpos] != '.'){
                     break;
                 }
             }
@@ -339,10 +370,10 @@ void board::Board::GenMovesWithScore(){
                 else if(p == 'G' && j != 183) {
                     break;
                 }
-                else if(p == 'N' || p == 'E'){
+                else if(p == 'E' || p == 'N'){
                     int n_diff_x = ((int)(j - i)) & 15;
                     if(n_diff_x == 2 || n_diff_x == 14){
-                        if(_state_pointer[i + n_diff_x == 2?1:-1] != '.'){
+                        if(_state_pointer[i + (n_diff_x == 2?1:-1)] != '.'){
                            break;
                         }
                     } else{
@@ -359,7 +390,7 @@ void board::Board::GenMovesWithScore(){
                 }
                 legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(_state_pointer, i, j), i, j);
                 ++num_of_legal_moves;
-                if((p != 'N' && p != 'D' && p != 'N' && p != 'C') || islower(q)){
+                if((p != 'D' && p != 'H' && p != 'C' && p != 'R') || islower(q)){
                     break;
                 }
             } //j
@@ -367,6 +398,16 @@ void board::Board::GenMovesWithScore(){
     } //for
     std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<unsigned short, unsigned char, unsigned char>);
 }//GenMovesWithScore()
+
+void board::Board::CopyToIsLegalMove(){
+    memset(_is_legal_move, false, sizeof(_is_legal_move));
+    for(int i = 0; i < num_of_legal_moves; ++i){
+        std::tuple<unsigned short, unsigned char, unsigned char> a_legal_move = legal_moves[i];
+        unsigned char src = std::get<1>(a_legal_move);
+        unsigned char dst = std::get<2>(a_legal_move);
+        _is_legal_move[(int)src][(int)dst] = true;
+    }
+}
 
 void board::Board::Translate(unsigned char i, unsigned char j, char ucci[5]){
     int x1 = 12 - (i >> 4);
