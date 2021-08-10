@@ -1,16 +1,7 @@
 #include "score.h"
 
-std::unordered_map<std::string, SCORE> function_bean;
-short pst[123][256 * 256];
-
-inline unsigned short trivial_score_function(const char* board, unsigned char, unsigned char){
-   //Singleton<log::Log>::get() -> Write("trivial_scoring_function!");
-    return 0;
-}
-
-void register_score_functions(){
-    function_bean.insert({"trivial_score_function", trivial_score_function});
-}
+short pst[123][256];
+short average[VERSION_MAX][2][2][256];
 
 void read_score_table(const char* score_file){
     memset(pst, 0, sizeof(pst));

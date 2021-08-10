@@ -13,10 +13,9 @@
 
 #define RETURN memset(pst, 0, sizeof(pst)); return;
 #define ENCODE(x, y) ((16 * (x)) + (y) + 51)
+#define VERSION_MAX 5
 
-typedef unsigned short(*SCORE)(const char*, unsigned char, unsigned char);
-
-unsigned short trivial_score_function(const char*, unsigned char, unsigned char);
+short trivial_score_function(const char*, unsigned char, unsigned char);
 void register_score_functions();
 void read_score_table(const char* score_file);
 

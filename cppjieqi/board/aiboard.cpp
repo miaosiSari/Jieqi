@@ -1,7 +1,7 @@
-#include "board.h"
+#include "aiboard.h"
    
-const int board::Board::_chess_board_size = CHESS_BOARD_SIZE;
-const char board::Board::_initial_state[MAX] = 
+const int board::AIBoard::_chess_board_size = CHESS_BOARD_SIZE;
+const char board::AIBoard::_initial_state[MAX] = 
                     "                "
                     "                "
                     "                "
@@ -10,7 +10,7 @@ const char board::Board::_initial_state[MAX] =
                     "   .h.....h.    "
                     "   i.i.i.i.i    "
                     "   .........    "
-                    "   .........    "
+                    "   P........    "
                     "   I.I.I.I.I    "
                     "   .H.....H.    "
                     "   .........    "
@@ -19,54 +19,27 @@ const char board::Board::_initial_state[MAX] =
                     "                "
                     "                ";
 
+char board::AIBoard::_dir[91][8] = {{0}};
+std::unordered_map<std::string, SCORE> score_bean;
+std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean;
 
-const std::unordered_map<std::string, std::string> board::Board::_uni_pieces = {
-    {".", "．"},
-    {"R", "\033[31m俥\033[0m"},
-    {"N", "\033[31m傌\033[0m"},
-    {"B", "\033[31m相\033[0m"},
-    {"A", "\033[31m仕\033[0m"},
-    {"K", "\033[31m帅\033[0m"},
-    {"P", "\033[31m兵\033[0m"},
-    {"C", "\033[31m炮\033[0m"},
-    {"D", "\033[31m暗\033[0m"},
-    {"E", "\033[31m暗\033[0m"},
-    {"F", "\033[31m暗\033[0m"},
-    {"G", "\033[31m暗\033[0m"},
-    {"H", "\033[31m暗\033[0m"},
-    {"I", "\033[31m暗\033[0m"},
-    {"r", "车"},
-    {"n", "马"},
-    {"b", "象"},
-    {"a", "士"},
-    {"k", "将"},
-    {"p", "卒"},
-    {"c", "炮"},
-    {"d", "暗"},
-    {"e", "暗"},
-    {"f", "暗"},
-    {"g", "暗"},
-    {"h", "暗"},
-    {"i", "暗"}
-};
-
-char board::Board::_dir[91][8] = {{0}};
-
-board::Board::Board() noexcept: num_of_legal_moves(0),
+board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
+                      version(0),
                       _has_initialized(false),
                       _turn(true),
-                      _round(0){
+                      _round(0),
+                      _score_func(NULL),
+                      _kongtoupao_score_func(NULL){
     memset(_state_red, 0, sizeof(_state_red));
     memset(_state_black, 0, sizeof(_state_black));
     strncpy(_state_red, _initial_state, _chess_board_size);
     strncpy(_state_black, _initial_state, _chess_board_size);
-    memset(_is_legal_move, false, sizeof(_is_legal_move));
-    _log = Singleton<logclass::Log>::get();
     _initialize_dir();
+    Scan();
     _has_initialized = true;
 }
 
-board::Board::Board(const char another_state[MAX], bool turn, int round) noexcept {
+board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round) noexcept: version(0) {
     _turn = turn;
     _round = round;
     strncpy(_state_red, another_state, _chess_board_size);
@@ -78,36 +51,34 @@ board::Board::Board(const char another_state[MAX], bool turn, int round) noexcep
     }else{
         rotate(_state_red);
     }
-    memset(_is_legal_move, false, sizeof(_is_legal_move));
-    _log = Singleton<logclass::Log>::get();
     _initialize_dir();
+    Scan();
     _has_initialized = true;
 }
 
-board::Board::Board(const board::Board& another_board){
+board::AIBoard::AIBoard(const board::AIBoard& another_board){
     this -> _turn = another_board._turn;
     this -> _round = another_board._round;
+    this -> version = another_board.version;
     strncpy(this -> _state_red, another_board._state_red, _chess_board_size);
     strncpy(this -> _state_black, another_board._state_black, _chess_board_size);
-    memmove(this -> _is_legal_move, another_board._is_legal_move, sizeof(_is_legal_move));
-    this -> _log = another_board._log;
     _initialize_dir();
+    Scan();
     _has_initialized = true;
 }
 
-void board::Board::Reset() noexcept{
+void board::AIBoard::Reset() noexcept{
     _turn = true;
     _round = 0;
+    _score_func = NULL;
     num_of_legal_moves = 0;
     memset(_state_red, 0, sizeof(_state_red));
     memset(_state_black, 0, sizeof(_state_black));
     strncpy(_state_black, _initial_state, _chess_board_size);
-    memset(_is_legal_move, false, sizeof(_is_legal_move));
-    _log = Singleton<logclass::Log>::get();
     _initialize_dir();
 }
 
-void board::Board::_initialize_dir(){
+void board::AIBoard::_initialize_dir(){
     memset(_dir, 0, sizeof(_dir));
     _dir[(int)'P'][0] = NORTH;
     _dir[(int)'P'][1] = WEST;
@@ -170,108 +141,65 @@ void board::Board::_initialize_dir(){
     _dir[(int)'K'][3] = WEST;
 }
 
-const std::vector<std::string>& board::Board::GetHistory() const{
-    return _board_history;
+void board::AIBoard::SetScoreFunction(std::string function_name, int type){
+    if(type == 0){
+        _score_func = GetWithDefUnordered<std::string, SCORE>(score_bean, function_name, trivial_score_function);
+    }else if(type == 1){
+        _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE>(kongtoupao_score_bean, function_name, trivial_kongtoupao_score_function);
+    }
 }
 
-std::vector<std::string> board::Board::GetStateString() const{
+std::vector<std::string> board::AIBoard::GetStateString() const{
     std::string tmp_red(_state_red);
-    tmp_red = tmp_red.substr(0, board::Board::_chess_board_size);
+    tmp_red = tmp_red.substr(0, board::AIBoard::_chess_board_size);
     std::string tmp_black(_state_black);
-    tmp_black = tmp_black.substr(0, board::Board::_chess_board_size);
-    _log -> Write("board::Board::GetStateString");
+    tmp_black = tmp_black.substr(0, board::AIBoard::_chess_board_size);
     return (std::vector<std::string>){tmp_red, tmp_black};
 }
 
-bool board::Board::GetTurn() const{
-    _log -> Write("board::Board::GetTurn");
+bool board::AIBoard::GetTurn() const{
     return _turn;
 }
 
-void board::Board::SetTurn(bool turn){
+void board::AIBoard::SetTurn(bool turn){
     _turn = turn;
 }
 
-bool board::Board::GetRound() const{
-    _log -> Write("board::Board::GetRound");
+bool board::AIBoard::GetRound() const{
     return _round;
 }
 
-std::tuple<int, bool, std::string, std::string> board::Board::GetTuple() const{
-    _log -> Write("board::Board::GetTuple");
-    std::string tmp_red(_state_red);
-    tmp_red = tmp_red.substr(0, board::Board::_chess_board_size);
-    std::string tmp_black(_state_red);
-    tmp_black = tmp_black.substr(0, board::Board::_chess_board_size);
-    std::tuple<int, bool, std::string, std::string> ret(_round, _turn, tmp_red, tmp_black);
-    return ret;
+void board::AIBoard::Move(const std::pair<int, int> start, const std::pair<int, int> end){
+    Move(start.first, start.second, end.first, end.second);
 }
 
-const std::unordered_map<std::string, std::string>& board::Board::GetUniPieces() const{
-    _log -> Write("board::Board::GetUniPieces");
-    return _uni_pieces;
-}
-
-void board::Board::PrintPos(bool turn) const{
-    _log -> Write("board::Board::PrintPos");
-    if(turn){
-        printf("红方视角:\n");
-    }else{
-        printf("黑方视角:\n");
-    }
-    std::cout << std::endl << std::endl;
-    for(int x = 3; x <= 12; ++x){
-        std::cout << translate_x(x) << " ";
-        for(int y = 3; y <= 11; ++y){
-            std::cout << _getstringxy(x, y, turn);
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
-}
-
-void board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check){
-    _log -> Write("board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check)");
-    Move(start.first, start.second, end.first, end.second, check);
-}
-
-void board::Board::Move(const std::string ucci, const bool check){
+void board::AIBoard::Move(const std::string ucci){
     //the ucci string is in "a0a1“ format.
     //Please check https://www.xqbase.com/protocol/cchess_ucci.htm
-    _log -> Write("board::Board::Move(const std::string ucci, const bool check)");
     assert(ucci.size() == 4);
     const int y1 = (int)(ucci[0] - 'a');
     const int x1 = (int)(ucci[1] - '0');
     const int y2 = (int)(ucci[2] - 'a');
     const int x2 = (int)(ucci[3] - '0');
-    Move(x1, y1, x2, y2, check);
+    Move(x1, y1, x2, y2);
 }
 
-void board::Board::Move(const char* ucci, const bool check){
+void board::AIBoard::Move(const char* ucci){
     //the ucci string is in "a0a1“ format.
     //Please check https://www.xqbase.com/protocol/cchess_ucci.htm
-    _log -> Write("board::Board::Move(const char* ucci, const bool check)");
     assert(strlen(ucci) == 4);
     const int y1 = (int)(ucci[0] - 'a');
     const int x1 = (int)(ucci[1] - '0');
     const int y2 = (int)(ucci[2] - 'a');
     const int x2 = (int)(ucci[3] - '0');
-    Move(x1, y1, x2, y2, check);
+    Move(x1, y1, x2, y2);
 }
 
-void board::Board::Move(const int x1, const int y1, const int x2, const int y2, const bool check){
-    _log -> Write("board::Board::Move(const int x1, const int y1, const int x2, const int y2, const bool check)");
+void board::AIBoard::Move(const int x1, const int y1, const int x2, const int y2){
     int encode_from = translate_x_y(x1, y1);
     int encode_to = translate_x_y(x2, y2);
     int reverse_encode_from = reverse(encode_from);
     int reverse_encode_to = reverse(encode_to);
-
-    if(check) {
-        CopyToIsLegalMove();
-        if(_is_legal_move[encode_from][encode_to] == false){
-            return;
-        }
-    }
     if(_turn){
         _state_red[encode_to] = _state_red[encode_from];
         _state_red[encode_from] = '.';
@@ -289,11 +217,14 @@ void board::Board::Move(const int x1, const int y1, const int x2, const int y2, 
     }
 }
 
-void board::Board::GenMovesWithScore(){
+void board::AIBoard::GenMovesWithScore(){
     //To make it more efficient, this implementation is rather dirty
     num_of_legal_moves = 0;
     memset(legal_moves, 0, sizeof(legal_moves));
     const char *_state_pointer = _turn?_state_red:_state_black;
+    if(!_score_func) {
+        SetScoreFunction(std::string(""), 0);
+    }
     for(unsigned char i = 51; i <= 203; ++i){
         const char p = _state_pointer[i];
         int intp = (int)p;
@@ -314,14 +245,14 @@ void board::Board::GenMovesWithScore(){
                     }
                     if(cfoot == 0){
                         if(q == '.'){
-                            legal_moves[num_of_legal_moves] = std::make_tuple(0, i, j);
+                            legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this), i, j);
                             ++num_of_legal_moves;
                         } else{
                             ++cfoot;
                         }
                     }else{
                         if(islower(q)) {
-                            legal_moves[num_of_legal_moves] = std::make_tuple(0, i, j);
+                            legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this), i, j);
                             ++num_of_legal_moves;
                             break;
                         } else if(isupper(q)) {
@@ -336,7 +267,7 @@ void board::Board::GenMovesWithScore(){
         else if(p == 'K'){
             for(unsigned char scanpos = i - 16; scanpos > A9; scanpos -= 16){
                 if(_state_pointer[scanpos] == 'k'){
-                    legal_moves[num_of_legal_moves] = std::make_tuple(0, i, scanpos);
+                    legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this), i, scanpos);
                     ++num_of_legal_moves;
                 } else if(_state_pointer[scanpos] != '.'){
                     break;
@@ -382,7 +313,7 @@ void board::Board::GenMovesWithScore(){
                 else if((p == 'B' || p == 'F') && _state_pointer[i + d/2] != '.') {
                     break;
                 }
-                legal_moves[num_of_legal_moves] = std::make_tuple(0, i, j);
+                legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this), i, j);
                 ++num_of_legal_moves;
                 if((p != 'D' && p != 'H' && p != 'C' && p != 'R') || islower(q)){
                     break;
@@ -390,49 +321,118 @@ void board::Board::GenMovesWithScore(){
             } //j
         } //dir
     } //for
+    std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<unsigned short, unsigned char, unsigned char>);
 }//GenMovesWithScore()
 
-void board::Board::CopyToIsLegalMove(){
-    memset(_is_legal_move, false, sizeof(_is_legal_move));
-    for(int i = 0; i < num_of_legal_moves; ++i){
-        std::tuple<unsigned short, unsigned char, unsigned char> a_legal_move = legal_moves[i];
-        unsigned char src = std::get<1>(a_legal_move);
-        unsigned char dst = std::get<2>(a_legal_move);
-        _is_legal_move[(int)src][(int)dst] = true;
-    }
+void board::AIBoard::Scan(){
+     const char *_state_pointer = _turn?_state_red:_state_black;
+     if(!_kongtoupao_score_func){
+         SetScoreFunction(std::string(""), 1);
+     }
+     for(int i = 51; i <= 203; ++i){
+         char p = _state_pointer[i];
+         if((i >> 4) == 3 && (p == 'd' || p == 'e' || p == 'f' || p == 'g' || p == 'r' || p == 'n' || p == 'c')){
+             ++endline;
+         }
+         else if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
+            score_rough += pst[(int)p][i];
+            if(p == 'R'){
+               ++che;
+            }else if(p == 'P'){
+               ++zu;
+            }
+         }
+         else if(p >= 'D' && p <= 'I'){
+            ++covered;
+         }
+         else if(p == 'U'){
+            score_rough += average[version][_turn?1:0][1][i];
+            ++covered;
+         }
+         else if(p == 'r' || p == 'n' || p == 'b' || p == 'a' || p == 'k' || p == 'c' || p == 'p'){
+            score_rough -= pst[((int)p) ^ 32][254 - i];
+            if(p == 'r'){
+               ++che_opponent;
+            }
+         }
+         else if(p >= 'd' && p <= 'i'){
+            ++covered_opponent;
+         } 
+         else if(p == 'u'){
+            score_rough -= average[version][_turn?0:1][1][254 - i];
+            ++covered_opponent;
+         }
+         else if(p == 'C' && ((i & 15) == 7)){
+            KongTouPao(_state_pointer, i, true);
+         }
+         else if(p == 'c' && ((i & 15) == 7)){
+            KongTouPao(_state_pointer, i, false);
+         }
+     }
+     std::cout << _kongtoupao_score_func;
+     _kongtoupao_score_func(this, &kongtoupao_score, &kongtoupao_score_opponent);
 }
 
-void board::Board::Translate(unsigned char i, unsigned char j, char ucci[5]){
-    int x1 = 12 - (i >> 4);
-    int y1 = (i & 15) - 3;
-    int x2 = 12 - (j >> 4);
-    int y2 = (j & 15) - 3;
-    ucci[0] = 'a' + y1;
-    ucci[1] = '0' + x1;
-    ucci[2] = 'a' + y2;
-    ucci[3] = '0' + x2;
-    ucci[4] = '\0';
+void board::AIBoard::KongTouPao(const char* _state_pointer, int pos, bool myself){
+     char cannon = myself?'C':'c';
+     char king = myself?'k':'K';
+     if(myself){
+          if(kongtoupao != 0){
+              return;
+          } 
+          for(int scanpos = pos - 16; scanpos > A9; scanpos -= 16){
+              char p = _state_pointer[scanpos];
+              if(p == cannon){
+                 continue;
+              }
+              else if(p != '.'){
+                   if(p == king){
+                      ++kongtoupao;
+                   }else{
+                      kongtoupao = 0;
+                   }
+                   return;
+              }else{
+                   ++kongtoupao; //Python版本 (musesfish_pvs_20210604_fixed.py)没有这一行, Python BUG!
+              } 
+          }
+     }else{
+          if(kongtoupao_opponent != 0){
+              return;
+          } 
+          for(int scanpos = pos + 16; scanpos < I0; scanpos += 16){
+              char p = _state_pointer[scanpos];
+              if(p == cannon){
+                 continue;
+              }
+              else if(p != '.'){
+                   if(p == king){
+                      ++kongtoupao_opponent;
+                   }else{
+                      kongtoupao_opponent = 0;
+                   }
+                   return;
+              }else{
+                   ++kongtoupao_opponent; //Python (musesfish_pvs_20210604_fixed.py)版本没有这一行, BUG!
+              } 
+          }
+     } //else
+} //KongTouPao
+
+inline short trivial_score_function(void* self){
+    board::AIBoard* p = reinterpret_cast<board::AIBoard*>(self);
+    printf("1 %d\n", p -> zu);
+    return 0;
 }
 
-void board::Board::Print_ij_ucci(unsigned char i, unsigned char j){
-    printf("i = %d, j = %d", i, j);
-    char ucci[5];
-    board::Board::Translate(i, j, ucci);
-    printf(" (ucci = %s).\n", ucci);
+inline void trivial_kongtoupao_score_function(void* self, short* kongtoupao_score, short* kongtoupao_score_opponent){
+    //board::AIBoard* p = reinterpret_cast<board::AIBoard*>(self);
+    //printf("2 %d\n", p -> zu);
 }
 
-void board::Board::PrintAllMoves(){
-    char ucci[5];
-    int src = 0, dst = 0;
-    unsigned short score = 0;
-    printf("In board/board.cpp/PrintAllMoves()!\n");
-    for(int i = 0; i < num_of_legal_moves; ++i){
-       std::tuple<unsigned short, unsigned char, unsigned char> t = legal_moves[i];
-       score = std::get<0>(t);
-       src = std::get<1>(t);
-       dst = std::get<2>(t);
-       Translate(src, dst, ucci);
-       printf("[%d]src = %d, dst = %d, ucci = %s, score = %u\n", i, src, dst, ucci, score);
-    }
+void register_score_functions(){
+    score_bean.insert({"trivial_score_function", trivial_score_function});
+    kongtoupao_score_bean.insert({"trivial_kongtoupao_score_function", trivial_kongtoupao_score_function});
 }
+
 

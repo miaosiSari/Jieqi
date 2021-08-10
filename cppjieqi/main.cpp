@@ -4,6 +4,7 @@
 #include <iostream>
 #include <time.h>
 #include "board/board.h"
+#include "board/aiboard.h"
 #include "log/log.h"
 #include "global/global.h"
 #include "score/score.h"
@@ -36,14 +37,17 @@ int main(void) {
     printf("h.Compare() == %d\n", h.Compare());
     register_score_functions();
     read_score_table("../score.conf");
-    printf("Hello Jieqi!\n");
-    board::Board b = board::Board(test, false, 122);
+    board::AIBoard b = board::AIBoard();
+    b.GenMovesWithScore();
+    /*
+    b.Move("b2c3", true);
     b.PrintPos(true);
     b.GenMovesWithScore();
     printf("%d\n", b.num_of_legal_moves);
     b.SetTurn(true);
     b.GenMovesWithScore();
     b.PrintAllMoves();
+    */
     printf("%d\n", b.num_of_legal_moves);
     std::cout << subtrim("abc,d ,\r\n") << "\n" << subtrim("abc,d ,\r\n").size() << std::endl;
     std::vector<std::string> statestring = b.GetStateString();
