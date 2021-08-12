@@ -25,6 +25,8 @@
 #include <iostream>
 #include <functional>
 #include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
@@ -32,6 +34,10 @@
 #include "../log/log.h"
 #include "../global/global.h"
 #include "../score/score.h"
+
+#define MATE_LOWER 1304
+#define MATE_UPPER 3696
+#define ENCOURAGE_OUT 20
 
 template <typename T, typename U, typename V>
 bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
@@ -41,9 +47,9 @@ bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
 extern short pst[123][256];
 extern short average[VERSION_MAX][2][2][256];
 
-typedef short(*SCORE)(void* board_pointer);
+typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
-inline short trivial_score_function(void* self);
+inline short trivial_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
 inline void trivial_kongtoupao_score_function(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
 void register_score_functions();
 
@@ -57,6 +63,7 @@ class AIBoard{
 public:
    int num_of_legal_moves = 0;
    int version = 0;
+   bool turn = true; //true红black黑
    unsigned char che = 0;
    unsigned char che_opponent = 0;
    unsigned char zu = 0;
@@ -74,8 +81,6 @@ public:
    void Reset() noexcept;
    void SetScoreFunction(std::string function_name, int type);
    std::vector<std::string> GetStateString() const;
-   bool GetTurn() const;
-   void SetTurn(bool turn);
    bool GetRound() const;
    void Move(const std::pair<int, int> start, const std::pair<int, int> end); //start(x1, y1), end(x2, y2)
    void Move(const std::string ucci); //ucci representation
@@ -100,9 +105,12 @@ public:
        std::reverse(p, p+255);
        std::transform(p, p+255, p, this -> swapcase);
        p[255] = ' ';
-       for(int i = 256; i < MAX; ++i){
-           p[i] = '\0';
-       }
+       memset(p + 256, 0, MAX-256);
+   };
+   
+   std::function<const char*(void)> getstatepointer = [this](){
+	   const char* _state_pointer = (this -> turn? this -> _state_red : this -> _state_black);
+       return _state_pointer;
    };
 
    std::tuple<unsigned short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
@@ -111,7 +119,6 @@ private:
    char _state_red[MAX];
    char _state_black[MAX];
    bool _has_initialized = false;
-   bool _turn = false; //true红black黑
    int _round = 0; //回合, 从0开始
    static const int _chess_board_size;
    static const char _initial_state[MAX];

@@ -2,6 +2,8 @@
 
 short pst[123][256];
 short average[VERSION_MAX][2][2][256];
+unsigned char sumall[VERSION_MAX][2];
+unsigned char di[VERSION_MAX][2][123];
 
 void read_score_table(const char* score_file){
     memset(pst, 0, sizeof(pst));
