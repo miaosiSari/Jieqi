@@ -37,7 +37,6 @@
 
 #define MATE_LOWER 1304
 #define MATE_UPPER 3696
-#define ENCOURAGE_OUT 20
 
 template <typename T, typename U, typename V>
 bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
@@ -46,6 +45,9 @@ bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
 
 extern short pst[123][256];
 extern short average[VERSION_MAX][2][2][256];
+extern unsigned char sumall[VERSION_MAX][2];
+extern unsigned char di[VERSION_MAX][2][123];
+
 
 typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
