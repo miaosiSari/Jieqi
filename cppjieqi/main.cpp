@@ -11,7 +11,9 @@
 #include "helper/helper.h"
 
 extern void register_scoring_functions();
-extern void read_score_table(const char* score_file);
+extern bool read_score_table(const char* score_file);
+extern bool debug(const char* debug_output_file);
+extern bool initialize_wrapper(const char* score_file, const char* debug_output_file, float discount_factor=1.5);
 
 const char test[MAX] = 
                     "                "
@@ -36,7 +38,7 @@ int main(void) {
     h.Read("../../log/log.txt");
     printf("h.Compare() == %d\n", h.Compare());
     register_score_functions();
-    read_score_table("../score.conf");
+    initialize_wrapper("../score.conf", "debug.log");
     board::AIBoard b = board::AIBoard();
     b.GenMovesWithScore();
     /*
@@ -60,10 +62,11 @@ int main(void) {
     l -> SetConfig((std::string)"F");
     l -> Write("Fuck!");
     size_t start = (size_t)clock();
-    b.SetScoreFunction((std::string)"trivial_score_function", 0);
-    for(int i = 0; i < 40000000; ++i){
+    //b.SetScoreFunction((std::string)"trivial_score_function", 0);
+    for(int i = 0; i < 10000000; ++i){
         b.GenMovesWithScore();
     }
+    std::cout << b.SearchScoreFunction(0) << std::endl;
     printf("%d\n", b.num_of_legal_moves);
     size_t end = (size_t)clock();
     printf("%d %lf\n", b.num_of_legal_moves, (double)(end - start)/CLOCKS_PER_SEC);

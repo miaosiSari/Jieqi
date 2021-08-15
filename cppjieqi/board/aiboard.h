@@ -54,6 +54,7 @@ typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, sh
 inline short trivial_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
 inline void trivial_kongtoupao_score_function(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
 void register_score_functions();
+std::string SearchScoreFunction(void* score_func, int type);
 
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
@@ -82,15 +83,16 @@ public:
    AIBoard(const AIBoard& another_board);
    void Reset() noexcept;
    void SetScoreFunction(std::string function_name, int type);
+   std::string SearchScoreFunction(int type);
    std::vector<std::string> GetStateString() const;
    bool GetRound() const;
    void Move(const std::pair<int, int> start, const std::pair<int, int> end); //start(x1, y1), end(x2, y2)
    void Move(const std::string ucci); //ucci representation
    void Move(const char* ucci);
    void Move(const int x1, const int y1, const int x2, const int y2);
-   void GenMovesWithScore();
    void Scan();
    void KongTouPao(const char* _state_pointer, int pos, bool t);
+   void GenMovesWithScore();
    std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
    std::function<int(int)> translate_y = [](const int y) -> int {return 3 + y;};
    std::function<int(int, int)> translate_x_y = [](const int x, const int y) -> int{return 195 - 16 * x + y;};

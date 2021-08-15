@@ -25,7 +25,7 @@ std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean;
 
 board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
                       version(0),
-					  turn(true),
+                      turn(true),
                       _has_initialized(false),
                       _round(0),
                       _score_func(NULL),
@@ -149,6 +149,14 @@ void board::AIBoard::SetScoreFunction(std::string function_name, int type){
     }
 }
 
+std::string board::AIBoard::SearchScoreFunction(int type){
+    if(type == 0){
+        return ::SearchScoreFunction(reinterpret_cast<void*>(_score_func), type);
+    }else if(type == 1){
+        return ::SearchScoreFunction(reinterpret_cast<void*>(_kongtoupao_score_func), type);
+    }
+}
+
 std::vector<std::string> board::AIBoard::GetStateString() const{
     std::string tmp_red(_state_red);
     tmp_red = tmp_red.substr(0, board::AIBoard::_chess_board_size);
@@ -209,13 +217,108 @@ void board::AIBoard::Move(const int x1, const int y1, const int x2, const int y2
     }
 }
 
+void board::AIBoard::Scan(){
+     const char *_state_pointer = turn?_state_red:_state_black;
+     if(!_kongtoupao_score_func){
+        SetScoreFunction(std::string("complicated_kongtoupao_score_function"), 1);
+     }
+     for(int i = 51; i <= 203; ++i){
+        if((i & 15) < 3 || (i & 15) > 11) { continue; }
+        char p = _state_pointer[i];
+        if((i >> 4) == 3 && (p == 'd' || p == 'e' || p == 'f' || p == 'g' || p == 'r' || p == 'n' || p == 'c')){
+            ++endline;
+        }
+        else if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
+            score_rough += pst[(int)p][i];
+            if(p == 'R'){
+               ++che;
+            }else if(p == 'P'){
+               ++zu;
+            }
+        }
+        else if(p >= 'D' && p <= 'I'){
+            ++covered;
+        }
+        else if(p == 'U'){
+            score_rough += average[version][turn?1:0][1][i];
+            ++covered;
+        }
+        else if(p == 'r' || p == 'n' || p == 'b' || p == 'a' || p == 'k' || p == 'c' || p == 'p'){
+            score_rough -= pst[((int)p) ^ 32][254 - i];
+            if(p == 'r'){
+               ++che_opponent;
+            }
+        }
+        else if(p >= 'd' && p <= 'i'){
+            ++covered_opponent;
+        }  
+        else if(p == 'u'){
+            score_rough -= average[version][turn?0:1][1][254 - i];
+            ++covered_opponent;
+        }
+        else if(p == 'C' && ((i & 15) == 7)){
+            KongTouPao(_state_pointer, i, true);
+        }
+        else if(p == 'c' && ((i & 15) == 7)){
+            KongTouPao(_state_pointer, i, false);
+        }
+    }
+    _kongtoupao_score_func(this, &kongtoupao_score, &kongtoupao_score_opponent);
+}
+
+void board::AIBoard::KongTouPao(const char* _state_pointer, int pos, bool myself){
+    char cannon = myself?'C':'c';
+    char king = myself?'k':'K';
+    if(myself){
+        if(kongtoupao != 0){
+            return;
+        } 
+        for(int scanpos = pos - 16; scanpos > A9; scanpos -= 16){
+            char p = _state_pointer[scanpos];
+            if(p == cannon){
+                continue;
+            }
+            else if(p != '.'){
+                if(p == king){
+                    ++kongtoupao;
+                }else{
+                    kongtoupao = 0;
+                }
+                return;
+            }else{
+                ++kongtoupao; //Python版本 (musesfish_pvs_20210604_fixed.py)没有这一行, Python BUG!
+            } 
+        }
+    }else{
+        if(kongtoupao_opponent != 0){
+            return;
+        } 
+        for(int scanpos = pos + 16; scanpos < I0; scanpos += 16){
+            char p = _state_pointer[scanpos];
+            if(p == cannon){
+                continue;
+            }
+            else if(p != '.'){
+                if(p == king){
+                    ++kongtoupao_opponent;
+                }else{
+                    kongtoupao_opponent = 0;
+                }
+                return;
+            }else{
+                ++kongtoupao_opponent; //Python (musesfish_pvs_20210604_fixed.py)版本没有这一行, BUG!
+            } 
+        }
+    } //else
+} //KongTouPao
+
 void board::AIBoard::GenMovesWithScore(){
     //To make it more efficient, this implementation is rather dirty
     num_of_legal_moves = 0;
     memset(legal_moves, 0, sizeof(legal_moves));
     const char *_state_pointer = turn?_state_red:_state_black;
     if(!_score_func) {
-        SetScoreFunction(std::string(""), 0);
+        SetScoreFunction(std::string("complicated_score_function"), 0);
     }
     for(unsigned char i = 51; i <= 203; ++i){
         const char p = _state_pointer[i];
@@ -316,363 +419,307 @@ void board::AIBoard::GenMovesWithScore(){
     std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<unsigned short, unsigned char, unsigned char>);
 }//GenMovesWithScore()
 
-void board::AIBoard::Scan(){
-     const char *_state_pointer = turn?_state_red:_state_black;
-     if(!_kongtoupao_score_func){
-         SetScoreFunction(std::string(""), 1);
-     }
-     for(int i = 51; i <= 203; ++i){
-         char p = _state_pointer[i];
-         if((i >> 4) == 3 && (p == 'd' || p == 'e' || p == 'f' || p == 'g' || p == 'r' || p == 'n' || p == 'c')){
-             ++endline;
-         }
-         else if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
-            score_rough += pst[(int)p][i];
-            if(p == 'R'){
-               ++che;
-            }else if(p == 'P'){
-               ++zu;
-            }
-         }
-         else if(p >= 'D' && p <= 'I'){
-            ++covered;
-         }
-         else if(p == 'U'){
-            score_rough += average[version][turn?1:0][1][i];
-            ++covered;
-         }
-         else if(p == 'r' || p == 'n' || p == 'b' || p == 'a' || p == 'k' || p == 'c' || p == 'p'){
-            score_rough -= pst[((int)p) ^ 32][254 - i];
-            if(p == 'r'){
-               ++che_opponent;
-            }
-         }
-         else if(p >= 'd' && p <= 'i'){
-            ++covered_opponent;
-         } 
-         else if(p == 'u'){
-            score_rough -= average[version][turn?0:1][1][254 - i];
-            ++covered_opponent;
-         }
-         else if(p == 'C' && ((i & 15) == 7)){
-            KongTouPao(_state_pointer, i, true);
-         }
-         else if(p == 'c' && ((i & 15) == 7)){
-            KongTouPao(_state_pointer, i, false);
-         }
-     }
-     std::cout << _kongtoupao_score_func;
-     _kongtoupao_score_func(this, &kongtoupao_score, &kongtoupao_score_opponent);
-}
-
-void board::AIBoard::KongTouPao(const char* _state_pointer, int pos, bool myself){
-     char cannon = myself?'C':'c';
-     char king = myself?'k':'K';
-     if(myself){
-          if(kongtoupao != 0){
-              return;
-          } 
-          for(int scanpos = pos - 16; scanpos > A9; scanpos -= 16){
-              char p = _state_pointer[scanpos];
-              if(p == cannon){
-                 continue;
-              }
-              else if(p != '.'){
-                   if(p == king){
-                      ++kongtoupao;
-                   }else{
-                      kongtoupao = 0;
-                   }
-                   return;
-              }else{
-                   ++kongtoupao; //Python版本 (musesfish_pvs_20210604_fixed.py)没有这一行, Python BUG!
-              } 
-          }
-     }else{
-          if(kongtoupao_opponent != 0){
-              return;
-          } 
-          for(int scanpos = pos + 16; scanpos < I0; scanpos += 16){
-              char p = _state_pointer[scanpos];
-              if(p == cannon){
-                 continue;
-              }
-              else if(p != '.'){
-                   if(p == king){
-                      ++kongtoupao_opponent;
-                   }else{
-                      kongtoupao_opponent = 0;
-                   }
-                   return;
-              }else{
-                   ++kongtoupao_opponent; //Python (musesfish_pvs_20210604_fixed.py)版本没有这一行, BUG!
-              } 
-          }
-     } //else
-} //KongTouPao
-
 inline short trivial_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
     return 0;
 }
 
 inline short complicated_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst){
-	#define LOWER_BOUND -32768
-	#define UPPER_BOUND 32767
-	board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
-	int version = bp -> version;
-	int turn = bp -> turn ? 1 : 0;
-	int che_char = bp -> turn ? (int)'R': (int)'r';
-	int che_opponent_char = che_char ^ 32;
-	int zu_char = bp -> turn ? (int)'P': (int)'p';
-	int shi_opponent_char = bp -> turn ? (int)'a': (int)'A';
-	char p = state_pointer[src], q = bp -> swapcase(state_pointer[dst]);
-	int intp = (int)p, intq = (int)q;
-	float score = 0.0;
-	float possible_che = 0.0;
-	if(sumall[version][turn]){
-	    possible_che = (float)((bp -> covered) * di[version][turn][che_char])/sumall[version][turn];
-	}
-	float possible_che_opponent = 0.0;
-	if(sumall[version][1 - turn]){
-		possible_che_opponent = (float)((bp -> covered) * di[version][1 - turn][che_opponent_char])/sumall[version][1 - turn];
-	}
-	float zu_possibility = 0.0;
-	if(sumall[version][turn]){
-		zu_possibility = (float)(di[version][turn][zu_char])/sumall[version][turn];
-	}
-	float shi_possibility_opponent = 0.0, base_possibility = 1.0;
-	if(sumall[version][1 - turn]){
-	    shi_possibility_opponent = (float)(di[version][turn][shi_opponent_char])/sumall[version][turn];	
-	}
-	if(state_pointer[54] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
-	if(state_pointer[56] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
-	if(q == 'K'){
-		return MATE_UPPER;
-	}
-	if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
-		score = pst[intp][dst] - pst[intp][src];
-		//沉底炮逻辑
-		if(p == 'C'){
-			if(((src >> 4) != 3) && ((dst >> 4) == 3) && bp -> endline <= 2){
-				do{
-					if((dst == 51 || dst == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
-					if((dst == 59 || dst == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
-					score -= (bp -> endline >= 1 ? 30 : 55); 			
-				}while(false);
-			}
-			if(((src >> 4) == 3) && ((dst >> 4) != 3) && bp -> endline <= 2){
-				do{
-					if((dst == 51 || dst == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
-					if((dst == 59 || dst == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
-					score += (bp -> endline >= 1 ? 30 : 55); 			
-				}while(false);
-			}
-		}//if(p == 'C')
-		
-		else if(p == 'R'){
-			if(state_pointer[51] != 'd' && state_pointer[51] != 'r' && state_pointer[54] != 'a' && state_pointer[71] != 'a' && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
-				if( (dst & 15) == 6 && (src & 15) != 6 ) { score += 30; }
-				else if((src & 15) == 6 && (dst & 15) != 6) { score -= 30; }
-			}
-			
-			if(state_pointer[59] != 'd' && state_pointer[59] != 'r' && state_pointer[56] != 'a' && state_pointer[71] != 'a' && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
-				if( (dst & 15) == 8 && (src & 15) != 8 ) { score += 30; }
-				else if((src & 15) == 8 && (dst & 15) != 8) { score -= 30; }
-			}
-			
-			if((src >> 4) == 3 && (dst >> 4) != 3){
-				if(bp -> endline <= 1) { score += 30; }
-				else if(bp -> score_rough < -150) { score += 40; }
-			}
-			
-			if((src >> 4) != 3 && (dst >> 4) == 3){
-				if(bp -> endline <= 1) { score -= 30; }
-				else if(bp -> score_rough < -150) { score -= 40; }
-			}
-		}//else if( p == 'R')
-	}
-	
-	else{
-		score = average[version][turn][1][dst] - average[version][turn][0][0] + 20;
-		if(p == 'D'){
-			if(bp -> score_rough < -150){
-			    score -= (45 * (possible_che_opponent/2 + bp -> che_opponent));
-			}else{
-				score -= (30 * (possible_che_opponent/2 + bp -> che_opponent));
-			}
-		}else if(p == 'E'){
-		    if(src == 196 && dst == 195 && state_pointer[149] == 'I'){
-                 for(int scanpos = 133; scanpos > A9; scanpos -= 16){
-					 if(state_pointer[scanpos] == 'r'){
-						 score += average[version][turn][0][0] / 2;
-					 }else if(state_pointer[scanpos] != '.'){
-                         break;
-                     }						 
-				 }
-            }	
+    #define LOWER_BOUND -32768
+    #define UPPER_BOUND 32767
+    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
+    int version = bp -> version;
+    int turn = bp -> turn ? 1 : 0;
+    int che_char = bp -> turn ? (int)'R': (int)'r';
+    int che_opponent_char = che_char ^ 32;
+    int zu_char = bp -> turn ? (int)'P': (int)'p';
+    int shi_opponent_char = bp -> turn ? (int)'a': (int)'A';
+    char p = state_pointer[src], q = bp -> swapcase(state_pointer[dst]);
+    int intp = (int)p, intq = (int)q;
+    float score = 0.0;
+    float possible_che = 0.0;
+    if(sumall[version][turn]){
+        possible_che = (float)((bp -> covered) * di[version][turn][che_char])/sumall[version][turn];
+    }
+    float possible_che_opponent = 0.0;
+    if(sumall[version][1 - turn]){
+        possible_che_opponent = (float)((bp -> covered) * di[version][1 - turn][che_opponent_char])/sumall[version][1 - turn];
+    }
+    float zu_possibility = 0.0;
+    if(sumall[version][turn]){
+        zu_possibility = (float)(di[version][turn][zu_char])/sumall[version][turn];
+    }
+    float shi_possibility_opponent = 0.0, base_possibility = 1.0;
+    if(sumall[version][1 - turn]){
+        shi_possibility_opponent = (float)(di[version][turn][shi_opponent_char])/sumall[version][turn]; 
+    }
+    if(state_pointer[54] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
+    if(state_pointer[56] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
+    if(q == 'K'){
+        return MATE_UPPER;
+    }
+    if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
+        score = pst[intp][dst] - pst[intp][src];
+        //沉底炮逻辑
+        if(p == 'C'){
+            if(((src >> 4) != 3) && ((dst >> 4) == 3) && bp -> endline <= 2){
+                do{
+                    if((dst == 51 || dst == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
+                    if((dst == 59 || dst == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
+                    score -= (bp -> endline >= 1 ? 30 : 55);            
+                }while(false);
+            }
+            if(((src >> 4) == 3) && ((dst >> 4) != 3) && bp -> endline <= 2){
+                do{
+                    if((dst == 51 || dst == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
+                    if((dst == 59 || dst == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
+                    score += (bp -> endline >= 1 ? 30 : 55);            
+                }while(false);
+            }
+        }//if(p == 'C')
+        
+        else if(p == 'R'){
+            if(state_pointer[51] != 'd' && state_pointer[51] != 'r' && state_pointer[54] != 'a' && state_pointer[71] != 'a' && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
+                if( (dst & 15) == 6 && (src & 15) != 6 ) { score += 30; }
+                else if((src & 15) == 6 && (dst & 15) != 6) { score -= 30; }
+            }
+            
+            if(state_pointer[59] != 'd' && state_pointer[59] != 'r' && state_pointer[56] != 'a' && state_pointer[71] != 'a' && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
+                if( (dst & 15) == 8 && (src & 15) != 8 ) { score += 30; }
+                else if((src & 15) == 8 && (dst & 15) != 8) { score -= 30; }
+            }
+            
+            if((src >> 4) == 3 && (dst >> 4) != 3){
+                if(bp -> endline <= 1) { score += 30; }
+                else if(bp -> score_rough < -150) { score += 40; }
+            }
+            
+            if((src >> 4) != 3 && (dst >> 4) == 3){
+                if(bp -> endline <= 1) { score -= 30; }
+                else if(bp -> score_rough < -150) { score -= 40; }
+            }
+        }//else if( p == 'R')
+    }
+    
+    else{
+        score = average[version][turn][1][dst] - average[version][turn][0][0] + 20;
+        if(p == 'D'){
+            if(bp -> score_rough < -150){
+                score -= (45 * (possible_che_opponent/2 + bp -> che_opponent));
+            }else{
+                score -= (30 * (possible_che_opponent/2 + bp -> che_opponent));
+            }
+        }else if(p == 'E'){
+            if(src == 196 && dst == 195 && state_pointer[149] == 'I'){
+                for(int scanpos = 133; scanpos > A9; scanpos -= 16){
+                    if(state_pointer[scanpos] == 'r'){
+                        score += average[version][turn][0][0] / 2;
+                    }else if(state_pointer[scanpos] != '.'){
+                        break;
+                    }                       
+                }
+            }   
 
-		    if(src == 202 && dst == 169 && state_pointer[153] == 'I'){
-                 for(int scanpos = 137; scanpos > A9; scanpos -= 16){
-					 if(state_pointer[scanpos] == 'r'){
-						 score += average[version][turn][0][0] / 2;
-					 }else if(state_pointer[scanpos] != '.'){
+            if(src == 202 && dst == 169 && state_pointer[153] == 'I'){
+                for(int scanpos = 137; scanpos > A9; scanpos -= 16){
+                     if(state_pointer[scanpos] == 'r'){
+                         score += average[version][turn][0][0] / 2;
+                     }else if(state_pointer[scanpos] != '.'){
                          break;
                      } 
-				 }
-       		}
-		
-		
-		  }else if(p == 'F'){
-		       if((src == 197 || src == 201) && dst == 167 && state_pointer[151] == 'I'){
-				   bool findche = false;
-				   for(int scanpos = 135; scanpos > A9; scanpos -= 16){
-				      if(state_pointer[scanpos] == 'r'){
-						 score += average[version][turn][0][0] / 2;
-						 findche = true;
-						 break;
-					  }else if(state_pointer[scanpos] != '.'){
-                         break;
-                      } 
-				   }//for
-				   if(!findche){
-					    for(int scanpos = 135; scanpos > 130; --scanpos){
-						    if(state_pointer[scanpos] == 'r'){
-						        score += average[version][turn][0][0] / 2;
-						        findche = true;
-						        break;
-					        }else if(state_pointer[scanpos] != '.'){
-                                break;
-                            }
-					    }
-				   }
-				   if(!findche){
-					    for(int scanpos = 135; scanpos < 140; ++scanpos){
-						    if(state_pointer[scanpos] == 'r'){
-						        score += average[version][turn][0][0] / 2;
-						        findche = true;
-						        break;
-					        }else if(state_pointer[scanpos] != '.'){
-                                break;
-                            }
-					    }
-				   }
-			  }//if((src == 197 || src == 201) && j == 167 && state_pointer[151] == 'I')
+                 }
+            }
+        
+        
+        }else if(p == 'F'){
+            if((src == 197 || src == 201) && dst == 167 && state_pointer[151] == 'I'){
+                bool findche = false;
+                for(int scanpos = 135; scanpos > A9; scanpos -= 16){
+                    if(state_pointer[scanpos] == 'r'){
+                        score += average[version][turn][0][0] / 2;
+                        findche = true;
+                        break;
+                    }else if(state_pointer[scanpos] != '.'){
+                        break;
+                    } 
+                }//for
+                if(!findche){
+                    for(int scanpos = 135; scanpos > 130; --scanpos){
+                        if(state_pointer[scanpos] == 'r'){
+                            score += average[version][turn][0][0] / 2;
+                            findche = true;
+                            break;
+                        }else if(state_pointer[scanpos] != '.'){
+                            break;
+                        }
+                    }
+                }
+                if(!findche){
+                    for(int scanpos = 135; scanpos < 140; ++scanpos){
+                        if(state_pointer[scanpos] == 'r'){
+                            score += average[version][turn][0][0] / 2;
+                            findche = true;
+                            break;
+                        }else if(state_pointer[scanpos] != '.'){
+                            break;
+                        }
+                    }
+                }
+            }//if((src == 197 || src == 201) && j == 167 && state_pointer[151] == 'I')
             
-		
-		  }else if(p == 'G'){
-				if(src == 200 && state_pointer[59] != 'd' && state_pointer[59] != 'r' && state_pointer[56] != 'a' && state_pointer[71] != 'a' \
-				       && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
-				            int cheonleidao = 0;
-                            int che_opponent_onleidao = 0;
-                            for(int scanpos = 184; scanpos > A9; scanpos -= 16){
-                                if(state_pointer[scanpos] == 'R') { ++cheonleidao; }
-								else if(state_pointer[scanpos] == 'r'){ ++che_opponent_onleidao; }
-                            }
-                            if(cheonleidao > che_opponent_onleidao && possible_che >= possible_che_opponent) { score += 40 * base_possibility;}							
-					   }
-					   
-			    else if(src == 198 && state_pointer[51] != 'd' && state_pointer[54] != 'r' && state_pointer[71] != 'a' && state_pointer[71] != 'a' \
-				       && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){ //Should by else if, Python BUG!
-				            int cheonleidao = 0;
-                            int che_opponent_onleidao = 0;
-                            for(int scanpos = 182; scanpos > A9; scanpos -= 16){
-                                if(state_pointer[scanpos] == 'R') { ++cheonleidao; }
-								else if(state_pointer[scanpos] == 'r'){ ++che_opponent_onleidao; }
-                            }
-                            if(cheonleidao > che_opponent_onleidao && possible_che >= possible_che_opponent) { score += 40 * base_possibility;}								
-					   }
-					   
-			    else if (sumall[version][turn] > 0 && (bp -> covered) > 0 &&  (zu_possibility * (bp -> covered) >= 2)) { score -= 20; }//Python BUG
-			
-			
-		 }else if(p == 'H'){
-				if(src == 164 && dst == 68 && state_pointer[52] == 'e'){
-					short bonus = ::round(zu_possibility * average[version][turn][0][0]/4);
-					score += bonus;
-					if(state_pointer[53] != '.'){ //python BUG
-						score += bonus;
-					}
-					if(state_pointer[51] == 'd'){
-						score += bonus;
-					}
-				}
-				
-				if(src == 170 && dst == 74 && state_pointer[58] == 'e'){
-					short bonus = ::round(zu_possibility * average[version][turn][0][0]/4);
-					score += bonus;
-					if(state_pointer[57] != '.'){ //python BUG
-						score += bonus;
-					}
-					if(state_pointer[59] == 'd'){
-						score += bonus;
-					}
-				}
-				
-				while((src == 164 && dst == 52 && state_pointer[52] == 'e' && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) || \
-				        (src == 170 && dst == 58 && state_pointer[58] == 'e' && (state_pointer[58] == 'd' || state_pointer[59] == 'r'))){
-						    if((src == 164 && state_pointer[148] == 'p') || (src == 170 && state_pointer[154] == 'p')) { break; }
-						    if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) {score -= 150; break;}
-							//else if(che == che_opponent): Python BUG
-						}
-				
-				
-		 
-		 }else if(p == 'I'){
-				if(state_pointer[src - 32] == 'r' || state_pointer[src - 32] == 'p'){
-				    score -= average[version][turn][0][0]/2;	
-				}else if(state_pointer[src - 32] == 'n' || state_pointer[src - 32] == 'c'){
-					score += 30;
-				}else if(state_pointer[src - 48] == 'i'){
-				    score += 30;	
-				}else{
-				    score += 20;	
-				}
-		}//else if I
-	}//else
-		
-	if(q >= 'A' && q <= 'Z'){
-	     int k = 254 - dst;
-         if(q == 'R' || q == 'N' || q == 'B' || q == 'A' || q == 'C' || q == 'P'){
-              score += pst[intq][k];
-			  if(q == 'P' && state_pointer[dst + 32] == 'I'){
-				  score += 30;  
-			  }
-         }
-         else{
-             if(q != 'U'){
-				  score += average[version][1 - turn][0][0];
-                  if(q == 'I'){
-                       score += 10;
-                  }					  
-			 }else{
-				  score += average[version][1 - turn][1][k];
-				  if((dst >> 4) == 7 && (dst & 1) == 1){
-					   score += 30;  
-				  }
-			 }
-			 if(q == 'D'){
-				  if(bp -> score_rough > 150){
-					    score +=  45 * (possible_che/2 + bp -> che);
-				  }else{
-                        score +=  30 * (possible_che/2 + bp -> che);
-                  }					  
-			 }//if(q == 'D')
-         }			 
-	}//capture
-		
-	if(score < LOWER_BOUND) return LOWER_BOUND;
-	else if(score > UPPER_BOUND) return UPPER_BOUND;
-	return (short)round(score);
+        
+        }else if(p == 'G'){
+            if(src == 200 && state_pointer[59] != 'd' && state_pointer[59] != 'r' && state_pointer[56] != 'a' && state_pointer[71] != 'a' \
+                   && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
+                        int cheonleidao = 0;
+                        int che_opponent_onleidao = 0;
+                        for(int scanpos = 184; scanpos > A9; scanpos -= 16){
+                            if(state_pointer[scanpos] == 'R') { ++cheonleidao; }
+                            else if(state_pointer[scanpos] == 'r'){ ++che_opponent_onleidao; }
+                        }
+                        if(cheonleidao > che_opponent_onleidao && possible_che >= possible_che_opponent) { score += 40 * base_possibility;}                         
+                   }
+                   
+            else if(src == 198 && state_pointer[51] != 'd' && state_pointer[54] != 'r' && state_pointer[71] != 'a' && state_pointer[71] != 'a' \
+                   && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){ //Should by else if, Python BUG!
+                        int cheonleidao = 0;
+                        int che_opponent_onleidao = 0;
+                        for(int scanpos = 182; scanpos > A9; scanpos -= 16){
+                            if(state_pointer[scanpos] == 'R') { ++cheonleidao; }
+                            else if(state_pointer[scanpos] == 'r'){ ++che_opponent_onleidao; }
+                        }
+                        if(cheonleidao > che_opponent_onleidao && possible_che >= possible_che_opponent) { score += 40 * base_possibility;}                             
+                   }
+                   
+            else if (sumall[version][turn] > 0 && (bp -> covered) > 0 &&  (zu_possibility * (bp -> covered) >= 2)) { score -= 20; }//Python BUG
+            
+            
+        }else if(p == 'H'){
+            if(src == 164 && dst == 68 && state_pointer[52] == 'e'){
+                short bonus = ::round(zu_possibility * average[version][turn][0][0]/4);
+                score += bonus;
+                if(state_pointer[53] != '.'){ //python BUG
+                    score += bonus;
+                }
+                if(state_pointer[51] == 'd'){
+                    score += bonus;
+                }
+            }
+            
+            if(src == 170 && dst == 74 && state_pointer[58] == 'e'){
+                short bonus = ::round(zu_possibility * average[version][turn][0][0]/4);
+                score += bonus;
+                if(state_pointer[57] != '.'){ //python BUG
+                    score += bonus;
+                }
+                if(state_pointer[59] == 'd'){
+                    score += bonus;
+                }
+            }
+            
+            while((src == 164 && dst == 52 && state_pointer[52] == 'e' && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) || \
+                    (src == 170 && dst == 58 && state_pointer[58] == 'e' && (state_pointer[58] == 'd' || state_pointer[59] == 'r'))){
+                        if((src == 164 && state_pointer[148] == 'p') || (src == 170 && state_pointer[154] == 'p')) { break; }
+                        if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) {score -= 150; break;}
+                        //else if(che == che_opponent): Python BUG
+                    }
+                
+                
+         
+        }else if(p == 'I'){
+                if(state_pointer[src - 32] == 'r' || state_pointer[src - 32] == 'p'){
+                    score -= average[version][turn][0][0]/2;    
+                }else if(state_pointer[src - 32] == 'n' || state_pointer[src - 32] == 'c'){
+                    score += 30;
+                }else if(state_pointer[src - 48] == 'i'){
+                    score += 30;    
+                }else{
+                    score += 20;    
+                }
+        }//else if I
+    }//else
+        
+    if(q >= 'A' && q <= 'Z'){
+        int k = 254 - dst;
+        if(q == 'R' || q == 'N' || q == 'B' || q == 'A' || q == 'C' || q == 'P'){
+            score += pst[intq][k];
+            if(q == 'P' && state_pointer[dst + 32] == 'I'){
+                score += 30;  
+            }
+        }
+        else{
+            if(q != 'U'){
+                score += average[version][1 - turn][0][0];
+                if(q == 'I'){
+                    score += 10;
+                }                   
+            }else{
+                score += average[version][1 - turn][1][k];
+                if((dst >> 4) == 7 && (dst & 1) == 1){
+                    score += 30;  
+                }
+            }
+            if(q == 'D'){
+                if(bp -> score_rough > 150){
+                    score +=  45 * (possible_che/2 + bp -> che);
+                }else{
+                    score +=  30 * (possible_che/2 + bp -> che);
+                }                   
+            }//if(q == 'D')
+        }           
+    }//capture
+        
+    if(score < LOWER_BOUND) return LOWER_BOUND;
+    else if(score > UPPER_BOUND) return UPPER_BOUND;
+    return (short)round(score);
 }
 
 inline void trivial_kongtoupao_score_function(void* self, short* kongtoupao_score, short* kongtoupao_score_opponent){
+    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
+}
 
+inline void complicated_kongtoupao_score_function(void* self, short* kongtoupao_score, short* kongtoupao_score_opponent){
+    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
+    if(bp -> kongtoupao > bp -> kongtoupao_opponent){
+        if((bp -> che >= bp -> che_opponent && bp -> che > 0) || bp -> kongtoupao >= 3)
+            *kongtoupao_score = 100;
+        else
+            *kongtoupao_score = 70;
+    }
+
+    else if(bp -> kongtoupao_opponent > bp -> kongtoupao){
+        if((bp -> che_opponent >= bp -> che && bp -> che_opponent > 0) || bp -> kongtoupao_opponent >= 3)
+            *kongtoupao_score_opponent = 100;
+        else
+            *kongtoupao_score_opponent = 70;
+    }
 }
 
 void register_score_functions(){
     score_bean.insert({"trivial_score_function", trivial_score_function});
+    score_bean.insert({"complicated_score_function", complicated_score_function});
     kongtoupao_score_bean.insert({"trivial_kongtoupao_score_function", trivial_kongtoupao_score_function});
+    kongtoupao_score_bean.insert({"complicated_kongtoupao_score_function", complicated_kongtoupao_score_function});
 }
+
+std::string SearchScoreFunction(void* score_func, int type){
+    if(type == 0){
+        for(auto it = score_bean.begin(); it != score_bean.end(); ++it){
+            if(it -> second == score_func){
+                return it -> first;
+            }
+        } 
+        return "";
+    }else if(type == 1){
+        for(auto it = kongtoupao_score_bean.begin(); it != kongtoupao_score_bean.end(); ++it){
+            if(it -> second == score_func){
+                return it -> first;
+            }
+        } 
+        return "";
+    }
+    return "";
+}
+
 
 
