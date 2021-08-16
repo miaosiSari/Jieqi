@@ -86,7 +86,7 @@ void initialize_score_table(float discount_factor=1.5){
         for(int i = 51; i <= 203; ++i){
             pst[intc][0] += pst[intc][i];
         }
-        pst[intc][0] /= 90;
+        pst[intc][0] = ::round((double)pst[intc][0]/90);
     }
     memset(di, 0, sizeof(di));
     memset(average, 0, sizeof(average));
@@ -109,19 +109,19 @@ void initialize_score_table(float discount_factor=1.5){
             for(const char c : MINGZI){
                 sumr += pst[(int)c][0] * di[version][1][(int)c] / discount_factor;
             }
-            average[version][1][0][0] = (short)sumr / numr;
+            average[version][1][0][0] = ::round(sumr / numr);
             for(int i = 51; i <= 203; ++i){
                 sumr = 0.0;
                 for(const char c : MINGZI){
                     sumr += pst[(int)c][i] * di[version][1][(int)c];
                 }
-                average[version][1][1][i] = (short)sumr / numr;
+                average[version][1][1][i] = ::round(sumr / numr);
             }
         }
         if(numb > 0){
             double sumb = 0.0;
             for(const char c : MINGZI){
-                sumb += pst[(int)c][0] * di[version][0][(int)c] / discount_factor;
+                sumb += pst[(int)c][0] * di[version][0][((int)c)^32] / discount_factor;
             }
             average[version][0][0][0] = ::round(sumb / numb);
             for(int i = 51; i <= 203; ++i){

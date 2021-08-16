@@ -30,7 +30,7 @@
 #define SUM(VERSION) \
 short numr = 0, numb = 0; \
 numr += di[VERSION][1][INTR]; numr += di[VERSION][1][INTN];  numr += di[VERSION][1][INTB];  numr += di[VERSION][1][INTA];  numr += di[VERSION][1][INTC]; numr += di[VERSION][1][INTP]; \
-numb += di[VERSION][0][INTr]; numb += di[VERSION][0][INTn];  numb += di[VERSION][1][INTb];  numb += di[VERSION][1][INTa];  numb += di[VERSION][0][INTc]; numb += di[VERSION][0][INTp]; \
+numb += di[VERSION][0][INTr]; numb += di[VERSION][0][INTn];  numb += di[VERSION][0][INTb];  numb += di[VERSION][0][INTa];  numb += di[VERSION][0][INTc]; numb += di[VERSION][0][INTp]; \
 sumall[VERSION][1] = numr; sumall[VERSION][0] = numb;
 
 const std::string MINGZI = "RNBAKCP";

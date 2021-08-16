@@ -19,6 +19,36 @@ const char board::AIBoard::_initial_state[MAX] =
                     "                "
                     "                ";
 
+const std::unordered_map<std::string, std::string> board::AIBoard::_uni_pieces = {
+    {".", "．"},
+    {"R", "\033[31m俥\033[0m"},
+    {"N", "\033[31m傌\033[0m"},
+    {"B", "\033[31m相\033[0m"},
+    {"A", "\033[31m仕\033[0m"},
+    {"K", "\033[31m帅\033[0m"},
+    {"P", "\033[31m兵\033[0m"},
+    {"C", "\033[31m炮\033[0m"},
+    {"D", "\033[31m暗\033[0m"},
+    {"E", "\033[31m暗\033[0m"},
+    {"F", "\033[31m暗\033[0m"},
+    {"G", "\033[31m暗\033[0m"},
+    {"H", "\033[31m暗\033[0m"},
+    {"I", "\033[31m暗\033[0m"},
+    {"r", "车"},
+    {"n", "马"},
+    {"b", "象"},
+    {"a", "士"},
+    {"k", "将"},
+    {"p", "卒"},
+    {"c", "炮"},
+    {"d", "暗"},
+    {"e", "暗"},
+    {"f", "暗"},
+    {"g", "暗"},
+    {"h", "暗"},
+    {"i", "暗"}
+};
+
 char board::AIBoard::_dir[91][8] = {{0}};
 std::unordered_map<std::string, SCORE> score_bean;
 std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean;
@@ -65,6 +95,10 @@ board::AIBoard::AIBoard(const board::AIBoard& another_board){
     _initialize_dir();
     Scan();
     _has_initialized = true;
+}
+
+board::AIBoard::~AIBoard(){
+
 }
 
 void board::AIBoard::Reset() noexcept{
@@ -155,6 +189,7 @@ std::string board::AIBoard::SearchScoreFunction(int type){
     }else if(type == 1){
         return ::SearchScoreFunction(reinterpret_cast<void*>(_kongtoupao_score_func), type);
     }
+    return "";
 }
 
 std::vector<std::string> board::AIBoard::GetStateString() const{
@@ -224,11 +259,11 @@ void board::AIBoard::Scan(){
      }
      for(int i = 51; i <= 203; ++i){
         if((i & 15) < 3 || (i & 15) > 11) { continue; }
-        char p = _state_pointer[i];
+        const char p = _state_pointer[i];
         if((i >> 4) == 3 && (p == 'd' || p == 'e' || p == 'f' || p == 'g' || p == 'r' || p == 'n' || p == 'c')){
             ++endline;
         }
-        else if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
+        if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
             score_rough += pst[(int)p][i];
             if(p == 'R'){
                ++che;
@@ -256,10 +291,10 @@ void board::AIBoard::Scan(){
             score_rough -= average[version][turn?0:1][1][254 - i];
             ++covered_opponent;
         }
-        else if(p == 'C' && ((i & 15) == 7)){
+        if(p == 'C' && ((i & 15) == 7)){
             KongTouPao(_state_pointer, i, true);
         }
-        else if(p == 'c' && ((i & 15) == 7)){
+        if(p == 'c' && ((i & 15) == 7)){
             KongTouPao(_state_pointer, i, false);
         }
     }
@@ -289,6 +324,8 @@ void board::AIBoard::KongTouPao(const char* _state_pointer, int pos, bool myself
                 ++kongtoupao; //Python版本 (musesfish_pvs_20210604_fixed.py)没有这一行, Python BUG!
             } 
         }
+        kongtoupao = 0;
+        return;
     }else{
         if(kongtoupao_opponent != 0){
             return;
@@ -309,6 +346,8 @@ void board::AIBoard::KongTouPao(const char* _state_pointer, int pos, bool myself
                 ++kongtoupao_opponent; //Python (musesfish_pvs_20210604_fixed.py)版本没有这一行, BUG!
             } 
         }
+        kongtoupao_opponent = 0;
+        return;
     } //else
 } //KongTouPao
 
@@ -416,8 +455,16 @@ void board::AIBoard::GenMovesWithScore(){
             } //j
         } //dir
     } //for
-    std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<unsigned short, unsigned char, unsigned char>);
+    std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<short, unsigned char, unsigned char>);
 }//GenMovesWithScore()
+
+std::string board::AIBoard::GetResult(){
+    return "";
+}
+
+void board::AIBoard::CopyData(char di[5][2][123], char eat, bool turn){
+
+}
 
 inline short trivial_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
@@ -617,10 +664,10 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                 }
             }
             
-            while((src == 164 && dst == 52 && state_pointer[52] == 'e' && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) || \
+            if((src == 164 && dst == 52 && state_pointer[52] == 'e' && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) || \
                     (src == 170 && dst == 58 && state_pointer[58] == 'e' && (state_pointer[58] == 'd' || state_pointer[59] == 'r'))){
-                        if((src == 164 && state_pointer[148] == 'p') || (src == 170 && state_pointer[154] == 'p')) { break; }
-                        if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) {score -= 150; break;}
+                        if((src == 164 && state_pointer[148] == 'p') || (src == 170 && state_pointer[154] == 'p')) {;}
+                        if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) {score -= 100; }
                         //else if(che == che_opponent): Python BUG
                     }
                 
@@ -695,6 +742,23 @@ inline void complicated_kongtoupao_score_function(void* self, short* kongtoupao_
     }
 }
 
+void board::AIBoard::PrintPos(bool turn) const{
+    if(turn){
+        printf("红方视角:\n");
+    }else{
+        printf("黑方视角:\n");
+    }
+    std::cout << std::endl << std::endl;
+    for(int x = 3; x <= 12; ++x){
+        std::cout << translate_x(x) << " ";
+        for(int y = 3; y <= 11; ++y){
+            std::cout << _getstringxy(x, y, turn);
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
+}
+
 void register_score_functions(){
     score_bean.insert({"trivial_score_function", trivial_score_function});
     score_bean.insert({"complicated_score_function", complicated_score_function});
@@ -720,6 +784,7 @@ std::string SearchScoreFunction(void* score_func, int type){
     }
     return "";
 }
+
 
 
 

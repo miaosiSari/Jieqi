@@ -345,7 +345,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                     self.kongtoupao = 0
                     return 
                 else:
-                    self.kongtoupao_opponent += 1    
+                    self.kongtoupao += 1    
             self.kongtoupao = 0
             return
         else: 
@@ -1005,13 +1005,13 @@ class Searcher:
             sumr = 0
             for key in di[version][True]:
                 sumr += pst["1"][key] * di[version][True][key] / discount_factor
-            averagecoveredr = int(sumr//numr)
+            averagecoveredr = round(sumr/numr)
 
             for i in range(51, 204):
                 sumr = 0
                 for key in di[version][True]:
                     sumr += pst[key][i] * di[version][True][key]
-                averager[i] = sumr//numr
+                averager[i] = round(sumr/numr)
 
         if numb == 0:
             averagecoveredb = 0
@@ -1022,13 +1022,13 @@ class Searcher:
             sumb = 0
             for key in di[version][False]:
                 sumb += pst["1"][key.swapcase()] * di[version][False][key] / discount_factor
-            averagecoveredb = int(sumb//numb)
+            averagecoveredb = round(sumb/numb)
 
             for i in range(51, 204):
                 sumb = 0
                 for key in di[version][False]:
                     sumb += pst[key.swapcase()][i] * di[version][False][key]
-                averageb[i] = sumb//numb
+                averageb[i] = round(sumb/numb)
 
         self.average = {True: {False: averagecoveredr, True: averager}, False: {False: averagecoveredb, True: averageb}}
         average[version] = deepcopy(self.average)
@@ -1287,7 +1287,8 @@ def main(random_move=False, AI=True, debug=False):
 
 
 if __name__ == '__main__':
-    #main(random_move=False, AI=True, debug=False)
+    main(random_move=False, AI=True, debug=False)
+    '''
     b = Position(initial_covered, 0, True, 0).set()
     s = Searcher()
     s.calc_average()
@@ -1295,4 +1296,4 @@ if __name__ == '__main__':
     for i in range(10000000):
         l = list(sorted(b.gen_moves(), key=b.value))
     print(time.time() - start)
-
+    '''

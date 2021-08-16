@@ -69,12 +69,10 @@ public:
    };
 
    std::function<void(char*)> rotate = [this](char* p){
-       std::reverse(p, p+255);
-       std::transform(p, p+255, p, this -> swapcase);
-       p[255] = ' ';
-       for(int i = 256; i < MAX; ++i){
-           p[i] = '\0';
-       }
+        std::reverse(p, p+255);
+        std::transform(p, p+255, p, this -> swapcase);
+        p[255] = ' ';
+        memset(p + 256, 0, (MAX - 256) * sizeof(char));
    };
 
    std::tuple<unsigned short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];

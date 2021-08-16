@@ -278,26 +278,6 @@ pst["1"]["a"] = s/len(usefulkeys)
 pst["1"]["d"] = pst["1"]["a"]//discount_factor
 
 piece = {'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500}
-'''
-#https://zhuanlan.zhihu.com/p/34433581
-def create_uci_labels2():
-    labels_array = []
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
-    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-
-    for l1 in range(9):
-        for n1 in range(10):
-            destinations = [(t, n1) for t in range(9)] + \
-                           [(l1, t) for t in range(10)] + \
-                           [(l1 + a, n1 + b) for (a, b) in
-                            [(-2, -1), (-1, -2), (-2, 1), (1, -2), (2, -1), (-1, 2), (2, 1), (1, 2), (1, 1), (-1, 1), (-1, -1), (1, -1), (2, 2), (-2, 2), (-2, -2), (2, -2)]]  # 马走日, 相走田, 士走对角
-            for (l2, n2) in destinations:
-                if (l1, n1) != (l2, n2) and l2 in range(9) and n2 in range(10):
-                    move = letters[l1] + numbers[n1] + letters[l2] + numbers[n2]
-                    labels_array.append(move)
-
-    return labels_array
-'''
 
 def create_uci_labels():
     labels_array = []
@@ -319,7 +299,6 @@ def create_uci_labels():
 
 
 labels_array = create_uci_labels()
-#print(labels_array, len(labels_array))
 
 
 def random_select(s, return_type=None, num=None):

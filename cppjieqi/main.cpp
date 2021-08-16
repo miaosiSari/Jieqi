@@ -35,35 +35,15 @@ const char test[MAX] =
 
 int main(void) {
     helper::Helper h;
-    h.Read("../../log/log.txt");
-    printf("h.Compare() == %d\n", h.Compare());
     register_score_functions();
     initialize_wrapper("../score.conf", "debug.log");
+    bool res = h.ReadAndCompare("../../log/log.txt", "score_debug.log"); 
+    std::cout << "ReadAndCompare = " << std::boolalpha << res << std::endl;
     board::AIBoard b = board::AIBoard();
     b.GenMovesWithScore();
-    /*
-    b.Move("b2c3", true);
-    b.PrintPos(true);
-    b.GenMovesWithScore();
-    printf("%d\n", b.num_of_legal_moves);
-    b.SetTurn(true);
-    b.GenMovesWithScore();
-    b.PrintAllMoves();
-    */
-	
-	/*
-    printf("%d\n", b.num_of_legal_moves);
-    std::cout << subtrim("abc,d ,\r\n") << "\n" << subtrim("abc,d ,\r\n").size() << std::endl;
-    std::vector<std::string> statestring = b.GetStateString();
-    std::cout << statestring[0] << std::endl << std::endl << statestring[1] << std::endl;
-	*/
-
-    logclass::Log* l = Singleton<logclass::Log>::get();
-    l -> SetConfig((std::string)"F");
-    l -> Write("Fuck!");
     size_t start = (size_t)clock();
     //b.SetScoreFunction((std::string)"trivial_score_function", 0);
-    for(int i = 0; i < 10000000; ++i){
+    for(int i = 0; i < 1; ++i){
         b.GenMovesWithScore();
     }
     std::cout << b.SearchScoreFunction(0) << std::endl;

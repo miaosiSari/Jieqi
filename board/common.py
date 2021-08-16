@@ -319,7 +319,6 @@ def create_uci_labels():
 
 
 labels_array = create_uci_labels()
-print(labels_array, len(labels_array))
 
 
 def random_select(s, return_type=None, num=None):
