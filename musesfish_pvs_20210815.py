@@ -760,7 +760,7 @@ class Position(namedtuple('Position', 'board score turn version')):
             elif p == 'I':
                 if self.board[i - 32] in 'rp':  # 原先是RP, 这是个BUG!现解决
                     score -= average[self.version][self.turn][False]//2
-                elif self.board[i - 32] == 'nc':  # 之前是N, 不正确，已更正!
+                elif self.board[i - 32] in 'nc':  # 之前是N, 不正确，已更正!
                     score += 30
                 elif self.board[i - 48] == 'i':
                     score += 30

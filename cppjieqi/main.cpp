@@ -39,6 +39,7 @@ int main(void) {
     initialize_wrapper("../score.conf", "debug.log");
     bool res = h.ReadAndCompare("../../log/log.txt", "score_debug.log"); 
     std::cout << "ReadAndCompare = " << std::boolalpha << res << std::endl;
+    /*
     board::AIBoard b = board::AIBoard();
     b.GenMovesWithScore();
     size_t start = (size_t)clock();
@@ -50,6 +51,7 @@ int main(void) {
     printf("%d\n", b.num_of_legal_moves);
     size_t end = (size_t)clock();
     printf("%d %lf\n", b.num_of_legal_moves, (double)(end - start)/CLOCKS_PER_SEC);
+    */
     Singleton<logclass::Log>::deleteT();
     return 0;
 }

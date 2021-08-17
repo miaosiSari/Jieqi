@@ -163,6 +163,7 @@ bool helper::Helper::Debug(const char* debug_output_file){
         aiboard -> SetScoreFunction("complicated_score_function", 0);
         aiboard -> GenMovesWithScore();
         out << "\n" << i << "\n";
+        out << (aiboard -> DebugPrintPos(aiboard -> turn));
         for(int j = 0; j < aiboard -> num_of_legal_moves; ++j){
             std::tuple<short, unsigned char, unsigned char> t = aiboard -> legal_moves[j];
             int x1 = 12 - (std::get<1>(t) >> 4);

@@ -490,7 +490,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
     }
     float possible_che_opponent = 0.0;
     if(sumall[version][1 - turn]){
-        possible_che_opponent = (float)((bp -> covered) * di[version][1 - turn][che_opponent_char])/sumall[version][1 - turn];
+        possible_che_opponent = (float)((bp -> covered_opponent) * di[version][1 - turn][che_opponent_char])/sumall[version][1 - turn];
     }
     float zu_possibility = 0.0;
     if(sumall[version][turn]){
@@ -498,7 +498,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
     }
     float shi_possibility_opponent = 0.0, base_possibility = 1.0;
     if(sumall[version][1 - turn]){
-        shi_possibility_opponent = (float)(di[version][turn][shi_opponent_char])/sumall[version][turn]; 
+        shi_possibility_opponent = (float)(di[version][1 - turn][shi_opponent_char])/sumall[version][1 - turn]; 
     }
     if(state_pointer[54] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
     if(state_pointer[56] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
@@ -617,7 +617,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
         
         }else if(p == 'G'){
             if(src == 200 && state_pointer[59] != 'd' && state_pointer[59] != 'r' && state_pointer[56] != 'a' && state_pointer[71] != 'a' \
-                   && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
+                    && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
                         int cheonleidao = 0;
                         int che_opponent_onleidao = 0;
                         for(int scanpos = 184; scanpos > A9; scanpos -= 16){
@@ -625,10 +625,10 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                             else if(state_pointer[scanpos] == 'r'){ ++che_opponent_onleidao; }
                         }
                         if(cheonleidao > che_opponent_onleidao && possible_che >= possible_che_opponent) { score += 40 * base_possibility;}                         
-                   }
+                    }
                    
-            else if(src == 198 && state_pointer[51] != 'd' && state_pointer[54] != 'r' && state_pointer[71] != 'a' && state_pointer[71] != 'a' \
-                   && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){ //Should by else if, Python BUG!
+            else if(src == 198 && state_pointer[51] != 'd' && state_pointer[51] != 'r' && state_pointer[54] != 'a' && state_pointer[71] != 'a' \
+                    && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){ //Should by else if, Python BUG!
                         int cheonleidao = 0;
                         int che_opponent_onleidao = 0;
                         for(int scanpos = 182; scanpos > A9; scanpos -= 16){
@@ -636,15 +636,15 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                             else if(state_pointer[scanpos] == 'r'){ ++che_opponent_onleidao; }
                         }
                         if(cheonleidao > che_opponent_onleidao && possible_che >= possible_che_opponent) { score += 40 * base_possibility;}                             
-                   }
+                    }
                    
             else if (sumall[version][turn] > 0 && (bp -> covered) > 0 &&  (zu_possibility * (bp -> covered) >= 2)) { score -= 20; }//Python BUG
             
             
         }else if(p == 'H'){
             if(src == 164 && dst == 68 && state_pointer[52] == 'e'){
-                short bonus = ::round(zu_possibility * average[version][turn][0][0]/4);
-                score += bonus;
+                short bonus = ::round(zu_possibility * average[version][turn][0][0]/2);
+                score += bonus/2;
                 if(state_pointer[53] != '.'){ //python BUG
                     score += bonus;
                 }
@@ -654,8 +654,8 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             }
             
             if(src == 170 && dst == 74 && state_pointer[58] == 'e'){
-                short bonus = ::round(zu_possibility * average[version][turn][0][0]/4);
-                score += bonus;
+                short bonus = ::round(zu_possibility * average[version][turn][0][0]/2);
+                score += bonus/2;
                 if(state_pointer[57] != '.'){ //python BUG
                     score += bonus;
                 }
@@ -665,7 +665,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             }
             
             if((src == 164 && dst == 52 && state_pointer[52] == 'e' && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) || \
-                    (src == 170 && dst == 58 && state_pointer[58] == 'e' && (state_pointer[58] == 'd' || state_pointer[59] == 'r'))){
+                    (src == 170 && dst == 58 && state_pointer[58] == 'e' && (state_pointer[59] == 'd' || state_pointer[59] == 'r'))){
                         if((src == 164 && state_pointer[148] == 'p') || (src == 170 && state_pointer[154] == 'p')) {;}
                         if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) {score -= 100; }
                         //else if(che == che_opponent): Python BUG
@@ -676,7 +676,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
         }else if(p == 'I'){
                 if(state_pointer[src - 32] == 'r' || state_pointer[src - 32] == 'p'){
                     score -= average[version][turn][0][0]/2;    
-                }else if(state_pointer[src - 32] == 'n' || state_pointer[src - 32] == 'c'){
+                }else if(state_pointer[src - 32] == 'n' || state_pointer[src - 32] == 'c'){ // Python BUG
                     score += 30;
                 }else if(state_pointer[src - 48] == 'i'){
                     score += 30;    
@@ -715,7 +715,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             }//if(q == 'D')
         }           
     }//capture
-        
+    
     if(score < LOWER_BOUND) return LOWER_BOUND;
     else if(score > UPPER_BOUND) return UPPER_BOUND;
     return (short)round(score);
@@ -757,6 +757,26 @@ void board::AIBoard::PrintPos(bool turn) const{
         std::cout << std::endl;
     }
     std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
+}
+
+std::string board::AIBoard::DebugPrintPos(bool turn) const{
+    std::string ret;
+    if(turn){
+        ret += "RED\n";   
+    }else{
+        ret += "BLACK\n";
+    }
+    for(int x = 3; x <= 12; ++x){
+        ret += std::to_string(translate_x(x));
+        ret += ' ';
+        for(int y = 3; y <= 11; ++y){
+            const char c = turn?_state_red[encode(x, y)]:_state_black[encode(x, y)];
+            ret += c;
+        }
+        ret += '\n';
+    }
+    ret += "  abcdefghi\n";
+    return ret;
 }
 
 void register_score_functions(){

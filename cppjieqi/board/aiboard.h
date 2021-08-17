@@ -99,6 +99,7 @@ public:
    virtual std::string GetResult();
    virtual void CopyData(char di[5][2][123], char eat, bool turn);
    void PrintPos(bool turn) const;
+   std::string DebugPrintPos(bool turn) const;
    std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
    std::function<int(int)> translate_y = [](const int y) -> int {return 3 + y;};
    std::function<int(int, int)> translate_x_y = [](const int x, const int y) -> int{return 195 - 16 * x + y;};
