@@ -86,4 +86,33 @@ inline std::string subtrim(const std::string &s){
     return sub(trim(s));
 }
 
+struct InfoDict{
+   bool islegal;
+   bool turn;
+   int round;
+   bool win;
+   char eat;
+   char eat_rb;
+   int eat_type; //0:'.', 1:明子, 2:暗子
+   int src_x;
+   int src_y;
+   int dst_x;
+   int dst_y;
+   InfoDict()=delete;
+   InfoDict(const bool islegal, const bool turn, const int round, bool win, const char eat, const char eat_rb, const int eat_type, const int src_x, const int src_y, const int dst_x, const int dst_y):islegal(islegal), turn(turn), round(round), win(win), eat(eat), eat_rb(eat_rb), eat_type(eat_type), src_x(src_x), src_y(src_y), dst_x(dst_x), dst_y(dst_y){}
+   InfoDict(const InfoDict& another){
+      islegal = another.islegal;
+      turn = another.turn;
+      round = another.round;
+      eat = another.eat;
+      eat_rb = another.eat_rb;
+      eat_type = another.eat_type;
+      src_x = another.src_x;
+      src_y = another.src_y;
+      dst_x = another.dst_x;
+      dst_y = another.dst_y;
+   }
+   ~InfoDict()=default;
+};
+
 #endif

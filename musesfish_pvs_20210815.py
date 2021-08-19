@@ -667,6 +667,7 @@ class Position(namedtuple('Position', 'board score turn version')):
                         if self.board[scanpos] == 'r':
                             score += average[self.version][self.turn][False]//2
                             findche = True
+                            break
                         elif self.board[scanpos] != '.':
                             break
                     if not findche:
@@ -674,12 +675,14 @@ class Position(namedtuple('Position', 'board score turn version')):
                             if self.board[scanpos] == 'r':
                                 score += average[self.version][self.turn][False] // 2
                                 findche = True
+                                break
                             elif self.board[scanpos] != '.':
                                 break
                     if not findche:
                         for scanpos in range(135, 140, 1):
                             if self.board[scanpos] == 'r':
                                 score += average[self.version][self.turn][False] // 2
+                                break
                             elif self.board[scanpos] != '.':
                                 break
 

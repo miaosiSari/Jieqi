@@ -52,6 +52,7 @@ const std::unordered_map<std::string, std::string> board::AIBoard::_uni_pieces =
 char board::AIBoard::_dir[91][8] = {{0}};
 std::unordered_map<std::string, SCORE> score_bean;
 std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean;
+std::unordered_map<std::string, THINKER> thinker_bean;
 
 board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
                       version(0),
@@ -97,8 +98,26 @@ board::AIBoard::AIBoard(const board::AIBoard& another_board){
     _has_initialized = true;
 }
 
+
 board::AIBoard::~AIBoard(){
 
+}
+
+void board::AIBoard::ResetUsingStateBoard(const char another_state[MAX], bool turn, int round) noexcept{
+    version = 0;
+    this -> turn = turn;
+    _round = round;
+    strncpy(_state_red, another_state, _chess_board_size);
+    strncpy(_state_black, another_state, _chess_board_size);
+    _state_red[_chess_board_size] = '\0';
+    _state_black[_chess_board_size] = '\0';
+    if(turn){
+        rotate(_state_black);
+    }else{
+        rotate(_state_red);
+    }
+    _initialize_dir();
+    Scan();
 }
 
 void board::AIBoard::Reset() noexcept{
@@ -180,6 +199,8 @@ void board::AIBoard::SetScoreFunction(std::string function_name, int type){
         _score_func = GetWithDefUnordered<std::string, SCORE>(score_bean, function_name, trivial_score_function);
     }else if(type == 1){
         _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE>(kongtoupao_score_bean, function_name, trivial_kongtoupao_score_function);
+    }else if(type == 2){
+        _thinker_func = GetWithDefUnordered<std::string, THINKER>(thinker_bean, function_name, trivial_thinker);
     }
 }
 
@@ -188,6 +209,8 @@ std::string board::AIBoard::SearchScoreFunction(int type){
         return ::SearchScoreFunction(reinterpret_cast<void*>(_score_func), type);
     }else if(type == 1){
         return ::SearchScoreFunction(reinterpret_cast<void*>(_kongtoupao_score_func), type);
+    }else if(type == 2){
+        return ::SearchScoreFunction(reinterpret_cast<void*>(_thinker_func), type);
     }
     return "";
 }
@@ -458,13 +481,54 @@ void board::AIBoard::GenMovesWithScore(){
     std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<short, unsigned char, unsigned char>);
 }//GenMovesWithScore()
 
-std::string board::AIBoard::GetResult(){
-    return "";
-}
 
-void board::AIBoard::CopyData(char di[5][2][123], char eat, bool turn){
+void board::AIBoard::CopyData(char di[5][2][123]){
 
 }
+
+std::string board::AIBoard::Think(){
+    SetScoreFunction("random_thinker", 2);
+    return _thinker_func(this, true?_state_red:_state_black);
+}
+
+
+void board::AIBoard::PrintPos(bool turn) const{
+    if(turn){
+        printf("红方视角:\n");
+    }else{
+        printf("黑方视角:\n");
+    }
+    std::cout << std::endl << std::endl;
+    for(int x = 3; x <= 12; ++x){
+        std::cout << translate_x(x) << " ";
+        for(int y = 3; y <= 11; ++y){
+            std::cout << _getstringxy(x, y, turn);
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
+}
+
+std::string board::AIBoard::DebugPrintPos(bool turn) const{
+    std::string ret;
+    if(turn){
+        ret += "RED\n";   
+    }else{
+        ret += "BLACK\n";
+    }
+    for(int x = 3; x <= 12; ++x){
+        ret += std::to_string(translate_x(x));
+        ret += ' ';
+        for(int y = 3; y <= 11; ++y){
+            const char c = turn?_state_red[encode(x, y)]:_state_black[encode(x, y)];
+            ret += c;
+        }
+        ret += '\n';
+    }
+    ret += "  abcdefghi\n";
+    return ret;
+}
+
 
 inline short trivial_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
@@ -518,8 +582,8 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             }
             if(((src >> 4) == 3) && ((dst >> 4) != 3) && bp -> endline <= 2){
                 do{
-                    if((dst == 51 || dst == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
-                    if((dst == 59 || dst == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
+                    if((src == 51 || src == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
+                    if((src == 59 || src == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
                     score += (bp -> endline >= 1 ? 30 : 55);            
                 }while(false);
             }
@@ -557,7 +621,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                 score -= (30 * (possible_che_opponent/2 + bp -> che_opponent));
             }
         }else if(p == 'E'){
-            if(src == 196 && dst == 195 && state_pointer[149] == 'I'){
+            if(src == 196 && dst == 165 && state_pointer[149] == 'I'){
                 for(int scanpos = 133; scanpos > A9; scanpos -= 16){
                     if(state_pointer[scanpos] == 'r'){
                         score += average[version][turn][0][0] / 2;
@@ -569,12 +633,12 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
 
             if(src == 202 && dst == 169 && state_pointer[153] == 'I'){
                 for(int scanpos = 137; scanpos > A9; scanpos -= 16){
-                     if(state_pointer[scanpos] == 'r'){
-                         score += average[version][turn][0][0] / 2;
-                     }else if(state_pointer[scanpos] != '.'){
-                         break;
-                     } 
-                 }
+                    if(state_pointer[scanpos] == 'r'){
+                        score += average[version][turn][0][0] / 2;
+                    }else if(state_pointer[scanpos] != '.'){
+                        break;
+                    } 
+                }
             }
         
         
@@ -605,14 +669,13 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                     for(int scanpos = 135; scanpos < 140; ++scanpos){
                         if(state_pointer[scanpos] == 'r'){
                             score += average[version][turn][0][0] / 2;
-                            findche = true;
                             break;
                         }else if(state_pointer[scanpos] != '.'){
                             break;
                         }
                     }
                 }
-            }//if((src == 197 || src == 201) && j == 167 && state_pointer[151] == 'I')
+            }//if((src == 197 || src == 201) && dst == 167 && state_pointer[151] == 'I')
             
         
         }else if(p == 'G'){
@@ -721,6 +784,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
     return (short)round(score);
 }
 
+
 inline void trivial_kongtoupao_score_function(void* self, short* kongtoupao_score, short* kongtoupao_score_opponent){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
 }
@@ -742,48 +806,31 @@ inline void complicated_kongtoupao_score_function(void* self, short* kongtoupao_
     }
 }
 
-void board::AIBoard::PrintPos(bool turn) const{
-    if(turn){
-        printf("红方视角:\n");
-    }else{
-        printf("黑方视角:\n");
-    }
-    std::cout << std::endl << std::endl;
-    for(int x = 3; x <= 12; ++x){
-        std::cout << translate_x(x) << " ";
-        for(int y = 3; y <= 11; ++y){
-            std::cout << _getstringxy(x, y, turn);
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
+
+std::string trivial_thinker(void* self, const char* state_pointer){
+    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
+    bp -> GenMovesWithScore();
+    int index = 0;
+    return bp -> translate_ucci(std::get<1>(bp -> legal_moves[index]), std::get<2>(bp -> legal_moves[index]));
 }
 
-std::string board::AIBoard::DebugPrintPos(bool turn) const{
-    std::string ret;
-    if(turn){
-        ret += "RED\n";   
-    }else{
-        ret += "BLACK\n";
-    }
-    for(int x = 3; x <= 12; ++x){
-        ret += std::to_string(translate_x(x));
-        ret += ' ';
-        for(int y = 3; y <= 11; ++y){
-            const char c = turn?_state_red[encode(x, y)]:_state_black[encode(x, y)];
-            ret += c;
-        }
-        ret += '\n';
-    }
-    ret += "  abcdefghi\n";
-    return ret;
+
+std::string random_thinker(void* self, const char* state_pointer){
+    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
+    bp -> GenMovesWithScore();
+    srand(time(NULL));
+    int index = rand() % bp -> num_of_legal_moves;
+    return bp -> translate_ucci(std::get<1>(bp -> legal_moves[index]), std::get<2>(bp -> legal_moves[index]));
 }
+
 
 void register_score_functions(){
     score_bean.insert({"trivial_score_function", trivial_score_function});
     score_bean.insert({"complicated_score_function", complicated_score_function});
     kongtoupao_score_bean.insert({"trivial_kongtoupao_score_function", trivial_kongtoupao_score_function});
     kongtoupao_score_bean.insert({"complicated_kongtoupao_score_function", complicated_kongtoupao_score_function});
+    thinker_bean.insert({"trivial_thinker", trivial_thinker});
+    thinker_bean.insert({"random_thinker", random_thinker});
 }
 
 std::string SearchScoreFunction(void* score_func, int type){
@@ -801,10 +848,13 @@ std::string SearchScoreFunction(void* score_func, int type){
             }
         } 
         return "";
+    }else if(type == 2){
+        for(auto it = thinker_bean.begin(); it != thinker_bean.end(); ++it){
+            if(it -> second == score_func){
+                return it -> first;
+            }
+        } 
+        return "";
     }
     return "";
 }
-
-
-
-

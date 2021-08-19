@@ -52,59 +52,72 @@ const std::unordered_map<std::string, std::string> board::Board::_uni_pieces = {
 
 char board::Board::_dir[91][8] = {{0}};
 
-board::Board::Board() noexcept: num_of_legal_moves(0),
-                      _has_initialized(false),
-                      _turn(true),
-                      _round(0){
-    memset(_state_red, 0, sizeof(_state_red));
-    memset(_state_black, 0, sizeof(_state_black));
-    strncpy(_state_red, _initial_state, _chess_board_size);
-    strncpy(_state_black, _initial_state, _chess_board_size);
+board::Board::Board() noexcept: finished(false),
+                      num_of_legal_moves(0),
+                      turn(true),
+                      round(0),
+                      _has_initialized(false){
+    memset(state_red, 0, sizeof(state_red));
+    memset(state_black, 0, sizeof(state_black));
+    strncpy(state_red, _initial_state, _chess_board_size);
+    strncpy(state_black, _initial_state, _chess_board_size);
     memset(_is_legal_move, false, sizeof(_is_legal_move));
-    _log = Singleton<logclass::Log>::get();
+    memset(legal_moves, 0, sizeof(legal_moves));
     _initialize_dir();
+    GenerateRandomMap();
     _has_initialized = true;
 }
 
 board::Board::Board(const char another_state[MAX], bool turn, int round) noexcept {
-    _turn = turn;
-    _round = round;
-    strncpy(_state_red, another_state, _chess_board_size);
-    strncpy(_state_black, another_state, _chess_board_size);
-    _state_red[_chess_board_size] = '\0';
-    _state_black[_chess_board_size] = '\0';
+    this -> turn = turn;
+    this -> round = round;
+    this -> finished = false;
+    num_of_legal_moves = 0;
+    strncpy(state_red, another_state, _chess_board_size);
+    strncpy(state_black, another_state, _chess_board_size);
+    state_red[_chess_board_size] = '\0';
+    state_black[_chess_board_size] = '\0';
     if(turn){
-        rotate(_state_black);
+        rotate(state_black);
     }else{
-        rotate(_state_red);
+        rotate(state_red);
     }
     memset(_is_legal_move, false, sizeof(_is_legal_move));
-    _log = Singleton<logclass::Log>::get();
+    memset(legal_moves, 0, sizeof(legal_moves));
     _initialize_dir();
+    GenerateRandomMap();
     _has_initialized = true;
 }
 
 board::Board::Board(const board::Board& another_board){
-    this -> _turn = another_board._turn;
-    this -> _round = another_board._round;
-    strncpy(this -> _state_red, another_board._state_red, _chess_board_size);
-    strncpy(this -> _state_black, another_board._state_black, _chess_board_size);
-    memmove(this -> _is_legal_move, another_board._is_legal_move, sizeof(_is_legal_move));
-    this -> _log = another_board._log;
+    this -> finished = another_board.finished;
+    this -> turn = another_board.turn;
+    this -> round = another_board.round;
+    strncpy(this -> state_red, another_board.state_red, _chess_board_size);
+    strncpy(this -> state_black, another_board.state_black, _chess_board_size);
+    memset(_is_legal_move, false, sizeof(_is_legal_move));
+    memset(legal_moves, 0, sizeof(legal_moves));
+    GenMovesWithScore();
+    CopyToIsLegalMove();
+    this -> random_map = another_board.random_map;
     _initialize_dir();
     _has_initialized = true;
 }
 
 void board::Board::Reset() noexcept{
-    _turn = true;
-    _round = 0;
+    finished = false;
+    turn = true;
+    round = 0;
     num_of_legal_moves = 0;
-    memset(_state_red, 0, sizeof(_state_red));
-    memset(_state_black, 0, sizeof(_state_black));
-    strncpy(_state_black, _initial_state, _chess_board_size);
+    memset(state_red, 0, sizeof(state_red));
+    memset(state_black, 0, sizeof(state_black));
+    strncpy(state_red, _initial_state, _chess_board_size);
+    strncpy(state_black, _initial_state, _chess_board_size);
+    state_red[_chess_board_size] = '\0';
+    state_black[_chess_board_size] = '\0';
     memset(_is_legal_move, false, sizeof(_is_legal_move));
-    _log = Singleton<logclass::Log>::get();
     _initialize_dir();
+    GenerateRandomMap();
 }
 
 void board::Board::_initialize_dir(){
@@ -175,125 +188,129 @@ const std::vector<std::string>& board::Board::GetHistory() const{
 }
 
 std::vector<std::string> board::Board::GetStateString() const{
-    std::string tmp_red(_state_red);
+    std::string tmp_red(state_red);
     tmp_red = tmp_red.substr(0, board::Board::_chess_board_size);
-    std::string tmp_black(_state_black);
+    std::string tmp_black(state_black);
     tmp_black = tmp_black.substr(0, board::Board::_chess_board_size);
-    _log -> Write("board::Board::GetStateString");
     return (std::vector<std::string>){tmp_red, tmp_black};
 }
 
-bool board::Board::GetTurn() const{
-    _log -> Write("board::Board::GetTurn");
-    return _turn;
-}
-
-void board::Board::SetTurn(bool turn){
-    _turn = turn;
-}
-
-bool board::Board::GetRound() const{
-    _log -> Write("board::Board::GetRound");
-    return _round;
-}
 
 std::tuple<int, bool, std::string, std::string> board::Board::GetTuple() const{
-    _log -> Write("board::Board::GetTuple");
-    std::string tmp_red(_state_red);
+    std::string tmp_red(state_red);
     tmp_red = tmp_red.substr(0, board::Board::_chess_board_size);
-    std::string tmp_black(_state_red);
+    std::string tmp_black(state_red);
     tmp_black = tmp_black.substr(0, board::Board::_chess_board_size);
-    std::tuple<int, bool, std::string, std::string> ret(_round, _turn, tmp_red, tmp_black);
+    std::tuple<int, bool, std::string, std::string> ret(round, turn, tmp_red, tmp_black);
     return ret;
 }
 
 const std::unordered_map<std::string, std::string>& board::Board::GetUniPieces() const{
-    _log -> Write("board::Board::GetUniPieces");
     return _uni_pieces;
 }
 
-void board::Board::PrintPos(bool turn) const{
-    _log -> Write("board::Board::PrintPos");
+void board::Board::PrintPos(bool turn, bool iscovered=true, bool god=false, bool swapcasewhenblack=false) const{
     if(turn){
-        printf("红方视角:\n");
+        if(god)
+            printf("上帝视角(红):\n");
+        else
+            printf("红方视角:\n");
     }else{
-        printf("黑方视角:\n");
+        if(god)
+            printf("上帝视角(黑):\n");
+        else
+            printf("黑方视角:\n");
     }
     std::cout << std::endl << std::endl;
     for(int x = 3; x <= 12; ++x){
         std::cout << translate_x(x) << " ";
         for(int y = 3; y <= 11; ++y){
-            std::cout << _getstringxy(x, y, turn);
+            std::cout << _getstringxy(x, y, turn, iscovered, swapcasewhenblack);
         }
         std::cout << std::endl;
     }
     std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
 }
 
-void board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check){
-    _log -> Write("board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check)");
-    Move(start.first, start.second, end.first, end.second, check);
+std::shared_ptr<InfoDict> board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check){
+    return Move(start.first, start.second, end.first, end.second, check);
 }
 
-void board::Board::Move(const std::string ucci, const bool check){
+std::shared_ptr<InfoDict> board::Board::Move(const std::string ucci, const bool check){
     //the ucci string is in "a0a1“ format.
     //Please check https://www.xqbase.com/protocol/cchess_ucci.htm
-    _log -> Write("board::Board::Move(const std::string ucci, const bool check)");
     assert(ucci.size() == 4);
     const int y1 = (int)(ucci[0] - 'a');
     const int x1 = (int)(ucci[1] - '0');
     const int y2 = (int)(ucci[2] - 'a');
     const int x2 = (int)(ucci[3] - '0');
-    Move(x1, y1, x2, y2, check);
+    return Move(x1, y1, x2, y2, check);
 }
 
-void board::Board::Move(const char* ucci, const bool check){
+std::shared_ptr<InfoDict> board::Board::Move(const char* ucci, const bool check){
     //the ucci string is in "a0a1“ format.
     //Please check https://www.xqbase.com/protocol/cchess_ucci.htm
-    _log -> Write("board::Board::Move(const char* ucci, const bool check)");
     assert(strlen(ucci) == 4);
     const int y1 = (int)(ucci[0] - 'a');
     const int x1 = (int)(ucci[1] - '0');
     const int y2 = (int)(ucci[2] - 'a');
     const int x2 = (int)(ucci[3] - '0');
-    Move(x1, y1, x2, y2, check);
+    return Move(x1, y1, x2, y2, check);
 }
 
-void board::Board::Move(const int x1, const int y1, const int x2, const int y2, const bool check){
-    _log -> Write("board::Board::Move(const int x1, const int y1, const int x2, const int y2, const bool check)");
+std::shared_ptr<InfoDict> board::Board::Move(const int x1, const int y1, const int x2, const int y2, const bool check){
+    if(finished){
+        return nullptr;
+    }
     int encode_from = translate_x_y(x1, y1);
     int encode_to = translate_x_y(x2, y2);
     int reverse_encode_from = reverse(encode_from);
     int reverse_encode_to = reverse(encode_to);
+    char eat = '.', eat_rb = '.';
+    int eat_type = 0, eat_type_tmp = 0;
 
     if(check) {
-        CopyToIsLegalMove();
         if(_is_legal_move[encode_from][encode_to] == false){
-            return;
+            return std::shared_ptr<InfoDict>(new InfoDict(false, turn, round, false, eat, eat_rb, eat_type, x1, y1, x2, y2));
         }
     }
-    if(_turn){
-        _state_red[encode_to] = _state_red[encode_from];
-        _state_red[encode_from] = '.';
-        _state_black[reverse_encode_to] = _state_black[reverse_encode_from];
-        _state_black[reverse_encode_from] = '.';
+
+    if(turn){
+        eat = state_red[encode_to];
+        FIND(eat, encode_to, true);
+        eat_type = eat_type_tmp;
+        eat_rb = eat;
+        state_red[encode_to] = state_red[encode_from];
+        FIND(state_red[encode_to], encode_from, true);
+        state_red[encode_from] = '.';
+        state_black[reverse_encode_to] = state_black[reverse_encode_from];
+        FIND(state_black[reverse_encode_to], reverse_encode_from, false);
+        state_black[reverse_encode_from] = '.';
     } else{
-        _state_black[encode_to] = _state_black[encode_from];
-        _state_black[encode_from] = '.';
-        _state_red[reverse_encode_to] = _state_red[reverse_encode_from];
-        _state_red[reverse_encode_from] = '.';
+        eat = state_black[encode_to];
+        FIND(eat, encode_to, false);
+        eat_type = eat_type_tmp;
+        eat_rb = swapcase(eat);
+        state_black[encode_to] = state_black[encode_from];
+        FIND(state_black[encode_to], encode_from, false);
+        state_black[encode_from] = '.';
+        state_red[reverse_encode_to] = state_red[reverse_encode_from];
+        FIND(state_black[reverse_encode_to], reverse_encode_from, true);
+        state_red[reverse_encode_from] = '.';
     }
-    _turn = !_turn;
-    if(_turn){
-       ++_round;
+    std::shared_ptr<InfoDict> p(new InfoDict(true, turn, round, (eat == 'k'), eat, eat_rb, eat_type, x1, y1, x2, y2));
+    turn = !turn;
+    if(turn){
+       ++round;
     }
+    return p;
 }
 
 void board::Board::GenMovesWithScore(){
     //To make it more efficient, this implementation is rather dirty
     num_of_legal_moves = 0;
     memset(legal_moves, 0, sizeof(legal_moves));
-    const char *_state_pointer = _turn?_state_red:_state_black;
+    const char *_state_pointer = turn?state_red:state_black;
     for(unsigned char i = 51; i <= 203; ++i){
         const char p = _state_pointer[i];
         int intp = (int)p;
@@ -414,6 +431,14 @@ void board::Board::Translate(unsigned char i, unsigned char j, char ucci[5]){
     ucci[4] = '\0';
 }
 
+void board::Board::TranslateSingle(unsigned char i, char ucci[3]){
+    int x1 = 12 - (i >> 4);
+    int y1 = (i & 15) - 3;
+    ucci[0] = 'a' + y1;
+    ucci[1] = '0' + x1;
+    ucci[2] = '\0';
+}
+
 void board::Board::Print_ij_ucci(unsigned char i, unsigned char j){
     printf("i = %d, j = %d", i, j);
     char ucci[5];
@@ -436,3 +461,23 @@ void board::Board::PrintAllMoves(){
     }
 }
 
+void board::Board::GenerateRandomMap(){
+    std::vector<char> chararray_red = {'R', 'R', 'N', 'N', 'B', 'B', 'A', 'A', 'C', 'C', 'P', 'P', 'P', 'P', 'P'};
+    std::vector<char> chararray_black = {'r', 'r', 'n', 'n', 'b', 'b', 'a', 'a', 'c', 'c', 'p', 'p', 'p', 'p', 'p'};
+    std::vector<unsigned char> position_red = {TXY(0, 0), TXY(0, 1), TXY(0, 2), TXY(0, 3), TXY(0, 5), TXY(0, 6), \
+        TXY(0, 7), TXY(0, 8), TXY(2, 1), TXY(2, 7), TXY(3, 0), TXY(3, 2), TXY(3, 4), TXY(3, 6), TXY(3, 8)};
+    std::vector<unsigned char> position_black = {TXY(9, 0), TXY(9, 1), TXY(9, 2), TXY(9, 3), TXY(9, 5), TXY(9, 6), \
+        TXY(9, 7), TXY(9, 8), TXY(7, 1), TXY(7, 7), TXY(6, 0), TXY(6, 2), TXY(6, 4), TXY(6, 6), TXY(6, 8)};
+    int size = 15;
+    SV(chararray_red); 
+    SV(chararray_black);
+    std::unordered_map<unsigned char, char> r, b;
+    for(int i = 0; i < size; ++i){
+        r[position_red[i]] = chararray_red[i];
+        r[position_black[i]] = chararray_black[i];
+        b[reverse(position_red[i])] = swapcase(chararray_red[i]);
+        b[reverse(position_black[i])] = swapcase(chararray_black[i]);
+    }
+    random_map[true] = r;
+    random_map[false] = b;
+}

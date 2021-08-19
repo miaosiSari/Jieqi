@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <time.h>
+#include "board/god.h"
 #include "board/board.h"
 #include "board/aiboard.h"
 #include "log/log.h"
@@ -37,8 +38,8 @@ int main(void) {
     helper::Helper h;
     register_score_functions();
     initialize_wrapper("../score.conf", "debug.log");
-    bool res = h.ReadAndCompare("../../log/log.txt", "score_debug.log"); 
-    std::cout << "ReadAndCompare = " << std::boolalpha << res << std::endl;
+    //bool res = h.ReadAndCompare("../../log/log.txt", "score_debug.log"); 
+    //std::cout << "ReadAndCompare = " << std::boolalpha << res << std::endl;
     /*
     board::AIBoard b = board::AIBoard();
     b.GenMovesWithScore();
@@ -52,6 +53,7 @@ int main(void) {
     size_t end = (size_t)clock();
     printf("%d %lf\n", b.num_of_legal_moves, (double)(end - start)/CLOCKS_PER_SEC);
     */
-    Singleton<logclass::Log>::deleteT();
+    God g("../players.conf");
+    printf("%d\n", g.StartGame());
     return 0;
 }

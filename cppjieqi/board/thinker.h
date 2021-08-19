@@ -1,11 +1,16 @@
 #ifndef thinker_h
 #define thinker_h
 
+#include "../global/global.h"
+#include "../score/score.h"
+
 namespace board{
-    class Thinker{
-    public:
-        virtual std::string GetResult() = 0;
-        virtual void CopyData(char di[5][2][123], char eat, bool turn) = 0;
+    struct Thinker{
+        bool thinker_type; //true: Human, false: AI
+        int retry_num;
+        bool turn;
+        virtual std::string Think() = 0;
+        virtual void CopyData(char di[VERSION_MAX][2][123]) = 0;
     };
 }
 
