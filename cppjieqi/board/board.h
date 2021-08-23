@@ -48,40 +48,6 @@ if(c == '.'){ \
 }else{ \
     eat_type_tmp = 1; \
 }
-#define TRANSLATE_PLACE_TO_COVERED(place) \
-char covered = '.'; \
-switch(place){ \
-   case 195: \
-   case 203: covered = 'D'; break; \
-   case 196: \
-   case 202: covered = 'E'; break; \
-   case 197: \
-   case 201: covered = 'F'; break; \
-   case 198: \
-   case 200: covered = 'G'; break; \
-   case 164: \
-   case 170: covered = 'H'; break; \
-   case 147: \
-   case 149: \
-   case 151: \
-   case 153: \
-   case 155: covered = 'I'; break; \
-   case 59: \
-   case 51: covered = 'D'; break; \
-   case 58: \
-   case 52: covered = 'e'; break; \
-   case 57: \
-   case 53: covered = 'f'; break; \
-   case 56: \
-   case 54: covered = 'g'; break; \
-   case 90: \
-   case 84: covered = 'h'; break; \
-   case 107: \
-   case 105: \
-   case 103: \
-   case 101: \
-   case 99: covered = 'i'; break; \
-} \
 
 namespace board{
 class Board{
@@ -92,6 +58,7 @@ public:
     char state_black[MAX];
     bool turn; //true红black黑
     int round; //回合, 从0开始
+    static const std::unordered_map<std::string, std::string> uni_pieces;
     Board() noexcept;
     Board(const char another_state[MAX], bool turn, int round) noexcept;
     Board(const Board& another_board);
@@ -149,12 +116,11 @@ private:
     std::vector<std::string> _board_history;
     static const int _chess_board_size;
     static const char _initial_state[MAX];
-    static const std::unordered_map<std::string, std::string> _uni_pieces;
     static char _dir[91][8];
     std::function<std::string(const char)> _getstring = [](const char c) -> std::string {
         std::string ret;
         const std::string c_string(1, c);
-        ret = GetWithDefUnordered<std::string, std::string>(_uni_pieces, c_string, c_string);
+        ret = GetWithDefUnordered<std::string, std::string>(uni_pieces, c_string, c_string);
         return ret;
     };
     std::function<std::string(int, int, bool, bool)> _getstringxy_covered = [this](int x, int y, bool turn, bool swapcasewhenblack) -> std::string {

@@ -56,6 +56,7 @@ private:
 public:
    static T* get();
    static void deleteT();
+   static bool reset();
 };
 
 template<typename T>
@@ -69,6 +70,13 @@ T* Singleton<T>::get(){
 template<typename T>
 void Singleton<T>::deleteT(){
    delete Singleton<T>::_t;
+}
+
+template<typename T>
+bool Singleton<T>::reset(){
+   delete _t;
+   _t = new (std::nothrow) T;
+   return (_t != NULL);
 }
 
 inline std::string trim(const std::string &s)
@@ -98,8 +106,9 @@ struct InfoDict{
    int src_y;
    int dst_x;
    int dst_y;
+   char eat_check;
    InfoDict()=delete;
-   InfoDict(const bool islegal, const bool turn, const int round, bool win, const char eat, const char eat_rb, const int eat_type, const int src_x, const int src_y, const int dst_x, const int dst_y):islegal(islegal), turn(turn), round(round), win(win), eat(eat), eat_rb(eat_rb), eat_type(eat_type), src_x(src_x), src_y(src_y), dst_x(dst_x), dst_y(dst_y){}
+   InfoDict(const bool islegal, const bool turn, const int round, bool win, const char eat, const char eat_rb, const int eat_type, const int src_x, const int src_y, const int dst_x, const int dst_y, const char eat_check):islegal(islegal), turn(turn), round(round), win(win), eat(eat), eat_rb(eat_rb), eat_type(eat_type), src_x(src_x), src_y(src_y), dst_x(dst_x), dst_y(dst_y), eat_check(eat_check){}
    InfoDict(const InfoDict& another){
       islegal = another.islegal;
       turn = another.turn;

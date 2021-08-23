@@ -20,7 +20,7 @@ const char board::Board::_initial_state[MAX] =
                     "                ";
 
 
-const std::unordered_map<std::string, std::string> board::Board::_uni_pieces = {
+const std::unordered_map<std::string, std::string> board::Board::uni_pieces = {
     {".", "．"},
     {"R", "\033[31m俥\033[0m"},
     {"N", "\033[31m傌\033[0m"},
@@ -206,7 +206,7 @@ std::tuple<int, bool, std::string, std::string> board::Board::GetTuple() const{
 }
 
 const std::unordered_map<std::string, std::string>& board::Board::GetUniPieces() const{
-    return _uni_pieces;
+    return uni_pieces;
 }
 
 void board::Board::PrintPos(bool turn, bool iscovered=true, bool god=false, bool swapcasewhenblack=false) const{
@@ -266,39 +266,43 @@ std::shared_ptr<InfoDict> board::Board::Move(const int x1, const int y1, const i
     int encode_to = translate_x_y(x2, y2);
     int reverse_encode_from = reverse(encode_from);
     int reverse_encode_to = reverse(encode_to);
-    char eat = '.', eat_rb = '.';
+    char eat = '.', eat_rb = '.', eat_check = '.';
     int eat_type = 0, eat_type_tmp = 0;
 
     if(check) {
         if(_is_legal_move[encode_from][encode_to] == false){
-            return std::shared_ptr<InfoDict>(new InfoDict(false, turn, round, false, eat, eat_rb, eat_type, x1, y1, x2, y2));
+            return std::shared_ptr<InfoDict>(new InfoDict(false, turn, round, false, eat, eat_rb, eat_type, x1, y1, x2, y2, eat_check));
         }
     }
 
     if(turn){
         eat = state_red[encode_to];
-        FIND(eat, encode_to, true);
+        char eat_tmp = eat;
+        FIND(eat_tmp, encode_to, turn);
+        eat_check = eat_tmp;
         eat_type = eat_type_tmp;
         eat_rb = eat;
         state_red[encode_to] = state_red[encode_from];
-        FIND(state_red[encode_to], encode_from, true);
+        FIND(state_red[encode_to], encode_from, turn);
         state_red[encode_from] = '.';
         state_black[reverse_encode_to] = state_black[reverse_encode_from];
-        FIND(state_black[reverse_encode_to], reverse_encode_from, false);
+        FIND(state_black[reverse_encode_to], reverse_encode_from, !turn);
         state_black[reverse_encode_from] = '.';
     } else{
         eat = state_black[encode_to];
-        FIND(eat, encode_to, false);
+        char eat_tmp = eat;
+        FIND(eat_tmp, encode_to, turn);
+        eat_check = eat_tmp;
         eat_type = eat_type_tmp;
         eat_rb = swapcase(eat);
         state_black[encode_to] = state_black[encode_from];
-        FIND(state_black[encode_to], encode_from, false);
+        FIND(state_black[encode_to], encode_from, turn);
         state_black[encode_from] = '.';
         state_red[reverse_encode_to] = state_red[reverse_encode_from];
-        FIND(state_black[reverse_encode_to], reverse_encode_from, true);
+        FIND(state_red[reverse_encode_to], reverse_encode_from, !turn);
         state_red[reverse_encode_from] = '.';
     }
-    std::shared_ptr<InfoDict> p(new InfoDict(true, turn, round, (eat == 'k'), eat, eat_rb, eat_type, x1, y1, x2, y2));
+    std::shared_ptr<InfoDict> p(new InfoDict(true, turn, round, (eat == 'k'), eat, eat_rb, eat_type, x1, y1, x2, y2, eat_check));
     turn = !turn;
     if(turn){
        ++round;

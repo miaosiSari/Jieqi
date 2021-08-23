@@ -4,7 +4,7 @@ board::Human::Human():turn(true), round(0){
    
 }
 
-board::Human::Human(bool turn, int round):turn(turn), round(0){
+board::Human::Human(bool turn, int round):turn(turn), round(round){
 
 }
 
