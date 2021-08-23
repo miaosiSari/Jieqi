@@ -118,7 +118,7 @@ int God::StartGame(){
       if(result == RED_WIN){
          printf("红胜!\n");
          return RED_WIN;
-      }else{
+      }else if(result == BLACK_WIN){
          printf("黑胜!\n");
          return BLACK_WIN;
       }
