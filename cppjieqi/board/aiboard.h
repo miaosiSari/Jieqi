@@ -21,6 +21,7 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <set>
 #include <unordered_map>
 #include <iostream>
 #include <functional>
@@ -31,6 +32,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stack>
 #include "../log/log.h"
 #include "../global/global.h"
 #include "../score/score.h"
@@ -38,6 +40,15 @@
 
 #define MATE_LOWER 1304
 #define MATE_UPPER 3696
+#define CLEAR_STACK(STACK) \
+while(!STACK.empty()){ \
+   STACK.pop(); \
+} 
+#define AISUM(VERSION) \
+short numr = 0, numb = 0; \
+numr += aidi[VERSION][1][INTR]; numr += aidi[VERSION][1][INTN];  numr += di[VERSION][1][INTB];  numr += aidi[VERSION][1][INTA];  numr += aidi[VERSION][1][INTC]; numr += aidi[VERSION][1][INTP]; \
+numb += aidi[VERSION][0][INTr]; numb += aidi[VERSION][0][INTn];  numb += di[VERSION][0][INTb];  numb += aidi[VERSION][0][INTa];  numb += aidi[VERSION][0][INTc]; numb += aidi[VERSION][0][INTp]; \
+aisumall[VERSION][1] = numr; aisumall[VERSION][0] = numb;
 
 template <typename T, typename U, typename V>
 bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
@@ -68,8 +79,12 @@ namespace board{
 class AIBoard : public Thinker{
 
 public:
+    short aiaverage[VERSION_MAX][2][2][256];
+    unsigned char aisumall[VERSION_MAX][2];
+    unsigned char aidi[VERSION_MAX][2][123];
     int num_of_legal_moves = 0;
     int version = 0;
+    int round = 0;
     bool turn = true; //true红black黑
     unsigned char che = 0;
     unsigned char che_opponent = 0;
@@ -82,25 +97,26 @@ public:
     unsigned char kongtoupao_opponent = 0;
     short kongtoupao_score = 0;
     short kongtoupao_score_opponent=0;
+    std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
     std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
+    std::set<unsigned char> rooted_chesses;
     AIBoard() noexcept;
-    AIBoard(const char another_state[MAX], bool turn, int round) noexcept;
-    AIBoard(const AIBoard& another_board);
+    AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept;
+    AIBoard(const AIBoard& another_board) noexcept;
     virtual ~AIBoard();
-    void ResetUsingStateBoard(const char another_state[MAX], bool turn, int round) noexcept;
     void Reset() noexcept;
     void SetScoreFunction(std::string function_name, int type);
     std::string SearchScoreFunction(int type);
     std::vector<std::string> GetStateString() const;
-    bool GetRound() const;
-    void Move(const std::pair<int, int> start, const std::pair<int, int> end); //start(x1, y1), end(x2, y2)
     void Move(const std::string ucci); //ucci representation
     void Move(const char* ucci);
-    void Move(const int x1, const int y1, const int x2, const int y2);
+    void Move(const unsigned char encode_from, const unsigned char encode_to);
+    void UndoMove();
     void Scan();
     void KongTouPao(const char* _state_pointer, int pos, bool t);
+    void Rooted();
     void GenMovesWithScore();
-    virtual void CopyData(char di[5][2][123]);
+    void CopyData(const unsigned char di[5][2][123]);
     virtual std::string Think();
     void PrintPos(bool turn) const;
     std::string DebugPrintPos(bool turn) const;
@@ -145,7 +161,6 @@ private:
     char _state_red[MAX];
     char _state_black[MAX];
     bool _has_initialized = false;
-    int _round = 0; //回合, 从0开始
     static const int _chess_board_size;
     static const char _initial_state[MAX];
     static const std::unordered_map<std::string, std::string> _uni_pieces;

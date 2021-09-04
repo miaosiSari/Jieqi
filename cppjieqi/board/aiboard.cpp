@@ -1,5 +1,22 @@
 #include "aiboard.h"
-   
+
+std::unordered_map<int, char> LUT = {
+   {195, 'D'},
+   {196, 'E'},
+   {197, 'F'},
+   {198, 'G'},
+   {200, 'G'},
+   {201, 'F'},
+   {202, 'E'},
+   {203, 'D'},
+   {164, 'H'},
+   {170, 'H'},
+   {147, 'I'},
+   {149, 'I'},
+   {151, 'I'},
+   {153, 'I'}
+};
+
 const int board::AIBoard::_chess_board_size = CHESS_BOARD_SIZE;
 const char board::AIBoard::_initial_state[MAX] = 
                     "                "
@@ -10,7 +27,7 @@ const char board::AIBoard::_initial_state[MAX] =
                     "   .h.....h.    "
                     "   i.i.i.i.i    "
                     "   .........    "
-                    "   P........    "
+                    "   .........    "
                     "   I.I.I.I.I    "
                     "   .H.....H.    "
                     "   .........    "
@@ -34,6 +51,7 @@ const std::unordered_map<std::string, std::string> board::AIBoard::_uni_pieces =
     {"G", "\033[31m暗\033[0m"},
     {"H", "\033[31m暗\033[0m"},
     {"I", "\033[31m暗\033[0m"},
+    {"U", "\033[31m不\033[0m"},
     {"r", "车"},
     {"n", "马"},
     {"b", "象"},
@@ -46,7 +64,8 @@ const std::unordered_map<std::string, std::string> board::AIBoard::_uni_pieces =
     {"f", "暗"},
     {"g", "暗"},
     {"h", "暗"},
-    {"i", "暗"}
+    {"i", "暗"},
+    {"u", "不"},
 };
 
 char board::AIBoard::_dir[91][8] = {{0}};
@@ -56,13 +75,15 @@ std::unordered_map<std::string, THINKER> thinker_bean;
 
 board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
                       version(0),
+                      round(0),
                       turn(true),
                       _has_initialized(false),
-                      _round(0),
                       _score_func(NULL),
                       _kongtoupao_score_func(NULL){
+    CopyData(di);
     memset(_state_red, 0, sizeof(_state_red));
     memset(_state_black, 0, sizeof(_state_black));
+    CLEAR_STACK(cache);
     strncpy(_state_red, _initial_state, _chess_board_size);
     strncpy(_state_black, _initial_state, _chess_board_size);
     _initialize_dir();
@@ -70,11 +91,16 @@ board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
     _has_initialized = true;
 }
 
-board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round) noexcept: version(0) {
+
+board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept{
+    CopyData(di);
     this -> turn = turn;
-    _round = round;
+    this -> round = round;
+    memset(_state_red, 0, sizeof(_state_red));
+    memset(_state_black, 0, sizeof(_state_black));
     strncpy(_state_red, another_state, _chess_board_size);
     strncpy(_state_black, another_state, _chess_board_size);
+    CLEAR_STACK(cache);
     _state_red[_chess_board_size] = '\0';
     _state_black[_chess_board_size] = '\0';
     if(turn){
@@ -87,48 +113,46 @@ board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round) noe
     _has_initialized = true;
 }
 
-board::AIBoard::AIBoard(const board::AIBoard& another_board){
+board::AIBoard::AIBoard(const board::AIBoard& another_board) noexcept{
     this -> turn = another_board.turn;
-    this -> _round = another_board._round;
+    this -> round = another_board.round;
     this -> version = another_board.version;
+    this -> cache = another_board.cache;
+    memset(_state_red, 0, sizeof(_state_red));
+    memset(_state_black, 0, sizeof(_state_black));
+    memset(aiaverage, 0, sizeof(aiaverage));
+    memset(aisumall, 0, sizeof(aisumall));
+    memset(aidi, 0, sizeof(aidi));
     strncpy(this -> _state_red, another_board._state_red, _chess_board_size);
     strncpy(this -> _state_black, another_board._state_black, _chess_board_size);
+    memmove(aiaverage, another_board.aiaverage, sizeof(aiaverage));
+    memmove(aisumall, another_board.aisumall, sizeof(aisumall));
+    memmove(aidi, another_board.aidi, sizeof(aidi));
     _initialize_dir();
     Scan();
     _has_initialized = true;
 }
-
 
 board::AIBoard::~AIBoard(){
 
 }
 
-void board::AIBoard::ResetUsingStateBoard(const char another_state[MAX], bool turn, int round) noexcept{
-    version = 0;
-    this -> turn = turn;
-    _round = round;
-    strncpy(_state_red, another_state, _chess_board_size);
-    strncpy(_state_black, another_state, _chess_board_size);
-    _state_red[_chess_board_size] = '\0';
-    _state_black[_chess_board_size] = '\0';
-    if(turn){
-        rotate(_state_black);
-    }else{
-        rotate(_state_red);
-    }
-    _initialize_dir();
-    Scan();
-}
-
 void board::AIBoard::Reset() noexcept{
+    CopyData(di);
     turn = true;
-    _round = 0;
+    round = 0;
     _score_func = NULL;
     num_of_legal_moves = 0;
+    CLEAR_STACK(cache);
     memset(_state_red, 0, sizeof(_state_red));
     memset(_state_black, 0, sizeof(_state_black));
+    memset(aiaverage, 0, sizeof(aiaverage));
+    memset(aisumall, 0, sizeof(aisumall));
+    memset(aidi, 0, sizeof(aidi));
+    strncpy(_state_red, _initial_state, _chess_board_size);
     strncpy(_state_black, _initial_state, _chess_board_size);
     _initialize_dir();
+    Scan();
 }
 
 void board::AIBoard::_initialize_dir(){
@@ -223,14 +247,6 @@ std::vector<std::string> board::AIBoard::GetStateString() const{
     return (std::vector<std::string>){tmp_red, tmp_black};
 }
 
-bool board::AIBoard::GetRound() const{
-    return _round;
-}
-
-void board::AIBoard::Move(const std::pair<int, int> start, const std::pair<int, int> end){
-    Move(start.first, start.second, end.first, end.second);
-}
-
 void board::AIBoard::Move(const std::string ucci){
     //the ucci string is in "a0a1“ format.
     //Please check https://www.xqbase.com/protocol/cchess_ucci.htm
@@ -239,7 +255,7 @@ void board::AIBoard::Move(const std::string ucci){
     const int x1 = (int)(ucci[1] - '0');
     const int y2 = (int)(ucci[2] - 'a');
     const int x2 = (int)(ucci[3] - '0');
-    Move(x1, y1, x2, y2);
+    Move(translate_x_y(x1, y1), translate_x_y(x2, y2));
 }
 
 void board::AIBoard::Move(const char* ucci){
@@ -250,37 +266,101 @@ void board::AIBoard::Move(const char* ucci){
     const int x1 = (int)(ucci[1] - '0');
     const int y2 = (int)(ucci[2] - 'a');
     const int x2 = (int)(ucci[3] - '0');
-    Move(x1, y1, x2, y2);
+    Move(translate_x_y(x1, y1), translate_x_y(x2, y2));
 }
 
-void board::AIBoard::Move(const int x1, const int y1, const int x2, const int y2){
-    int encode_from = translate_x_y(x1, y1);
-    int encode_to = translate_x_y(x2, y2);
-    int reverse_encode_from = reverse(encode_from);
-    int reverse_encode_to = reverse(encode_to);
+void board::AIBoard::Move(const unsigned char encode_from, const unsigned char encode_to){
+    const unsigned char reverse_encode_from = reverse(encode_from);
+    const unsigned char reverse_encode_to = reverse(encode_to);
     if(turn){
-        _state_red[encode_to] = _state_red[encode_from];
-        _state_red[encode_from] = '.';
-        _state_black[reverse_encode_to] = _state_black[reverse_encode_from];
-        _state_black[reverse_encode_from] = '.';
+        cache.push({encode_from, encode_to, _state_red[encode_to]});
+        if(_state_red[encode_from] >= 'D' && _state_red[encode_from] <= 'I'){
+            _state_red[encode_to] = 'U';
+            _state_red[encode_from] = '.';
+            _state_black[reverse_encode_to] = 'u';
+            _state_black[reverse_encode_from] = '.';
+        }else{
+            _state_red[encode_to] = _state_red[encode_from];
+            _state_red[encode_from] = '.';
+            _state_black[reverse_encode_to] = _state_black[reverse_encode_from];
+            _state_black[reverse_encode_from] = '.';
+        }
     } else{
-        _state_black[encode_to] = _state_black[encode_from];
-        _state_black[encode_from] = '.';
-        _state_red[reverse_encode_to] = _state_red[reverse_encode_from];
-        _state_red[reverse_encode_from] = '.';
+        cache.push({encode_from, encode_to, _state_black[encode_to]});
+        if(_state_black[encode_from] >= 'D' && _state_black[encode_from] <= 'I'){
+            _state_black[encode_to] = 'U';
+            _state_black[encode_from] = '.';
+            _state_red[reverse_encode_to] = 'u';
+            _state_red[reverse_encode_from] = '.';
+        }else{
+            _state_black[encode_to] = _state_black[encode_from];
+            _state_black[encode_from] = '.';
+            _state_red[reverse_encode_to] = _state_red[reverse_encode_from];
+            _state_red[reverse_encode_from] = '.';
+        }
     }
     turn = !turn;
     if(turn){
-       ++_round;
+       ++round;
+    }
+}
+
+void board::AIBoard::UndoMove(){
+    const std::tuple<unsigned char, unsigned char, char> from_to_eat = cache.top();
+    cache.pop();
+    const unsigned char encode_from = std::get<0>(from_to_eat);
+    const unsigned char encode_to = std::get<1>(from_to_eat);
+    const char eat = std::get<2>(from_to_eat);
+    if(turn){
+        --round;
+    }
+    turn = !turn;
+    const unsigned char reverse_encode_from = reverse(encode_from);
+    const unsigned char reverse_encode_to = reverse(encode_to);
+    if(turn){
+        if(_state_red[encode_to] == 'U'){
+            _state_red[encode_from] = LUT[encode_from];
+            _state_red[encode_to] = eat;
+            _state_black[reverse_encode_from] = swapcase(LUT[encode_from]);
+            _state_black[reverse_encode_to] = swapcase(eat);
+        }else{
+            _state_red[encode_from] = _state_red[encode_to];
+            _state_red[encode_to] = eat;
+            _state_black[reverse_encode_from] = _state_black[reverse_encode_to];
+            _state_black[reverse_encode_to] = swapcase(eat);
+        }
+    }else{
+        if(_state_black[encode_to] == 'U'){
+            _state_black[encode_from] = LUT[encode_from];
+            _state_black[encode_to] = eat;
+            _state_red[reverse_encode_from] = swapcase(LUT[encode_from]);
+            _state_red[reverse_encode_to] = swapcase(eat);
+        }else{
+            _state_black[encode_from] = _state_black[encode_to];
+            _state_black[encode_to] = eat;
+            _state_red[reverse_encode_from] = _state_red[reverse_encode_to];
+            _state_red[reverse_encode_to] = swapcase(eat);
+        }
     }
 }
 
 void board::AIBoard::Scan(){
-     const char *_state_pointer = turn?_state_red:_state_black;
-     if(!_kongtoupao_score_func){
+    che = 0;
+    che_opponent = 0;
+    zu = 0;
+    covered = 0;
+    covered_opponent = 0;
+    endline = 0;
+    score_rough = 0;
+    kongtoupao = 0;
+    kongtoupao_opponent = 0;
+    kongtoupao_score = 0;
+    kongtoupao_score_opponent=0;
+    const char *_state_pointer = turn?_state_red:_state_black;
+    if(!_kongtoupao_score_func){
         SetScoreFunction(std::string("complicated_kongtoupao_score_function"), 1);
-     }
-     for(int i = 51; i <= 203; ++i){
+    }
+    for(int i = 51; i <= 203; ++i){
         if((i & 15) < 3 || (i & 15) > 11) { continue; }
         const char p = _state_pointer[i];
         if((i >> 4) == 3 && (p == 'd' || p == 'e' || p == 'f' || p == 'g' || p == 'r' || p == 'n' || p == 'c')){
@@ -298,7 +378,7 @@ void board::AIBoard::Scan(){
             ++covered;
         }
         else if(p == 'U'){
-            score_rough += average[version][turn?1:0][1][i];
+            score_rough += aiaverage[version][turn?1:0][1][i];
             ++covered;
         }
         else if(p == 'r' || p == 'n' || p == 'b' || p == 'a' || p == 'k' || p == 'c' || p == 'p'){
@@ -311,7 +391,7 @@ void board::AIBoard::Scan(){
             ++covered_opponent;
         }  
         else if(p == 'u'){
-            score_rough -= average[version][turn?0:1][1][254 - i];
+            score_rough -= aiaverage[version][turn?0:1][1][254 - i];
             ++covered_opponent;
         }
         if(p == 'C' && ((i & 15) == 7)){
@@ -438,12 +518,12 @@ void board::AIBoard::GenMovesWithScore(){
                 break;
             }
             const char d = _dir[intp][cnt];
+            if(i > 128 && p == 'P' && (d == EAST || d == WEST)) {
+                break;
+            }
             for(unsigned char j = i + d ;; j += d) {
                 const char q = _state_pointer[j];
                 if(q == ' ' || isupper(q)){
-                    break;
-                }
-                if(i > 128 && p == 'P' && (d == EAST || d == WEST)) {
                     break;
                 }
                 else if(p == 'K' && (j < 160 || (j & 15) > 8 || (j & 15) < 6)) {
@@ -472,7 +552,7 @@ void board::AIBoard::GenMovesWithScore(){
                 }
                 legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
                 ++num_of_legal_moves;
-                if((p != 'D' && p != 'H' && p != 'C' && p != 'R') || islower(q)){
+                if((p != 'D' && p != 'R') || islower(q)){
                     break;
                 }
             } //j
@@ -481,9 +561,112 @@ void board::AIBoard::GenMovesWithScore(){
     std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<short, unsigned char, unsigned char>);
 }//GenMovesWithScore()
 
+void board::AIBoard::Rooted(){
+    rooted_chesses.clear();
+    const char *_state_pointer = turn?_state_red:_state_black;
+    for(unsigned char i = 51; i <= 203; ++i){
+        char p = _state_pointer[i];
+        int intp = (int)p;
+        if(!::isupper(p) || p == 'U'){
+            continue;
+        }
+        if(p == 'C' || p == 'H'){
+            for(unsigned char cnt = 0; cnt < 8; ++cnt){
+                if(_dir[intp][cnt] == 0){
+                    break;
+                }
+                const char d = _dir[intp][cnt];
+                int cfoot = 0;
+                for(int j = i + d;; j += d){
+                    char q = _state_pointer[j];
+                    if(q == ' ') break;
+                    if(cfoot == 0 && q == '.') continue;
+                    else if(cfoot == 0 && q != '.') ++cfoot;
+                    else if(cfoot == 1 && ::islower(q)) break;
+                    else if(cfoot == 1 && ::isupper(q)) {rooted_chesses.insert(j); break;}
+                }
+            }
+        }
+        else{
+            for(unsigned char cnt = 0; cnt < 8; ++cnt){
+                if(_dir[intp][cnt] == 0){
+                    break;
+                }
+                const char d = _dir[intp][cnt];
+                if(i > 128 && p == 'P' && (d == EAST || d == WEST)) {
+                    break;
+                }
+                for(int j = i + d;; j += d){
+                    char q = _state_pointer[j];
+                    if(q == ' ' || ::islower(q)) { break; }
+                    else if(p == 'K' && (j < 160 || (j & 15) > 8 || (j & 15) < 6)) { break; }
+                    else if(p == 'G' && j != 183) { break; }
+                    else if(p == 'N' || p == 'E'){
+                        int n_diff_x = ((int)(j - i)) & 15;
+                        if(n_diff_x == 2 || n_diff_x == 14){
+                            if(_state_pointer[i + (n_diff_x == 2?1:-1)] != '.') { break; }
+                        }else{
+                            if(j > i && _state_pointer[i + 16] != '.') { break; }
+                            if(j < i && _state_pointer[i - 16] != '.') { break; }
+                        }
+                    }
+                    else if((p == 'B' || p == 'F') && _state_pointer[i + d/2] != '.') { break; }
+                    if(::isupper(q)){
+                        rooted_chesses.insert(j);
+                        break;
+                    }
+                    if(p != 'D' && p != 'R'){
+                        break;
+                    }
+                } //for
+            }//for dir
+        }//else 
+    }//for i
+}
 
-void board::AIBoard::CopyData(char di[5][2][123]){
 
+void board::AIBoard::CopyData(const unsigned char di[5][2][123]){
+    memset(aiaverage, 0, sizeof(aiaverage));
+    memset(aisumall, 0, sizeof(aisumall));
+    memset(aidi, 0, sizeof(aidi));
+    memcpy(aidi, di, sizeof(aidi));
+    const float discount_factor = 1.5;
+    for(int version = 0; version < VERSION_MAX; ++version){
+        AISUM(version);
+        if(numr > 0){
+            double sumr = 0.0;
+            for(const char c : MINGZI){
+                sumr += pst[(int)c][0] * aidi[version][1][(int)c] / discount_factor;
+            }
+            aiaverage[version][1][0][0] = ::round(sumr / numr);
+            for(int i = 51; i <= 203; ++i){
+                sumr = 0.0;
+                for(const char c : MINGZI){
+                    sumr += pst[(int)c][i] * aidi[version][1][(int)c];
+                }
+                aiaverage[version][1][1][i] = ::round(sumr / numr);
+            }
+        }
+        if(numb > 0){
+            double sumb = 0.0;
+            for(const char c : MINGZI){
+                sumb += pst[(int)c][0] * aidi[version][0][((int)c)^32] / discount_factor;
+            }
+            aiaverage[version][0][0][0] = ::round(sumb / numb);
+            for(int i = 51; i <= 203; ++i){
+                sumb = 0.0;
+                for(const char c : MINGZI){
+                    sumb += pst[(int)c][i] * aidi[version][0][((int)c)^32];
+                }
+                aiaverage[version][0][1][i] = ::round(sumb / numb);
+            }
+        }
+    }
+    for(auto i = 51; i < 204; ++i){
+        //printf("aiaverage[0][1][1][i] = %d\n", aiaverage[0][1][1][i]);
+        //printf("pst['C'][%d] = %d\n", i, pst[(int)'C'][i]);
+        //std::cout << aiaverage[0][1][1][i] << " " << pst[(int)'C'][i] << "\n";
+    }
 }
 
 std::string board::AIBoard::Think(){
@@ -493,6 +676,7 @@ std::string board::AIBoard::Think(){
 
 
 void board::AIBoard::PrintPos(bool turn) const{
+    printf("version = %d, turn = %d, this -> turn = %d, round = %d\n", version, turn, this -> turn, round);
     if(turn){
         printf("红方视角:\n");
     }else{
@@ -549,20 +733,20 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
     int intp = (int)p, intq = (int)q;
     float score = 0.0;
     float possible_che = 0.0;
-    if(sumall[version][turn]){
-        possible_che = (float)((bp -> covered) * di[version][turn][che_char])/sumall[version][turn];
+    if(bp -> aisumall[version][turn]){
+        possible_che = (float)((bp -> covered) * bp -> aidi[version][turn][che_char])/bp -> aisumall[version][turn];
     }
     float possible_che_opponent = 0.0;
-    if(sumall[version][1 - turn]){
-        possible_che_opponent = (float)((bp -> covered_opponent) * di[version][1 - turn][che_opponent_char])/sumall[version][1 - turn];
+    if(bp ->  aisumall[version][1 - turn]){
+        possible_che_opponent = (float)((bp -> covered_opponent) * bp -> aidi[version][1 - turn][che_opponent_char])/bp -> aisumall[version][1 - turn];
     }
     float zu_possibility = 0.0;
-    if(sumall[version][turn]){
-        zu_possibility = (float)(di[version][turn][zu_char])/sumall[version][turn];
+    if(bp -> aisumall[version][turn]){
+        zu_possibility = (float)(bp -> aidi[version][turn][zu_char])/bp -> aisumall[version][turn];
     }
     float shi_possibility_opponent = 0.0, base_possibility = 1.0;
-    if(sumall[version][1 - turn]){
-        shi_possibility_opponent = (float)(di[version][1 - turn][shi_opponent_char])/sumall[version][1 - turn]; 
+    if(bp -> aisumall[version][1 - turn]){
+        shi_possibility_opponent = (float)(bp -> aidi[version][1 - turn][shi_opponent_char])/bp -> aisumall[version][1 - turn]; 
     }
     if(state_pointer[54] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
     if(state_pointer[56] == 'g') { base_possibility *= (1 - shi_possibility_opponent);}
@@ -613,7 +797,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
     }
     
     else{
-        score = average[version][turn][1][dst] - average[version][turn][0][0] + 20;
+        score = bp -> aiaverage[version][turn][1][dst] - bp -> aiaverage[version][turn][0][0] + 20;
         if(p == 'D'){
             if(bp -> score_rough < -150){
                 score -= (45 * (possible_che_opponent/2 + bp -> che_opponent));
@@ -624,7 +808,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             if(src == 196 && dst == 165 && state_pointer[149] == 'I'){
                 for(int scanpos = 133; scanpos > A9; scanpos -= 16){
                     if(state_pointer[scanpos] == 'r'){
-                        score += average[version][turn][0][0] / 2;
+                        score += bp -> aiaverage[version][turn][0][0] / 2;
                     }else if(state_pointer[scanpos] != '.'){
                         break;
                     }                       
@@ -634,7 +818,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             if(src == 202 && dst == 169 && state_pointer[153] == 'I'){
                 for(int scanpos = 137; scanpos > A9; scanpos -= 16){
                     if(state_pointer[scanpos] == 'r'){
-                        score += average[version][turn][0][0] / 2;
+                        score += bp -> aiaverage[version][turn][0][0] / 2;
                     }else if(state_pointer[scanpos] != '.'){
                         break;
                     } 
@@ -647,7 +831,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                 bool findche = false;
                 for(int scanpos = 135; scanpos > A9; scanpos -= 16){
                     if(state_pointer[scanpos] == 'r'){
-                        score += average[version][turn][0][0] / 2;
+                        score += bp -> aiaverage[version][turn][0][0] / 2;
                         findche = true;
                         break;
                     }else if(state_pointer[scanpos] != '.'){
@@ -657,7 +841,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                 if(!findche){
                     for(int scanpos = 135; scanpos > 130; --scanpos){
                         if(state_pointer[scanpos] == 'r'){
-                            score += average[version][turn][0][0] / 2;
+                            score += bp -> aiaverage[version][turn][0][0] / 2;
                             findche = true;
                             break;
                         }else if(state_pointer[scanpos] != '.'){
@@ -668,7 +852,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                 if(!findche){
                     for(int scanpos = 135; scanpos < 140; ++scanpos){
                         if(state_pointer[scanpos] == 'r'){
-                            score += average[version][turn][0][0] / 2;
+                            score += bp -> aiaverage[version][turn][0][0] / 2;
                             break;
                         }else if(state_pointer[scanpos] != '.'){
                             break;
@@ -700,13 +884,11 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                         }
                         if(cheonleidao > che_opponent_onleidao && possible_che >= possible_che_opponent) { score += 40 * base_possibility;}                             
                     }
-                   
-            else if (sumall[version][turn] > 0 && (bp -> covered) > 0 &&  (zu_possibility * (bp -> covered) >= 2)) { score -= 20; }//Python BUG
             
             
         }else if(p == 'H'){
             if(src == 164 && dst == 68 && state_pointer[52] == 'e'){
-                short bonus = ::round(zu_possibility * average[version][turn][0][0]/2);
+                short bonus = ::round(zu_possibility * bp -> aiaverage[version][turn][0][0]/2);
                 score += bonus/2;
                 if(state_pointer[53] != '.'){ //python BUG
                     score += bonus;
@@ -717,7 +899,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             }
             
             if(src == 170 && dst == 74 && state_pointer[58] == 'e'){
-                short bonus = ::round(zu_possibility * average[version][turn][0][0]/2);
+                short bonus = ::round(zu_possibility * bp -> aiaverage[version][turn][0][0]/2);
                 score += bonus/2;
                 if(state_pointer[57] != '.'){ //python BUG
                     score += bonus;
@@ -738,7 +920,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
          
         }else if(p == 'I'){
                 if(state_pointer[src - 32] == 'r' || state_pointer[src - 32] == 'p'){
-                    score -= average[version][turn][0][0]/2;    
+                    score -= bp -> aiaverage[version][turn][0][0]/2;    
                 }else if(state_pointer[src - 32] == 'n' || state_pointer[src - 32] == 'c'){ // Python BUG
                     score += 30;
                 }else if(state_pointer[src - 48] == 'i'){
@@ -759,12 +941,12 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
         }
         else{
             if(q != 'U'){
-                score += average[version][1 - turn][0][0];
+                score += bp -> aiaverage[version][1 - turn][0][0];
                 if(q == 'I'){
                     score += 10;
                 }                   
             }else{
-                score += average[version][1 - turn][1][k];
+                score += bp -> aiaverage[version][1 - turn][1][k];
                 if((dst >> 4) == 7 && (dst & 1) == 1){
                     score += 30;  
                 }

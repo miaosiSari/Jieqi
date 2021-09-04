@@ -71,7 +71,6 @@ public:
     std::tuple<int, bool, std::string, std::string> GetTuple() const;
     const std::unordered_map<std::string, std::string>& GetUniPieces() const;
     void PrintPos(bool turn, bool iscovered, bool god, bool swapcasewhenblack) const;
-    std::shared_ptr<InfoDict> Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool = false); //start(x1, y1), end(x2, y2)
     std::shared_ptr<InfoDict> Move(const std::string ucci, const bool = false); //ucci representation
     std::shared_ptr<InfoDict> Move(const char* ucci, const bool = false);
     std::shared_ptr<InfoDict> Move(const int x1, const int y1, const int x2, const int y2, const bool = false);

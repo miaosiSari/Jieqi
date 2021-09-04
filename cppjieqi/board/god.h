@@ -25,9 +25,9 @@
 extern unsigned char di[VERSION_MAX][2][123];
 
 struct God{
-    char di[VERSION_MAX][2][123];
-    char di_red[VERSION_MAX][2][123];
-    char di_black[VERSION_MAX][2][123];
+    unsigned char di[VERSION_MAX][2][123];
+    unsigned char di_red[VERSION_MAX][2][123];
+    unsigned char di_black[VERSION_MAX][2][123];
     char eat = '.';
     bool ok = false;
     bool type1 = false;

@@ -232,10 +232,6 @@ void board::Board::PrintPos(bool turn, bool iscovered=true, bool god=false, bool
     std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
 }
 
-std::shared_ptr<InfoDict> board::Board::Move(const std::pair<int, int> start, const std::pair<int, int> end, const bool check){
-    return Move(start.first, start.second, end.first, end.second, check);
-}
-
 std::shared_ptr<InfoDict> board::Board::Move(const std::string ucci, const bool check){
     //the ucci string is in "a0a1“ format.
     //Please check https://www.xqbase.com/protocol/cchess_ucci.htm

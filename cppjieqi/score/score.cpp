@@ -4,6 +4,7 @@ short pst[123][256];
 short average[VERSION_MAX][2][2][256];
 unsigned char sumall[VERSION_MAX][2];
 unsigned char di[VERSION_MAX][2][123];
+std::unordered_map<std::string_view, std::pair<unsigned char, unsigned char>> kaijuku;
 
 bool read_score_table(const char* score_file){
     std::unordered_map<char, bool> is_read;
@@ -76,6 +77,46 @@ bool read_score_table(const char* score_file){
         }
     }
     if(ret) { printf("SUCCESSFUL reading score conf!\n"); } else { RETURN; }
+    return true;
+}
+
+bool read_kaijuku(const char* kaijuku_file){
+    std::ifstream instream(kaijuku_file);
+    if(!instream.is_open()) {
+        printf("[FAILED 0]score --> score.cpp --> read_kaijuku --> Open %s FAILED!\n", kaijuku_file);
+        return false;
+    }
+    std::string line = "";
+    std::string key = "";
+    int state = 0, counter = 0;
+    while(std::getline(instream, line)){
+        std::string tmpline = subtrim(line);
+        int len = tmpline.size();
+        if(len == 0){
+            continue;
+        }
+        if(!state){
+            if(tmpline.size() != 256){
+                printf("[FAILED 1]score --> score.cpp --> read_kaijuku --> size error! line.size() = %zu\n", tmpline.size());
+                return false;
+            }
+            key += std::regex_replace(tmpline, std::regex("@"), " ");
+        }else{
+            unsigned char a, b;
+            std::stringstream ss;
+            ss << tmpline;
+            ss >> a >> b;
+            if(ss.fail()){
+                printf("[FAILED 2]score --> score.cpp --> read_kaijuku --> read move error!\n");
+                return false;
+            }
+            kaijuku[std::string_view(key)] = {a, b};
+            key = "";
+            ++counter;
+        }
+        state = (state + 1) % 2;
+    }
+    printf("In read_kaijuku: successfully read %d groups of data.\n", counter);
     return true;
 }
 
@@ -179,16 +220,21 @@ bool debug(const char* debug_output_file){
     return true;
 }
 
-bool initialize_wrapper(const char* score_file, const char* debug_output_file, float discount_factor=1.5){
+bool initialize_wrapper(const char* score_file, const char* kaijuku_file, const char* debug_output_file, float discount_factor=1.5){
     printf("STEP 1: Read the score table:\n");
     if(!read_score_table(score_file)){
         printf("Read %s failed!\n", score_file);
         return false;
     }
-    printf("STEP 2： Initialize the score table (discount_factor = %f)!\n", discount_factor);
+    printf("STEP 2: Initialize kaijuku:\n");
+    if(!read_kaijuku(kaijuku_file)){
+        printf("Read %s failed!\n", kaijuku_file);
+        return false;
+    }
+    printf("STEP 3: Initialize the score table (discount_factor = %f)!\n", discount_factor);
     initialize_score_table(discount_factor);
     if(debug_output_file && strlen(debug_output_file) > 0){
-        printf("STEP 3： Output debug message to %s!\n", debug_output_file);
+        printf("STEP 4: Output debug message to %s!\n", debug_output_file);
         if(!debug(debug_output_file)){
             return false;
         }

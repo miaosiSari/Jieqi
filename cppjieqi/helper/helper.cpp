@@ -15,7 +15,7 @@ helper::Helper::~Helper(){
 }
 
 bool helper::Helper::Read(const char* file){
-    const int READ_INT = 0, READ_BOARD = 1, READ_COUNT = 2;
+    const int READ_INT = 0, READ_BOARD = 1, READ_COUNT = 2, READ_ROOTED = 3;
     int state = READ_INT;
     std::string line = "";
     std::ifstream instream(file);
@@ -25,32 +25,33 @@ bool helper::Helper::Read(const char* file){
     }
     char boardstate[257];
     memset(boardstate, 0, 257);
+    int tmp[100], lineno=0;
     while(std::getline(instream, line)){
-         int id = -1, result = -1;
-         bool turn = true;         
-         std::string tmpline = subtrim(line);
-         int len = tmpline.size(); 
-         if(len == 0)
-         {
+        int id = -1, result = -1;
+        bool turn = true;         
+        std::string tmpline = subtrim(line);
+        int len = tmpline.size(); 
+        if(len == 0)
+        {
             continue;
-         }
-         if(state == READ_INT){
+        }
+        if(state == READ_INT){
             std::stringstream ss;
             ss << tmpline;
             int read_int = 0;
             while(ss >> id){
-               if(id < 0 || read_int > 1){
+                if(id < 0 || read_int > 1){
                    break;
-               }
-               ++read_int;
+                }
+                ++read_int;
             }
             if(id < 0 || read_int > 1){
-                printf("In helper --> Read(), read illegal integer, id = %d, read_int = %d return!\n", id, read_int);
+                printf("In helper --> Read(), lineno = %d, read illegal integer, id = %d, read_int = %d return!\n", lineno, id, read_int);
                 return false;
             }
-         }else if(state == READ_BOARD){
+        }else if(state == READ_BOARD){
             if(tmpline.size() != 257){
-                printf("In helper --> Read(), tmpline.size() is %zu (not 257), ERROR!\n", tmpline.size());
+                printf("In helper --> Read(), lineno = %d, tmpline.size() is %zu (not 257), ERROR!\n", lineno, tmpline.size());
                 return false;
             }
             tmpline = std::regex_replace(tmpline, std::regex("@"), " ");
@@ -59,14 +60,13 @@ bool helper::Helper::Read(const char* file){
             assert(tmpline.size() == 256);
             strncpy(boardstate, tmpline.c_str(), 256);
             boardstate[256] = '\0';
-            board::AIBoard *aiboard = new (std::nothrow) board::AIBoard(boardstate, turn, 0);
+            board::AIBoard *aiboard = new (std::nothrow) board::AIBoard(boardstate, turn, 0, di);
             _aiboards.push_back(aiboard);
-         }else if(state == READ_COUNT){
+        }else if(state == READ_COUNT){
+            memset(tmp, 0, sizeof(tmp));
             std::stringstream ss;
             ss << tmpline;
             int read_int = 0;
-            int tmp[100];
-            memset(tmp, 0, sizeof(tmp));
             while(ss >> tmp[read_int]){
                 if(read_int > 13){
                    break;
@@ -74,12 +74,14 @@ bool helper::Helper::Read(const char* file){
                 ++read_int;
             }
             if(read_int != 13 || tmp[12] != 1){
-                printf("In helper --> Read(), read illegal integer, result = %d, read_int = %d, return!\n", result, read_int);
+                printf("In helper --> Read(), lineno = %d, read illegal integer, result = %d, read_int = %d, return!\n", lineno, result, read_int);
                 return false;
             }
-            _results.push_back(NEWINFO(tmp));
-         }
-         state = (state + 1) % 3;
+        }else if(state == READ_ROOTED){
+            _results.push_back(NEWINFO(tmp, tmpline));
+        }
+        state = (state + 1) % 4;
+        ++lineno;
     }
     if(_aiboards.size() != _results.size()){
         printf("In helper --> Read(): Size not match: _boards.size() = %zu, _results.size() = %zu!\n", _aiboards.size(), _results.size());
@@ -96,6 +98,8 @@ bool helper::Helper::Compare(){
         aiboard -> SetScoreFunction("", 0);
         aiboard -> PrintPos(aiboard -> turn);
         aiboard -> GenMovesWithScore();
+        aiboard -> Rooted();
+        aiboard -> Scan();
         if(aiboard -> num_of_legal_moves != _results[i] -> result){
            printf("i = %zu, aiboard -> num_of_legal_moves = %d, _results[i] -> num_of_legal_moves = %d\n", i, aiboard -> num_of_legal_moves, _results[i] -> result);
            return false;
@@ -143,6 +147,18 @@ bool helper::Helper::Compare(){
         if(aiboard -> kongtoupao_score_opponent != _results[i] -> kongtoupao_score_opponent){
            printf("i = %zu, aiboard -> kongtoupao_score_opponent = %d, _results[i] -> kongtoupao_score_opponent = %d\n", i, aiboard -> kongtoupao_score_opponent, _results[i] -> kongtoupao_score_opponent);
            return false;
+        }
+        std::string resstring;
+        if(aiboard -> rooted_chesses.size() == 0) {
+            resstring = "@";
+        }else{
+            for(auto pos : aiboard -> rooted_chesses){
+                resstring += (std::to_string(pos) + "@");
+            }
+        }
+        if(resstring != _results[i] -> rooted_str){
+            printf("i = %zu, resstring = %s, _results[i] -> rooted_str = %s", i, resstring.c_str(), _results[i] -> rooted_str.c_str());
+            return false;
         }
         printf("Check %zu successful!\n", i);
     }

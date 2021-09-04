@@ -128,11 +128,10 @@ int God::StartThinker(){
          board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
          thinker1.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
       }else{
-         thinker1.reset(new board::AIBoard(board_pointer -> state_red, board_pointer -> turn, board_pointer -> round));
+         thinker1.reset(new board::AIBoard(board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, this -> di_red));
       }
       thinker1 -> thinker_type = type1;
       thinker1 -> retry_num = thinker1 -> thinker_type?3:1;
-      thinker1 -> CopyData(this -> di_red);
       for(int i = 0; i < thinker1 -> retry_num; ++i){
          std::string think_result = thinker1 -> Think(); // This function might cost a lot of time!
          if(!check_legal(think_result)) continue;
@@ -153,11 +152,10 @@ int God::StartThinker(){
          board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
          thinker2.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
       }else{
-         thinker2.reset(new board::AIBoard(board_pointer -> state_black, board_pointer -> turn, board_pointer -> round));
+         thinker2.reset(new board::AIBoard(board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, this -> di_black));
       }
       thinker2 -> thinker_type = type1;
       thinker2 -> retry_num = thinker1 -> thinker_type?3:1;
-      thinker2 -> CopyData(this -> di_black);
       for(int i = 0; i < thinker2 -> retry_num; ++i){
          std::string think_result = thinker2 -> Think(); // This function might cost a lot of time!
          if(!check_legal(think_result)) continue;

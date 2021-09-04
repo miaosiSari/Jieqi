@@ -7,8 +7,14 @@
 #include <stdio.h>
 #include <assert.h>
 #include "../board/aiboard.h"
+#include "../score/score.h"
 
-#define NEWINFO(arr) new Info(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11])
+extern short pst[123][256];
+extern short average[VERSION_MAX][2][2][256];
+extern unsigned char sumall[VERSION_MAX][2];
+extern unsigned char di[VERSION_MAX][2][123];
+
+#define NEWINFO(arr, rooted_str) new Info(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], rooted_str)
 
 struct Info{
    int result = 0;
@@ -23,16 +29,17 @@ struct Info{
    unsigned char kongtoupao_opponent = 0;
    short kongtoupao_score = 0;
    short kongtoupao_score_opponent = 0;
+   std::string rooted_str;
    Info()=default;
    ~Info()=default;
    Info(int result, unsigned char che, unsigned char che_opponent, unsigned char zu, unsigned char covered, unsigned char covered_opponent, unsigned char endline, short score_rough, unsigned char kongtoupao, \
-      unsigned char kongtoupao_opponent, short kongtoupao_score, short kongtoupao_score_opponent):result(result), che(che), che_opponent(che_opponent), zu(zu), covered(covered), covered_opponent(covered_opponent), \
-      endline(endline), score_rough(score_rough), kongtoupao(kongtoupao), kongtoupao_opponent(kongtoupao_opponent), kongtoupao_score(kongtoupao_score), kongtoupao_score_opponent(kongtoupao_score_opponent){
+      unsigned char kongtoupao_opponent, short kongtoupao_score, short kongtoupao_score_opponent, std::string rooted_str):result(result), che(che), che_opponent(che_opponent), zu(zu), covered(covered), covered_opponent(covered_opponent), \
+      endline(endline), score_rough(score_rough), kongtoupao(kongtoupao), kongtoupao_opponent(kongtoupao_opponent), kongtoupao_score(kongtoupao_score), kongtoupao_score_opponent(kongtoupao_score_opponent), rooted_str(rooted_str){
 
       }
    Info(const Info& anotherinfo):result(anotherinfo.result), che(anotherinfo.che), che_opponent(anotherinfo.che_opponent), zu(anotherinfo.zu), covered(anotherinfo.covered), covered_opponent(anotherinfo.covered_opponent), \
-      endline(anotherinfo.endline), score_rough(anotherinfo.score_rough), kongtoupao(anotherinfo.kongtoupao), kongtoupao_opponent(anotherinfo.kongtoupao_opponent), kongtoupao_score(anotherinfo.kongtoupao_score), kongtoupao_score_opponent(anotherinfo.kongtoupao_score_opponent){
-
+      endline(anotherinfo.endline), score_rough(anotherinfo.score_rough), kongtoupao(anotherinfo.kongtoupao), kongtoupao_opponent(anotherinfo.kongtoupao_opponent), kongtoupao_score(anotherinfo.kongtoupao_score), kongtoupao_score_opponent(anotherinfo.kongtoupao_score_opponent), \
+      rooted_str(anotherinfo.rooted_str){
    }
 };
 

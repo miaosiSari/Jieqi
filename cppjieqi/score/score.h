@@ -8,6 +8,9 @@
 #include <fstream>
 #include <locale>
 #include <cmath>
+#include <string>
+#include <string_view>
+#include <regex>
 #include <stdio.h>
 #include <string.h>
 #include "../log/log.h"
@@ -35,8 +38,10 @@ sumall[VERSION][1] = numr; sumall[VERSION][0] = numb;
 
 const std::string MINGZI = "RNBAKCP";
 bool read_score_table(const char* score_file);
+bool read_kaijuku(const char* kaijuku_file);
 void initialize_score_table(float discount_factor);
 bool debug(const char* debug_output_file);
-bool initialize_wrapper(const char* score_file, const char* debug_output_file, float discount_factor);
+bool initialize_wrapper(const char* score_file, const char* kaijuku_file, const char* debug_output_file, float discount_factor);
+bool read_kaijuku(const char* kaijuku_file);
 
 #endif

@@ -25,7 +25,6 @@
 #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
-
 //GetWithDef: If K does not exist, return the default value!
 template <typename K, typename V>
 V GetWithDef(const  std::map<K,V>& m, const K  key, const V& defval) {

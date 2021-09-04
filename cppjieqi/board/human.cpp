@@ -12,10 +12,6 @@ board::Human::~Human(){
 
 }
 
-void board::Human::CopyData(char di[VERSION_MAX][2][123]){
-
-}
-
 std::string board::Human::Think(){
 	std::string think_result;
 	if(turn){

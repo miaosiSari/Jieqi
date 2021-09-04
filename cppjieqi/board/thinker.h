@@ -10,7 +10,6 @@ namespace board{
         int retry_num;
         bool turn;
         virtual std::string Think() = 0;
-        virtual void CopyData(char di[VERSION_MAX][2][123]) = 0;
     };
 }
 

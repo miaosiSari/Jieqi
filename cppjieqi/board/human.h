@@ -13,7 +13,6 @@ namespace board{
         Human();
         Human(bool turn, int round);
         virtual ~Human();
-        virtual void CopyData(char di[VERSION_MAX][2][123]);
         virtual std::string Think();
     };
 }
