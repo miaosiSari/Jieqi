@@ -86,6 +86,7 @@ public:
     unsigned char aisumall[VERSION_MAX][2];
     unsigned char aidi[VERSION_MAX][2][123];
     int num_of_legal_moves = 0;
+    int num_of_legal_moves2 = 0;
     int version = 0;
     int round = 0;
     bool turn = true; //true红black黑
@@ -103,6 +104,7 @@ public:
     uint64_t zobrist_hash = 0;
     std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
     std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
+    std::tuple<short, unsigned char, unsigned char> legal_moves2[MAX_POSSIBLE_MOVES];
     std::set<unsigned char> rooted_chesses;
     AIBoard() noexcept;
     AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept;
@@ -119,7 +121,8 @@ public:
     void Scan();
     void KongTouPao(const char* _state_pointer, int pos, bool t);
     void Rooted();
-    void GenMovesWithScore();
+    bool GenMovesWithScore(int type);
+    void OppoRootedMate(bool* mate_by_oppo,std::vector<unsigned char>* rooted);
     void CopyData(const unsigned char di[5][2][123]);
     std::string Kaiju();
     virtual std::string Think();

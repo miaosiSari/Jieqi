@@ -97,7 +97,7 @@ bool helper::Helper::Compare(){
         board::AIBoard* aiboard = _aiboards[i];
         aiboard -> SetScoreFunction("", 0);
         aiboard -> PrintPos(aiboard -> turn);
-        aiboard -> GenMovesWithScore();
+        aiboard -> GenMovesWithScore(0);
         aiboard -> Rooted();
         aiboard -> Scan();
         if(aiboard -> num_of_legal_moves != _results[i] -> result){
@@ -177,7 +177,7 @@ bool helper::Helper::Debug(const char* debug_output_file){
     for(size_t i = 0; i < num_of_groups; ++i){
         board::AIBoard* aiboard = _aiboards[i];
         aiboard -> SetScoreFunction("complicated_score_function", 0);
-        aiboard -> GenMovesWithScore();
+        aiboard -> GenMovesWithScore(0);
         out << "\n" << i << "\n";
         out << (aiboard -> DebugPrintPos(aiboard -> turn));
         for(int j = 0; j < aiboard -> num_of_legal_moves; ++j){

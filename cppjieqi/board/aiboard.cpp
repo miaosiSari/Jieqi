@@ -36,6 +36,8 @@ const char board::AIBoard::_initial_state[MAX] =
                     "                "
                     "                ";
 
+
+
 const std::unordered_map<std::string, std::string> board::AIBoard::_uni_pieces = {
     {".", "．"},
     {"R", "\033[31m俥\033[0m"},
@@ -94,7 +96,7 @@ board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
 }
 
 
-board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept :version(0), zobrist_hash(0), turn(turn), round(round){
+board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept :version(0), zobrist_hash(0), round(round), turn(turn){
     CopyData(di);
     memset(_state_red, 0, sizeof(_state_red));
     memset(_state_black, 0, sizeof(_state_black));
@@ -448,10 +450,18 @@ void board::AIBoard::KongTouPao(const char* _state_pointer, int pos, bool myself
     } //else
 } //KongTouPao
 
-void board::AIBoard::GenMovesWithScore(){
+bool board::AIBoard::GenMovesWithScore(int type){
     //To make it more efficient, this implementation is rather dirty
-    num_of_legal_moves = 0;
-    memset(legal_moves, 0, sizeof(legal_moves));
+    if(type == 0){
+       num_of_legal_moves = 0;
+       memset(legal_moves, 0, sizeof(legal_moves));
+    }else if(type == 1){
+       num_of_legal_moves2 = 0;
+       memset(legal_moves2, 0, sizeof(legal_moves2));
+    }else{
+       return false;
+    }
+    bool mate = false;
     const char *_state_pointer = turn?_state_red:_state_black;
     if(!_score_func) {
         SetScoreFunction(std::string("complicated_score_function"), 0);
@@ -476,15 +486,26 @@ void board::AIBoard::GenMovesWithScore(){
                     }
                     if(cfoot == 0){
                         if(q == '.'){
-                            legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
-                            ++num_of_legal_moves;
+                        	if(type == 0){
+                                legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                                ++num_of_legal_moves;
+                            }else{
+                            	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                            	++num_of_legal_moves2;
+                            }
                         } else{
                             ++cfoot;
                         }
                     }else{
                         if(islower(q)) {
-                            legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
-                            ++num_of_legal_moves;
+                        	if(type == 0){
+                                legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                                ++num_of_legal_moves;
+                            }else{
+                            	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                                ++num_of_legal_moves2;
+                            }
+                            if(q == 'k') { mate = true; }
                             break;
                         } else if(isupper(q)) {
                             break;
@@ -498,8 +519,14 @@ void board::AIBoard::GenMovesWithScore(){
         else if(p == 'K'){
             for(unsigned char scanpos = i - 16; scanpos > A9; scanpos -= 16){
                 if(_state_pointer[scanpos] == 'k'){
-                    legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, scanpos), i, scanpos);
-                    ++num_of_legal_moves;
+                	if(type == 0){
+                        legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, scanpos), i, scanpos);
+                        ++num_of_legal_moves;
+                    }else{
+                    	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, scanpos), i, scanpos);
+                        ++num_of_legal_moves2;
+                    }
+                    mate = true;
                 } else if(_state_pointer[scanpos] != '.'){
                     break;
                 }
@@ -544,8 +571,16 @@ void board::AIBoard::GenMovesWithScore(){
                 else if((p == 'B' || p == 'F') && _state_pointer[i + d/2] != '.') {
                     break;
                 }
-                legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
-                ++num_of_legal_moves;
+                if(type == 0){
+                    legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                    ++num_of_legal_moves;
+                }else{
+                	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                    ++num_of_legal_moves2;
+                }
+                if(q == 'k'){
+                	mate = true;
+                }
                 if((p != 'D' && p != 'R') || islower(q)){
                     break;
                 }
@@ -553,6 +588,7 @@ void board::AIBoard::GenMovesWithScore(){
         } //dir
     } //for
     std::sort(legal_moves, legal_moves + num_of_legal_moves, GreaterTuple<short, unsigned char, unsigned char>);
+    return mate;
 }//GenMovesWithScore()
 
 void board::AIBoard::Rooted(){
@@ -618,6 +654,14 @@ void board::AIBoard::Rooted(){
     }//for i
 }
 
+void board::AIBoard::OppoRootedMate(bool* mate_by_oppo, std::vector<unsigned char>* rooted){
+    turn = !turn;
+    *mate_by_oppo = GenMovesWithScore(1);
+    Rooted();
+    rooted -> resize(rooted_chesses.size());
+    std::transform(rooted_chesses.begin(), rooted_chesses.end(), rooted -> begin(), [](unsigned char c){return 254 - c;});
+    turn = !turn;
+}
 
 void board::AIBoard::CopyData(const unsigned char di[5][2][123]){
     memset(aiaverage, 0, sizeof(aiaverage));
@@ -1001,7 +1045,7 @@ inline void complicated_kongtoupao_score_function(void* self, short* kongtoupao_
 
 std::string trivial_thinker(void* self, const char* state_pointer){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
-    bp -> GenMovesWithScore();
+    bp -> GenMovesWithScore(0);
     int index = 0;
     return bp -> translate_ucci(std::get<1>(bp -> legal_moves[index]), std::get<2>(bp -> legal_moves[index]));
 }
@@ -1009,7 +1053,7 @@ std::string trivial_thinker(void* self, const char* state_pointer){
 
 std::string random_thinker(void* self, const char* state_pointer){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
-    bp -> GenMovesWithScore();
+    bp -> GenMovesWithScore(0);
     srand(time(NULL));
     int index = rand() % bp -> num_of_legal_moves;
     return bp -> translate_ucci(std::get<1>(bp -> legal_moves[index]), std::get<2>(bp -> legal_moves[index]));
