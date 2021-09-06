@@ -80,15 +80,18 @@ board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
                     round(0),
                     turn(true),
                     zobrist_hash(0),
+                    score(0),
                     _has_initialized(false),
                     _score_func(NULL),
                     _kongtoupao_score_func(NULL){
     CopyData(di);
-    memset(_state_red, 0, sizeof(_state_red));
-    memset(_state_black, 0, sizeof(_state_black));
+    memset(state_red, 0, sizeof(state_red));
+    memset(state_black, 0, sizeof(state_black));
+    tp_score.clear();
+    tp_move.clear();
     CLEAR_STACK(cache);
-    strncpy(_state_red, _initial_state, _chess_board_size);
-    strncpy(_state_black, _initial_state, _chess_board_size);
+    strncpy(state_red, _initial_state, _chess_board_size);
+    strncpy(state_black, _initial_state, _chess_board_size);
     _initialize_dir();
     _initialize_zobrist();
     Scan();
@@ -96,19 +99,19 @@ board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
 }
 
 
-board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept :version(0), zobrist_hash(0), round(round), turn(turn){
+board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score) noexcept :version(0), round(round), turn(turn), zobrist_hash(0), score(score){
     CopyData(di);
-    memset(_state_red, 0, sizeof(_state_red));
-    memset(_state_black, 0, sizeof(_state_black));
-    strncpy(_state_red, another_state, _chess_board_size);
-    strncpy(_state_black, another_state, _chess_board_size);
+    memset(state_red, 0, sizeof(state_red));
+    memset(state_black, 0, sizeof(state_black));
+    tp_score.clear();
+    tp_move.clear();
     CLEAR_STACK(cache);
-    _state_red[_chess_board_size] = '\0';
-    _state_black[_chess_board_size] = '\0';
+    strncpy(state_red, another_state, _chess_board_size);
+    strncpy(state_black, another_state, _chess_board_size);
     if(turn){
-        rotate(_state_black);
+        rotate(state_black);
     }else{
-        rotate(_state_red);
+        rotate(state_red);
     }
     _initialize_dir();
     _initialize_zobrist();
@@ -126,14 +129,16 @@ void board::AIBoard::Reset() noexcept{
     round = 0;
     _score_func = NULL;
     num_of_legal_moves = 0;
+    tp_score.clear();
+    tp_move.clear();
     CLEAR_STACK(cache);
-    memset(_state_red, 0, sizeof(_state_red));
-    memset(_state_black, 0, sizeof(_state_black));
+    memset(state_red, 0, sizeof(state_red));
+    memset(state_black, 0, sizeof(state_black));
     memset(aiaverage, 0, sizeof(aiaverage));
     memset(aisumall, 0, sizeof(aisumall));
     memset(aidi, 0, sizeof(aidi));
-    strncpy(_state_red, _initial_state, _chess_board_size);
-    strncpy(_state_black, _initial_state, _chess_board_size);
+    strncpy(state_red, _initial_state, _chess_board_size);
+    strncpy(state_black, _initial_state, _chess_board_size);
     _initialize_dir();
     _initialize_zobrist();
     Scan();
@@ -204,9 +209,9 @@ void board::AIBoard::_initialize_dir(){
 
 void board::AIBoard::SetScoreFunction(std::string function_name, int type){
     if(type == 0){
-        _score_func = GetWithDefUnordered<std::string, SCORE>(score_bean, function_name, trivial_score_function);
+        _score_func = GetWithDefUnordered<std::string, SCORE>(score_bean, function_name, complicated_score_function);
     }else if(type == 1){
-        _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE>(kongtoupao_score_bean, function_name, trivial_kongtoupao_score_function);
+        _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE>(kongtoupao_score_bean, function_name, complicated_kongtoupao_score_function);
     }else if(type == 2){
         _thinker_func = GetWithDefUnordered<std::string, THINKER>(thinker_bean, function_name, trivial_thinker);
     }
@@ -224,9 +229,9 @@ std::string board::AIBoard::SearchScoreFunction(int type){
 }
 
 std::vector<std::string> board::AIBoard::GetStateString() const{
-    std::string tmp_red(_state_red);
+    std::string tmp_red(state_red);
     tmp_red = tmp_red.substr(0, board::AIBoard::_chess_board_size);
-    std::string tmp_black(_state_black);
+    std::string tmp_black(state_black);
     tmp_black = tmp_black.substr(0, board::AIBoard::_chess_board_size);
     return (std::vector<std::string>){tmp_red, tmp_black};
 }
@@ -257,86 +262,99 @@ void board::AIBoard::Move(const unsigned char encode_from, const unsigned char e
     const unsigned char reverse_encode_from = reverse(encode_from);
     const unsigned char reverse_encode_to = reverse(encode_to);
     if(turn){
-        cache.push({encode_from, encode_to, _state_red[encode_to]});
-        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
-        zobrist_hash ^= _zobrist[(int)_state_red[encode_from]][encode_from];
-        if(_state_red[encode_from] >= 'D' && _state_red[encode_from] <= 'I'){
-            _state_red[encode_to] = 'U';
-            _state_red[encode_from] = '.';
-            _state_black[reverse_encode_to] = 'u';
-            _state_black[reverse_encode_from] = '.';
+        cache.push({encode_from, encode_to, state_red[encode_to]});
+        zobrist_hash ^= _zobrist[(int)state_red[encode_to]][encode_to];
+        zobrist_hash ^= _zobrist[(int)state_red[encode_from]][encode_from];
+        if(state_red[encode_from] >= 'D' && state_red[encode_from] <= 'I'){
+            state_red[encode_to] = 'U';
+            state_red[encode_from] = '.';
+            state_black[reverse_encode_to] = 'u';
+            state_black[reverse_encode_from] = '.';
         }else{
-            _state_red[encode_to] = _state_red[encode_from];
-            _state_red[encode_from] = '.';
-            _state_black[reverse_encode_to] = _state_black[reverse_encode_from];
-            _state_black[reverse_encode_from] = '.';
+            state_red[encode_to] = state_red[encode_from];
+            state_red[encode_from] = '.';
+            state_black[reverse_encode_to] = state_black[reverse_encode_from];
+            state_black[reverse_encode_from] = '.';
         }
-        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
+        zobrist_hash ^= _zobrist[(int)state_red[encode_to]][encode_to];
     } else{
-        cache.push({encode_from, encode_to, _state_black[encode_to]});
-        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
-        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_from]][reverse_encode_from];
-        if(_state_black[encode_from] >= 'D' && _state_black[encode_from] <= 'I'){
-            _state_black[encode_to] = 'U';
-            _state_black[encode_from] = '.';
-            _state_red[reverse_encode_to] = 'u';
-            _state_red[reverse_encode_from] = '.';
+        cache.push({encode_from, encode_to, state_black[encode_to]});
+        zobrist_hash ^= _zobrist[(int)state_red[reverse_encode_to]][reverse_encode_to];
+        zobrist_hash ^= _zobrist[(int)state_red[reverse_encode_from]][reverse_encode_from];
+        if(state_black[encode_from] >= 'D' && state_black[encode_from] <= 'I'){
+            state_black[encode_to] = 'U';
+            state_black[encode_from] = '.';
+            state_red[reverse_encode_to] = 'u';
+            state_red[reverse_encode_from] = '.';
         }else{
-            _state_black[encode_to] = _state_black[encode_from];
-            _state_black[encode_from] = '.';
-            _state_red[reverse_encode_to] = _state_red[reverse_encode_from];
-            _state_red[reverse_encode_from] = '.';
+            state_black[encode_to] = state_black[encode_from];
+            state_black[encode_from] = '.';
+            state_red[reverse_encode_to] = state_red[reverse_encode_from];
+            state_red[reverse_encode_from] = '.';
         }
-        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
+        zobrist_hash ^= _zobrist[(int)state_red[reverse_encode_to]][reverse_encode_to];
     }
     turn = !turn;
+    score = -score;
     if(turn){
        ++round;
     }
+    Scan();
 }
 
-void board::AIBoard::UndoMove(){
-    const std::tuple<unsigned char, unsigned char, char> from_to_eat = cache.top();
-    cache.pop();
-    const unsigned char encode_from = std::get<0>(from_to_eat);
-    const unsigned char encode_to = std::get<1>(from_to_eat);
-    const char eat = std::get<2>(from_to_eat);
-    if(turn){
-        --round;
-    }
+void board::AIBoard::NULLMove(){
     turn = !turn;
-    const unsigned char reverse_encode_from = reverse(encode_from);
-    const unsigned char reverse_encode_to = reverse(encode_to);
-    if(turn){
-        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
-        if(_state_red[encode_to] == 'U'){
-            _state_red[encode_from] = LUT[encode_from];
-            _state_red[encode_to] = eat;
-            _state_black[reverse_encode_from] = swapcase(LUT[encode_from]);
-            _state_black[reverse_encode_to] = swapcase(eat);
-        }else{
-            _state_red[encode_from] = _state_red[encode_to];
-            _state_red[encode_to] = eat;
-            _state_black[reverse_encode_from] = _state_black[reverse_encode_to];
-            _state_black[reverse_encode_to] = swapcase(eat);
+    Scan();
+}
+
+void board::AIBoard::UndoMove(int type){
+    if(type == 1){//非空移动
+        const std::tuple<unsigned char, unsigned char, char> from_to_eat = cache.top();
+        cache.pop();
+        const unsigned char encode_from = std::get<0>(from_to_eat);
+        const unsigned char encode_to = std::get<1>(from_to_eat);
+        const char eat = std::get<2>(from_to_eat);
+        if(turn){
+            --round;
         }
-        zobrist_hash ^= _zobrist[(int)_state_red[encode_from]][encode_from];
-        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
-    }else{
-        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
-        if(_state_black[encode_to] == 'U'){
-            _state_black[encode_from] = LUT[encode_from];
-            _state_black[encode_to] = eat;
-            _state_red[reverse_encode_from] = swapcase(LUT[encode_from]);
-            _state_red[reverse_encode_to] = swapcase(eat);
+        turn = !turn;
+        score = -score;
+        const unsigned char reverse_encode_from = reverse(encode_from);
+        const unsigned char reverse_encode_to = reverse(encode_to);
+        if(turn){
+            zobrist_hash ^= _zobrist[(int)state_red[encode_to]][encode_to];
+            if(state_red[encode_to] == 'U'){
+                state_red[encode_from] = LUT[encode_from];
+                state_red[encode_to] = eat;
+                state_black[reverse_encode_from] = swapcase(LUT[encode_from]);
+                state_black[reverse_encode_to] = swapcase(eat);
+            }else{
+                state_red[encode_from] = state_red[encode_to];
+                state_red[encode_to] = eat;
+                state_black[reverse_encode_from] = state_black[reverse_encode_to];
+                state_black[reverse_encode_to] = swapcase(eat);
+            }
+            zobrist_hash ^= _zobrist[(int)state_red[encode_from]][encode_from];
+            zobrist_hash ^= _zobrist[(int)state_red[encode_to]][encode_to];
         }else{
-            _state_black[encode_from] = _state_black[encode_to];
-            _state_black[encode_to] = eat;
-            _state_red[reverse_encode_from] = _state_red[reverse_encode_to];
-            _state_red[reverse_encode_to] = swapcase(eat);
+            zobrist_hash ^= _zobrist[(int)state_red[reverse_encode_to]][reverse_encode_to];
+            if(state_black[encode_to] == 'U'){
+                state_black[encode_from] = LUT[encode_from];
+                state_black[encode_to] = eat;
+                state_red[reverse_encode_from] = swapcase(LUT[encode_from]);
+                state_red[reverse_encode_to] = swapcase(eat);
+            }else{
+                state_black[encode_from] = state_black[encode_to];
+                state_black[encode_to] = eat;
+                state_red[reverse_encode_from] = state_red[reverse_encode_to];
+                state_red[reverse_encode_to] = swapcase(eat);
+            }
+            zobrist_hash ^= _zobrist[(int)state_red[reverse_encode_from]][reverse_encode_from];
+            zobrist_hash ^= _zobrist[(int)state_red[reverse_encode_to]][reverse_encode_to];
         }
-        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_from]][reverse_encode_from];
-        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
+        //Scan(); //这里不需要再Scan，因为Scan是用来统计移动分数的和Quiescene的，Move之前就应该已经统计完成
+    }else if(type == 0){
+        turn = !turn;
     }
 }
 
@@ -352,7 +370,8 @@ void board::AIBoard::Scan(){
     kongtoupao_opponent = 0;
     kongtoupao_score = 0;
     kongtoupao_score_opponent=0;
-    const char *_state_pointer = turn?_state_red:_state_black;
+    rnci = 0;
+    const char *_state_pointer = turn?state_red:state_black;
     if(!_kongtoupao_score_func){
         SetScoreFunction(std::string("complicated_kongtoupao_score_function"), 1);
     }
@@ -389,6 +408,9 @@ void board::AIBoard::Scan(){
         else if(p == 'u'){
             score_rough -= aiaverage[version][turn?0:1][1][254 - i];
             ++covered_opponent;
+        }
+        else if(p == 'R' || p == 'N' || p == 'C' || p == 'I'){
+            ++rnci;
         }
         if(p == 'C' && ((i & 15) == 7)){
             KongTouPao(_state_pointer, i, true);
@@ -462,7 +484,7 @@ bool board::AIBoard::GenMovesWithScore(int type){
        return false;
     }
     bool mate = false;
-    const char *_state_pointer = turn?_state_red:_state_black;
+    const char *_state_pointer = turn?state_red:state_black;
     if(!_score_func) {
         SetScoreFunction(std::string("complicated_score_function"), 0);
     }
@@ -593,7 +615,7 @@ bool board::AIBoard::GenMovesWithScore(int type){
 
 void board::AIBoard::Rooted(){
     rooted_chesses.clear();
-    const char *_state_pointer = turn?_state_red:_state_black;
+    const char *_state_pointer = turn?state_red:state_black;
     for(unsigned char i = 51; i <= 203; ++i){
         char p = _state_pointer[i];
         int intp = (int)p;
@@ -654,7 +676,7 @@ void board::AIBoard::Rooted(){
     }//for i
 }
 
-void board::AIBoard::OppoRootedMate(bool* mate_by_oppo, std::vector<unsigned char>* rooted){
+void board::AIBoard::OppoMateRooted(bool* mate_by_oppo, std::vector<unsigned char>* rooted){
     turn = !turn;
     *mate_by_oppo = GenMovesWithScore(1);
     Rooted();
@@ -716,12 +738,12 @@ std::string board::AIBoard::Kaiju(){
         	return "h3h4";
         }
     }else{
-        std::string_view black = _state_black;
+        std::string_view black = state_black;
         if(kaijuku.find(black) != kaijuku.end()){
         	auto pair = kaijuku[black];
         	return translate_ucci(std::get<0>(pair), std::get<1>(pair));
         }else{
-        	return _thinker_func(this, _state_black);
+        	return _thinker_func(this);
         }
     }
     return "";
@@ -729,7 +751,7 @@ std::string board::AIBoard::Kaiju(){
 
 std::string board::AIBoard::Think(){
     SetScoreFunction("trivial_thinker", 2);
-    return round == 0 ? Kaiju() : _thinker_func(this, turn?_state_red:_state_black);
+    return round == 0 ? Kaiju() : _thinker_func(this);
 }
 
 
@@ -762,7 +784,7 @@ std::string board::AIBoard::DebugPrintPos(bool turn) const{
         ret += std::to_string(translate_x(x));
         ret += ' ';
         for(int y = 3; y <= 11; ++y){
-            const char c = turn?_state_red[encode(x, y)]:_state_black[encode(x, y)];
+            const char c = turn?state_red[encode(x, y)]:state_black[encode(x, y)];
             ret += c;
         }
         ret += '\n';
@@ -771,15 +793,11 @@ std::string board::AIBoard::DebugPrintPos(bool turn) const{
     return ret;
 }
 
-
-inline short trivial_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst){
-    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
-    return 0;
-}
-
 inline short complicated_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst){
     #define LOWER_BOUND -32768
     #define UPPER_BOUND 32767
+    constexpr short MATE_LOWER = 1304;
+    constexpr short MATE_UPPER = 3696;
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
     int version = bp -> version;
     int turn = bp -> turn ? 1 : 0;
@@ -1020,11 +1038,6 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
     return (short)round(score);
 }
 
-
-inline void trivial_kongtoupao_score_function(void* self, short* kongtoupao_score, short* kongtoupao_score_opponent){
-    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
-}
-
 inline void complicated_kongtoupao_score_function(void* self, short* kongtoupao_score, short* kongtoupao_score_opponent){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
     if(bp -> kongtoupao > bp -> kongtoupao_opponent){
@@ -1043,7 +1056,7 @@ inline void complicated_kongtoupao_score_function(void* self, short* kongtoupao_
 }
 
 
-std::string trivial_thinker(void* self, const char* state_pointer){
+std::string trivial_thinker(void* self){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
     bp -> GenMovesWithScore(0);
     int index = 0;
@@ -1051,7 +1064,7 @@ std::string trivial_thinker(void* self, const char* state_pointer){
 }
 
 
-std::string random_thinker(void* self, const char* state_pointer){
+std::string random_thinker(void* self){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
     bp -> GenMovesWithScore(0);
     srand(time(NULL));
@@ -1059,14 +1072,100 @@ std::string random_thinker(void* self, const char* state_pointer){
     return bp -> translate_ucci(std::get<1>(bp -> legal_moves[index]), std::get<2>(bp -> legal_moves[index]));
 }
 
+std::string mtd_thinker(void* self){
+    board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
+}
+
+short mtd_alphabeta(board::AIBoard* self, short gamma, int depth, bool root, bool nullmove, bool nullmove_now){
+    constexpr short MATE_LOWER = 1304;
+    constexpr short MATE_UPPER = 3696;
+    self -> GenMovesWithScore(0);
+    const char* _state_pointer = self -> turn? self -> state_red : self -> state_black;
+    const int num_of_legal_moves_tmp = self -> num_of_legal_moves; //Note: self -> num_of_legal_moves may change when calling NULLMove() or Move()!
+    std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[MAX_POSSIBLE_MOVES];
+    memmove(legal_moves_tmp, self -> legal_moves, sizeof(legal_moves_tmp));
+    depth = std::max(depth, 0);
+    if(self -> score <= -MATE_LOWER) return -MATE_UPPER;
+    std::pair<unsigned char, unsigned char> killer = {0, 0};
+    if(self -> tp_move.find({self -> zobrist_hash, self -> turn}) != self -> tp_move.end()){
+        killer = self -> tp_move[{self -> zobrist_hash, self -> turn}];
+    }
+    if(_state_pointer[killer.second] == 'k') return MATE_UPPER;
+    for(int i = 0; i < self -> num_of_legal_moves; ++i){
+        auto dst = std::get<2>(self -> legal_moves[i]);
+        if(_state_pointer[dst] == 'k'){
+            self -> tp_move[{self -> zobrist_hash, self -> turn}] = {std::get<1>(self -> legal_moves[i]), dst};
+            return MATE_UPPER;
+        }
+    }
+    auto entry = std::pair<short, short>(-MATE_UPPER, MATE_UPPER);
+    std::pair<uint64_t, int> pair = {self -> zobrist_hash, (depth << 1) + (int)self -> turn};
+    if(self -> tp_score.find(pair) != self -> tp_score.end()){
+        entry = self -> tp_score[pair];
+    }
+    bool killer_is_not_none = !(killer == std::pair<unsigned char, unsigned char>(0, 0));
+    if(entry.first >= gamma && (!root || killer_is_not_none)){
+        return entry.first;
+    }
+    if(entry.second < gamma){
+        return entry.second;
+    }
+    bool mate = false;
+    std::vector<unsigned char> rooted;
+    self -> OppoMateRooted(&mate, &rooted);
+    if(depth == 0){
+        //No quiescence now
+        return self -> score + self -> kongtoupao_score - self -> kongtoupao_score_opponent;
+    }
+    std::vector<std::tuple<short, unsigned char, unsigned char>> movelist(self -> num_of_legal_moves + 2);
+    int i = 0;
+    if(nullmove_now && depth > 3 && !mate && !root && self -> rnci > 0){
+        self -> NULLMove();
+        short val = -mtd_alphabeta(self, 1 - gamma, depth - 3, false, nullmove, false);
+        self -> UndoMove(0);
+        movelist[i] = {val, 0, 0};
+        ++i;
+    }
+    if(killer_is_not_none){
+        self -> Move(killer.first, killer.second);
+        movelist[i] = {-mtd_alphabeta(self, 1 - gamma, depth-1, false, nullmove, nullmove_now), killer.first, killer.second};
+        self -> UndoMove(1);
+        ++i;
+    }
+    for(int j = 0; j < num_of_legal_moves_tmp; ++j){
+        //No forbidden move now!
+        auto move_score_tuple = legal_moves_tmp[j];
+        auto src = std::get<1>(move_score_tuple), dst = std::get<2>(move_score_tuple);
+        self -> Move(src, dst);
+        movelist[i + j] = {-mtd_alphabeta(self, 1 - gamma, depth-1, false, nullmove, nullmove_now), src, dst};
+        self -> UndoMove(1);
+    }
+    short best = -MATE_UPPER;
+    for(const std::tuple<unsigned char, unsigned char, short>& move : movelist){
+        short score = std::get<0>(move);
+        unsigned char src = std::get<1>(move), dst = std::get<2>(move);
+        best = std::max(best, score);
+        if(best >= gamma){
+            self -> tp_move[{self -> zobrist_hash, self -> turn}] = {src, dst};
+            break;
+        }
+    }
+    if(best >= gamma){
+        self -> tp_score[pair] = {best, entry.second};
+    }else{
+        self -> tp_score[pair] = {entry.first, best};
+    }
+    return best;
+
+}
+
 
 void register_score_functions(){
-    score_bean.insert({"trivial_score_function", trivial_score_function});
     score_bean.insert({"complicated_score_function", complicated_score_function});
-    kongtoupao_score_bean.insert({"trivial_kongtoupao_score_function", trivial_kongtoupao_score_function});
     kongtoupao_score_bean.insert({"complicated_kongtoupao_score_function", complicated_kongtoupao_score_function});
     thinker_bean.insert({"trivial_thinker", trivial_thinker});
     thinker_bean.insert({"random_thinker", random_thinker});
+    thinker_bean.insert({"mtd_thinker", mtd_thinker});
 }
 
 std::string SearchScoreFunction(void* score_func, int type){

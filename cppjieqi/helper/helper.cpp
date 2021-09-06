@@ -60,7 +60,7 @@ bool helper::Helper::Read(const char* file){
             assert(tmpline.size() == 256);
             strncpy(boardstate, tmpline.c_str(), 256);
             boardstate[256] = '\0';
-            board::AIBoard *aiboard = new (std::nothrow) board::AIBoard(boardstate, turn, 0, di);
+            board::AIBoard *aiboard = new (std::nothrow) board::AIBoard(boardstate, turn, 0, di, 0);
             _aiboards.push_back(aiboard);
         }else if(state == READ_COUNT){
             memset(tmp, 0, sizeof(tmp));

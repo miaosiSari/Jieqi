@@ -128,7 +128,7 @@ int God::StartThinker(){
          board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
          thinker1.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
       }else{
-         thinker1.reset(new board::AIBoard(board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, this -> di_red));
+         thinker1.reset(new board::AIBoard(board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, this -> di_red, 0));
       }
       thinker1 -> thinker_type = type1;
       thinker1 -> retry_num = thinker1 -> thinker_type?3:1;
@@ -152,7 +152,7 @@ int God::StartThinker(){
          board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
          thinker2.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
       }else{
-         thinker2.reset(new board::AIBoard(board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, this -> di_black));
+         thinker2.reset(new board::AIBoard(board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, this -> di_black, 0));
       }
       thinker2 -> thinker_type = type1;
       thinker2 -> retry_num = thinker1 -> thinker_type?3:1;

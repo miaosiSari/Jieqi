@@ -903,12 +903,7 @@ class Searcher:
             if best >= gamma:
                 self.tp_move[pos] = move
                 break
-        if best < gamma and best < 0 and depth > 0:
-            is_dead = lambda pos: any(pos.value(m) >= MATE_LOWER for m in pos.gen_moves())
-            if all(is_dead(pos.move(m)) for m in moves):
-                in_check = is_dead(pos.rotate())
-                best = -MATE_UPPER if in_check else 0
-
+                
         if len(self.tp_score) > TABLE_SIZE: self.tp_score.clear()
         # Table part 2
         if best >= gamma:

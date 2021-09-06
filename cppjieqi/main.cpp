@@ -20,18 +20,7 @@ extern bool initialize_wrapper(const char* score_file, const char* debug_output_
 int main(void) {
     initialize_wrapper("../score.conf", "../kaijuku", "debug.log", 1.5);
     register_score_functions();
-    board::AIBoard b = board::AIBoard(initial_state, true, 0, di);
-    printf("%d\n", b.GenMovesWithScore(0));
-    printf("%d\n", b.GenMovesWithScore(1));
-    printf("%d %d\n", b.num_of_legal_moves, b.num_of_legal_moves2);
-    bool res;
-    std::vector<unsigned char> rooted;
-    b.PrintPos(true);
-    b.OppoRootedMate(&res, &rooted);
-    printf("%d\n", res);
-    for(auto root:rooted){
-        std::cout << b.translate_single(root) << "\n";
-    }
+    board::AIBoard x;
     //g.StartGame();
     //printf("%d\n", g.StartGame());
     return 0;

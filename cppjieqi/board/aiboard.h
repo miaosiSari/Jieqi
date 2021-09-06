@@ -36,13 +36,12 @@
 #include <stack>
 #include <time.h>
 #include <stdlib.h>
+#include <tr1/functional>
 #include "../log/log.h"
 #include "../global/global.h"
 #include "../score/score.h"
 #include "thinker.h"
 
-#define MATE_LOWER 1304
-#define MATE_UPPER 3696
 #define CLEAR_STACK(STACK) \
 while(!STACK.empty()){ \
    STACK.pop(); \
@@ -66,16 +65,37 @@ extern std::unordered_map<std::string_view, std::pair<unsigned char, unsigned ch
 
 typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
-typedef std::string(*THINKER)(void* board_pointer, const char* state_pointer);
-std::string trivial_thinker(void* self, const char* state_pointer);
-std::string random_thinker(void* self, const char* state_pointer);
-inline short trivial_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
-inline void trivial_kongtoupao_score_function(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
+typedef std::string(*THINKER)(void* board_pointer);
+std::string trivial_thinker(void* self);
+std::string random_thinker(void* self);
+inline void complicated_kongtoupao_score_function(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
+inline short complicated_score_function(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
 void register_score_functions();
 std::string SearchScoreFunction(void* score_func, int type);
-
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
+
+template<typename T>
+inline void hash_combine(std::size_t& seed, const T& val)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+//  taken from https://stackoverflow.com/a/7222201/916549
+//
+template<typename S, typename T>
+struct myhash
+{
+    inline size_t operator()(const std::pair<S, T>& val) const
+    {
+        size_t seed = 0;
+        hash_combine(seed, val.first);
+        hash_combine(seed, val.second);
+        return seed;
+    }
+};
+
 
 
 namespace board{
@@ -101,13 +121,21 @@ public:
     unsigned char kongtoupao_opponent = 0;
     short kongtoupao_score = 0;
     short kongtoupao_score_opponent = 0;
+    int rnci = 0;
     uint64_t zobrist_hash = 0;
+    char state_red[MAX];
+    char state_black[MAX];
     std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
     std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
     std::tuple<short, unsigned char, unsigned char> legal_moves2[MAX_POSSIBLE_MOVES];
+    short score;
     std::set<unsigned char> rooted_chesses;
+    //tp_move: (zobrist_key, turn) --> move
+    std::unordered_map<std::pair<uint64_t, bool>, std::pair<unsigned char, unsigned char>, myhash<uint64_t, bool>> tp_move;
+    //tp_score: (zobrist_key, turn, depth <depth * 2 + turn>) --> (lower, upper)
+    std::unordered_map<std::pair<uint64_t, int>, std::pair<short, short>, myhash<uint64_t, int>> tp_score;
     AIBoard() noexcept;
-    AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept;
+    AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score) noexcept;
     AIBoard(const AIBoard& another_board) = delete;
     virtual ~AIBoard();
     void Reset() noexcept;
@@ -117,12 +145,13 @@ public:
     void Move(const std::string ucci); //ucci representation
     void Move(const char* ucci);
     void Move(const unsigned char encode_from, const unsigned char encode_to);
-    void UndoMove();
+    void NULLMove();
+    void UndoMove(int type);
     void Scan();
     void KongTouPao(const char* _state_pointer, int pos, bool t);
     void Rooted();
     bool GenMovesWithScore(int type);
-    void OppoRootedMate(bool* mate_by_oppo,std::vector<unsigned char>* rooted);
+    void OppoMateRooted(bool* mate_by_oppo,std::vector<unsigned char>* rooted);
     void CopyData(const unsigned char di[5][2][123]);
     std::string Kaiju();
     virtual std::string Think();
@@ -148,7 +177,7 @@ public:
     };
    
     std::function<const char*(void)> getstatepointer = [this](){
-	   const char* _state_pointer = (this -> turn? this -> _state_red : this -> _state_black);
+	   const char* _state_pointer = (this -> turn? this -> state_red : this -> state_black);
        return _state_pointer;
     };
 
@@ -172,8 +201,6 @@ public:
     };
    
 private:
-    char _state_red[MAX];
-    char _state_black[MAX];
     uint64_t _zobrist[123][256];
     bool _has_initialized = false;
     static const int _chess_board_size;
@@ -190,7 +217,7 @@ private:
         return ret;
     };
     std::function<std::string(int, int, bool)> _getstringxy = [this](int x, int y, bool turn) -> std::string {
-        std::string ret =  turn?_getstring(_state_red[encode(x, y)]):_getstring(_state_black[encode(x, y)]);
+        std::string ret =  turn?_getstring(state_red[encode(x, y)]):_getstring(state_black[encode(x, y)]);
         return ret;
     };
     std::function<void(void)> _initialize_zobrist = [this](){
@@ -200,8 +227,8 @@ private:
             }
         }
         for(int j = 51; j <= 203; ++j){
-            if(::isalpha(_state_red[j])){
-                zobrist_hash ^= _zobrist[(int)_state_red[j]][j];
+            if(::isalpha(state_red[j])){
+                zobrist_hash ^= _zobrist[(int)state_red[j]][j];
             }
         }
     };
