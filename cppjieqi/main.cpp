@@ -19,9 +19,13 @@ extern bool initialize_wrapper(const char* score_file, const char* debug_output_
 int main(void) {
     initialize_wrapper("../score.conf", "../kaijuku", "debug.log", 1.5);
     register_score_functions();
-    helper::Helper h;
-    h.ReadAndCompare("../../log/py_log.txt", "cpp_score.txt");
-    board::AIBoard b = board::AIBoard();
+    board::Board b = board::Board();
+    b.Move("b2b9");
+    b.PrintPos(true, false, false, false);
+    b.Move("b2b9");
+    b.PrintPos(true, false, false, false);
+    God g("../players.conf");
+    g.StartGame();
     //printf("%d\n", g.StartGame());
     return 0;
 }

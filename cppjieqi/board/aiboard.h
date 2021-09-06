@@ -28,11 +28,14 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <random>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <stack>
+#include <time.h>
+#include <stdlib.h>
 #include "../log/log.h"
 #include "../global/global.h"
 #include "../score/score.h"
@@ -59,7 +62,7 @@ extern short pst[123][256];
 extern short average[VERSION_MAX][2][2][256];
 extern unsigned char sumall[VERSION_MAX][2];
 extern unsigned char di[VERSION_MAX][2][123];
-
+extern std::unordered_map<std::string_view, std::pair<unsigned char, unsigned char>> kaijuku;
 
 typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
@@ -96,13 +99,14 @@ public:
     unsigned char kongtoupao = 0;
     unsigned char kongtoupao_opponent = 0;
     short kongtoupao_score = 0;
-    short kongtoupao_score_opponent=0;
+    short kongtoupao_score_opponent = 0;
+    uint64_t zobrist_hash = 0;
     std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
     std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
     std::set<unsigned char> rooted_chesses;
     AIBoard() noexcept;
     AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept;
-    AIBoard(const AIBoard& another_board) noexcept;
+    AIBoard(const AIBoard& another_board) = delete;
     virtual ~AIBoard();
     void Reset() noexcept;
     void SetScoreFunction(std::string function_name, int type);
@@ -117,6 +121,7 @@ public:
     void Rooted();
     void GenMovesWithScore();
     void CopyData(const unsigned char di[5][2][123]);
+    std::string Kaiju();
     virtual std::string Think();
     void PrintPos(bool turn) const;
     std::string DebugPrintPos(bool turn) const;
@@ -156,10 +161,17 @@ public:
     std::function<std::string(int, int)> translate_ucci = [this](int src, int dst){
        return translate_single(src) + translate_single(dst);
     };
+
+    std::function<uint64_t(void)> randU64 = []() -> uint64_t{
+       std::mt19937_64 gen(std::random_device{}());
+       uint64_t randomNumber = gen();
+       return randomNumber;
+    };
    
 private:
     char _state_red[MAX];
     char _state_black[MAX];
+    uint64_t _zobrist[123][256];
     bool _has_initialized = false;
     static const int _chess_board_size;
     static const char _initial_state[MAX];
@@ -177,6 +189,18 @@ private:
     std::function<std::string(int, int, bool)> _getstringxy = [this](int x, int y, bool turn) -> std::string {
         std::string ret =  turn?_getstring(_state_red[encode(x, y)]):_getstring(_state_black[encode(x, y)]);
         return ret;
+    };
+    std::function<void(void)> _initialize_zobrist = [this](){
+        for(int i = 0; i < 123; ++i){
+            for(int j = 0; j < 256; ++j){
+                _zobrist[i][j] = randU64();
+            }
+        }
+        for(int j = 51; j <= 203; ++j){
+            if(::isalpha(_state_red[j])){
+                zobrist_hash ^= _zobrist[(int)_state_red[j]][j];
+            }
+        }
     };
     void _initialize_dir();
 };

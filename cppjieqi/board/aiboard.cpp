@@ -74,12 +74,13 @@ std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean;
 std::unordered_map<std::string, THINKER> thinker_bean;
 
 board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
-                      version(0),
-                      round(0),
-                      turn(true),
-                      _has_initialized(false),
-                      _score_func(NULL),
-                      _kongtoupao_score_func(NULL){
+                    version(0),
+                    round(0),
+                    turn(true),
+                    zobrist_hash(0),
+                    _has_initialized(false),
+                    _score_func(NULL),
+                    _kongtoupao_score_func(NULL){
     CopyData(di);
     memset(_state_red, 0, sizeof(_state_red));
     memset(_state_black, 0, sizeof(_state_black));
@@ -87,15 +88,14 @@ board::AIBoard::AIBoard() noexcept: num_of_legal_moves(0),
     strncpy(_state_red, _initial_state, _chess_board_size);
     strncpy(_state_black, _initial_state, _chess_board_size);
     _initialize_dir();
+    _initialize_zobrist();
     Scan();
     _has_initialized = true;
 }
 
 
-board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept{
+board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123]) noexcept :version(0), zobrist_hash(0), turn(turn), round(round){
     CopyData(di);
-    this -> turn = turn;
-    this -> round = round;
     memset(_state_red, 0, sizeof(_state_red));
     memset(_state_black, 0, sizeof(_state_black));
     strncpy(_state_red, another_state, _chess_board_size);
@@ -109,26 +109,7 @@ board::AIBoard::AIBoard(const char another_state[MAX], bool turn, int round, con
         rotate(_state_red);
     }
     _initialize_dir();
-    Scan();
-    _has_initialized = true;
-}
-
-board::AIBoard::AIBoard(const board::AIBoard& another_board) noexcept{
-    this -> turn = another_board.turn;
-    this -> round = another_board.round;
-    this -> version = another_board.version;
-    this -> cache = another_board.cache;
-    memset(_state_red, 0, sizeof(_state_red));
-    memset(_state_black, 0, sizeof(_state_black));
-    memset(aiaverage, 0, sizeof(aiaverage));
-    memset(aisumall, 0, sizeof(aisumall));
-    memset(aidi, 0, sizeof(aidi));
-    strncpy(this -> _state_red, another_board._state_red, _chess_board_size);
-    strncpy(this -> _state_black, another_board._state_black, _chess_board_size);
-    memmove(aiaverage, another_board.aiaverage, sizeof(aiaverage));
-    memmove(aisumall, another_board.aisumall, sizeof(aisumall));
-    memmove(aidi, another_board.aidi, sizeof(aidi));
-    _initialize_dir();
+    _initialize_zobrist();
     Scan();
     _has_initialized = true;
 }
@@ -152,6 +133,7 @@ void board::AIBoard::Reset() noexcept{
     strncpy(_state_red, _initial_state, _chess_board_size);
     strncpy(_state_black, _initial_state, _chess_board_size);
     _initialize_dir();
+    _initialize_zobrist();
     Scan();
 }
 
@@ -274,6 +256,8 @@ void board::AIBoard::Move(const unsigned char encode_from, const unsigned char e
     const unsigned char reverse_encode_to = reverse(encode_to);
     if(turn){
         cache.push({encode_from, encode_to, _state_red[encode_to]});
+        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
+        zobrist_hash ^= _zobrist[(int)_state_red[encode_from]][encode_from];
         if(_state_red[encode_from] >= 'D' && _state_red[encode_from] <= 'I'){
             _state_red[encode_to] = 'U';
             _state_red[encode_from] = '.';
@@ -285,8 +269,11 @@ void board::AIBoard::Move(const unsigned char encode_from, const unsigned char e
             _state_black[reverse_encode_to] = _state_black[reverse_encode_from];
             _state_black[reverse_encode_from] = '.';
         }
+        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
     } else{
         cache.push({encode_from, encode_to, _state_black[encode_to]});
+        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
+        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_from]][reverse_encode_from];
         if(_state_black[encode_from] >= 'D' && _state_black[encode_from] <= 'I'){
             _state_black[encode_to] = 'U';
             _state_black[encode_from] = '.';
@@ -298,6 +285,7 @@ void board::AIBoard::Move(const unsigned char encode_from, const unsigned char e
             _state_red[reverse_encode_to] = _state_red[reverse_encode_from];
             _state_red[reverse_encode_from] = '.';
         }
+        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
     }
     turn = !turn;
     if(turn){
@@ -318,6 +306,7 @@ void board::AIBoard::UndoMove(){
     const unsigned char reverse_encode_from = reverse(encode_from);
     const unsigned char reverse_encode_to = reverse(encode_to);
     if(turn){
+        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
         if(_state_red[encode_to] == 'U'){
             _state_red[encode_from] = LUT[encode_from];
             _state_red[encode_to] = eat;
@@ -329,7 +318,10 @@ void board::AIBoard::UndoMove(){
             _state_black[reverse_encode_from] = _state_black[reverse_encode_to];
             _state_black[reverse_encode_to] = swapcase(eat);
         }
+        zobrist_hash ^= _zobrist[(int)_state_red[encode_from]][encode_from];
+        zobrist_hash ^= _zobrist[(int)_state_red[encode_to]][encode_to];
     }else{
+        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
         if(_state_black[encode_to] == 'U'){
             _state_black[encode_from] = LUT[encode_from];
             _state_black[encode_to] = eat;
@@ -341,6 +333,8 @@ void board::AIBoard::UndoMove(){
             _state_red[reverse_encode_from] = _state_red[reverse_encode_to];
             _state_red[reverse_encode_to] = swapcase(eat);
         }
+        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_from]][reverse_encode_from];
+        zobrist_hash ^= _zobrist[(int)_state_red[reverse_encode_to]][reverse_encode_to];
     }
 }
 
@@ -662,16 +656,36 @@ void board::AIBoard::CopyData(const unsigned char di[5][2][123]){
             }
         }
     }
-    for(auto i = 51; i < 204; ++i){
-        //printf("aiaverage[0][1][1][i] = %d\n", aiaverage[0][1][1][i]);
-        //printf("pst['C'][%d] = %d\n", i, pst[(int)'C'][i]);
-        //std::cout << aiaverage[0][1][1][i] << " " << pst[(int)'C'][i] << "\n";
+}
+
+std::string board::AIBoard::Kaiju(){
+    if(turn){
+        srand(time(NULL));
+        int key = rand() % 80;
+        if(key < 20){
+        	return "a3a4";
+        }else if(key < 40){
+        	return "c3c4";
+        }else if(key < 60){
+        	return "g3g4";
+        }else if(key < 80){
+        	return "h3h4";
+        }
+    }else{
+        std::string_view black = _state_black;
+        if(kaijuku.find(black) != kaijuku.end()){
+        	auto pair = kaijuku[black];
+        	return translate_ucci(std::get<0>(pair), std::get<1>(pair));
+        }else{
+        	return _thinker_func(this, _state_black);
+        }
     }
+    return "";
 }
 
 std::string board::AIBoard::Think(){
-    SetScoreFunction("random_thinker", 2);
-    return _thinker_func(this, true?_state_red:_state_black);
+    SetScoreFunction("trivial_thinker", 2);
+    return round == 0 ? Kaiju() : _thinker_func(this, turn?_state_red:_state_black);
 }
 
 
@@ -921,12 +935,8 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
         }else if(p == 'I'){
                 if(state_pointer[src - 32] == 'r' || state_pointer[src - 32] == 'p'){
                     score -= bp -> aiaverage[version][turn][0][0]/2;    
-                }else if(state_pointer[src - 32] == 'n' || state_pointer[src - 32] == 'c'){ // Python BUG
-                    score += 30;
-                }else if(state_pointer[src - 48] == 'i'){
-                    score += 30;    
                 }else{
-                    score += 20;    
+                	score += 20;
                 }
         }//else if I
     }//else
