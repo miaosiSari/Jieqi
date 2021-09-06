@@ -726,10 +726,6 @@ class Position(namedtuple('Position', 'board score turn version')):
                     if cheonleidao > che_opponent_onleidao and possible_che >= possible_che_opponent:
                         score += (40 * self.calc())
 
-                elif sumall[self.version][self.turn] > 0 and \
-                        (di[self.version][self.turn]['P' if self.turn else 'p'] * self.covered /
-                         sumall[self.version][self.turn] >= 2):
-                            score -= 20  # 如果当前暗子中兵过多，翻士容易翻出窝心兵，不利于防守!
 
             elif p == 'H':
                 if i == 164 and j == 68 and self.board[52] == 'e':
@@ -763,10 +759,6 @@ class Position(namedtuple('Position', 'board score turn version')):
             elif p == 'I':
                 if self.board[i - 32] in 'rp':  # 原先是RP, 这是个BUG!现解决
                     score -= average[self.version][self.turn][False]//2
-                elif self.board[i - 32] in 'nc':  # 之前是N, 不正确，已更正!
-                    score += 30
-                elif self.board[i - 48] == 'i':
-                    score += 30
                 else:
                     score += 20
 
