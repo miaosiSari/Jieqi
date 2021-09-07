@@ -29,6 +29,7 @@
 #include <cctype>
 #include <cmath>
 #include <random>
+#include <chrono>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
@@ -61,7 +62,7 @@ extern short pst[123][256];
 extern short average[VERSION_MAX][2][2][256];
 extern unsigned char sumall[VERSION_MAX][2];
 extern unsigned char di[VERSION_MAX][2][123];
-extern std::unordered_map<std::string_view, std::pair<unsigned char, unsigned char>> kaijuku;
+extern std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
 
 typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
@@ -129,6 +130,7 @@ public:
     std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
     std::tuple<short, unsigned char, unsigned char> legal_moves2[MAX_POSSIBLE_MOVES];
     short score;
+    std::stack<short> score_cache;
     std::set<unsigned char> rooted_chesses;
     //tp_move: (zobrist_key, turn) --> move
     std::unordered_map<std::pair<uint64_t, bool>, std::pair<unsigned char, unsigned char>, myhash<uint64_t, bool>> tp_move;
@@ -142,9 +144,7 @@ public:
     void SetScoreFunction(std::string function_name, int type);
     std::string SearchScoreFunction(int type);
     std::vector<std::string> GetStateString() const;
-    void Move(const std::string ucci); //ucci representation
-    void Move(const char* ucci);
-    void Move(const unsigned char encode_from, const unsigned char encode_to);
+    void Move(const unsigned char encode_from, const unsigned char encode_to, short score_step);
     void NULLMove();
     void UndoMove(int type);
     void Scan();
@@ -235,5 +235,7 @@ private:
     void _initialize_dir();
 };
 }
+
+short mtd_alphabeta(board::AIBoard* self, short gamma, int depth, bool root, bool nullmove, bool nullmove_now);
 
 #endif

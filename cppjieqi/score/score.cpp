@@ -4,7 +4,7 @@ short pst[123][256];
 short average[VERSION_MAX][2][2][256];
 unsigned char sumall[VERSION_MAX][2];
 unsigned char di[VERSION_MAX][2][123];
-std::unordered_map<std::string_view, std::pair<unsigned char, unsigned char>> kaijuku;
+std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
 
 bool read_score_table(const char* score_file){
     std::unordered_map<char, bool> is_read;
@@ -102,15 +102,25 @@ bool read_kaijuku(const char* kaijuku_file){
             }
             key += std::regex_replace(tmpline, std::regex("@"), " ");
         }else{
-            unsigned char a, b;
-            std::stringstream ss;
-            ss << tmpline;
-            ss >> a >> b;
-            if(ss.fail()){
-                printf("[FAILED 2]score --> score.cpp --> read_kaijuku --> read move error!\n");
-                return false;
+            unsigned char a = 0, b = 0;
+            int num = 0;
+            for(size_t i = 0; i < tmpline.size(); ++i){
+                if(!::isdigit(tmpline[i]) && tmpline[i] != ' ') {printf("[FAILED 2]score --> score.cpp --> read_kaijuku --> format error\n"); return false;}
+                if(::isdigit(tmpline[i])){
+                    if(num == 0){
+                        a = a * 10 + tmpline[i] - '0';
+                    }
+                    if(num == 1){
+                        b = b * 10 + tmpline[i] - '0';
+                    }
+                }
+                else if(tmpline[i] == ' '){
+                    if(num == 0) {num = 1;}
+                    if(num == 1) {continue;}
+                    if(num == 2) {printf("[FAILED 2]score --> score.cpp --> read_kaijuku --> format error\n"); return false;}
+                }
             }
-            kaijuku[std::string_view(key)] = {a, b};
+            kaijuku[std::string(key)] = {a, b};
             key = "";
             ++counter;
         }

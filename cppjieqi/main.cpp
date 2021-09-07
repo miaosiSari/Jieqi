@@ -21,7 +21,7 @@ int main(void) {
     initialize_wrapper("../score.conf", "../kaijuku", "debug.log", 1.5);
     register_score_functions();
     board::AIBoard x;
-    //g.StartGame();
-    //printf("%d\n", g.StartGame());
+    God g("../players.conf");
+    g.StartGame();
     return 0;
 }

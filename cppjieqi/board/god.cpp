@@ -154,8 +154,8 @@ int God::StartThinker(){
       }else{
          thinker2.reset(new board::AIBoard(board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, this -> di_black, 0));
       }
-      thinker2 -> thinker_type = type1;
-      thinker2 -> retry_num = thinker1 -> thinker_type?3:1;
+      thinker2 -> thinker_type = type2;
+      thinker2 -> retry_num = thinker2 -> thinker_type?3:1;
       for(int i = 0; i < thinker2 -> retry_num; ++i){
          std::string think_result = thinker2 -> Think(); // This function might cost a lot of time!
          if(!check_legal(think_result)) continue;
