@@ -981,8 +981,6 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                         if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) {score -= 100; }
                         //else if(che == che_opponent): Python BUG
                     }
-                
-                
          
         }else if(p == 'I'){
                 if(state_pointer[src - 32] == 'r' || state_pointer[src - 32] == 'p'){
@@ -1184,7 +1182,6 @@ short mtd_alphabeta(board::AIBoard* self, short gamma, int depth, bool root, boo
         self -> tp_score[pair] = {entry.first, best};
     }
     return best;
-
 }
 
 
