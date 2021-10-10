@@ -1068,7 +1068,7 @@ std::string mtd_thinker(void* self){
     bp -> tp_score.clear();
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
-    constexpr int max_depth = 8;
+    constexpr int max_depth = 10;
     for(int depth = 1; depth < max_depth; ++depth){
         printf("AI depth = %d\n", depth);
         auto t1 = std::chrono::high_resolution_clock::now();
@@ -1082,9 +1082,9 @@ std::string mtd_thinker(void* self){
         mtd_alphabeta(bp, lower, depth, true, true, true);
         auto t2 = std::chrono::high_resolution_clock::now();
         size_t int_ms = (size_t)std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-        if(int_ms > 5000 || depth == max_depth - 1){
+        if(int_ms > 150000 || depth == max_depth - 1){
             auto move = bp -> tp_move[{bp -> zobrist_hash, bp -> turn}];
-            std::cout << move.first << ", " << move.second << "\n";
+            std::cout << (int)move.first << ", " << (int)move.second << "\n";
             return bp -> translate_ucci(move.first, move.second);
         }
     }
@@ -1140,7 +1140,6 @@ short mtd_alphabeta(board::AIBoard* self, short gamma, int depth, bool root, boo
         //No quiescence now
         return self -> score + self -> kongtoupao_score - self -> kongtoupao_score_opponent;
     }
-    std::vector<std::tuple<short, unsigned char, unsigned char>> movelist(self -> num_of_legal_moves + 2);
     short best = -MATE_UPPER;
     std::function<bool(short, unsigned char, unsigned char, short*)> judge = [&self, &gamma](short score, unsigned char src, unsigned char dst, short* best){
         *best = std::max(*best, score);
