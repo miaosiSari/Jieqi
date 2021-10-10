@@ -9,7 +9,6 @@
 #include "log/log.h"
 #include "global/global.h"
 #include "score/score.h"
-#include "helper/helper.h"
 
 extern void register_scoring_functions();
 extern bool read_score_table(const char* score_file);

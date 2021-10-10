@@ -16,6 +16,7 @@
 #define EAST 1
 #define SOUTH 16
 #define WEST -1
+#define DEBUG 1
 
 #include <cstddef>
 #include <vector>

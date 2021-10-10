@@ -1,6 +1,8 @@
 #include "board.h"
-   
+
+
 const int board::Board::_chess_board_size = CHESS_BOARD_SIZE;
+#if !DEBUG
 const char board::Board::_initial_state[MAX] = 
                     "                "
                     "                "
@@ -18,7 +20,25 @@ const char board::Board::_initial_state[MAX] =
                     "                "
                     "                "
                     "                ";
-
+#else
+const char board::Board::_initial_state[MAX] = 
+                    "                "
+                    "                "
+                    "                "
+                    "   d.fgkgfed    "
+                    "   .........    "
+                    "   rh.....h.    "
+                    "   i.i.i.i.i    "
+                    "   .........    "
+                    "   C........    "
+                    "   ..I.I.I.I    "
+                    "   .H.....H.    "
+                    "   .........    "
+                    "   DEFGKGFED    "
+                    "                "
+                    "                "
+                    "                ";
+#endif
 
 const std::unordered_map<std::string, std::string> board::Board::uni_pieces = {
     {".", "．"},
@@ -61,6 +81,13 @@ board::Board::Board() noexcept: finished(false),
     memset(state_black, 0, sizeof(state_black));
     strncpy(state_red, _initial_state, _chess_board_size);
     strncpy(state_black, _initial_state, _chess_board_size);
+    #if DEBUG
+    if(turn){
+        rotate(state_black);
+    }else{
+        rotate(state_red);
+    }
+    #endif
     memset(_is_legal_move, false, sizeof(_is_legal_move));
     memset(legal_moves, 0, sizeof(legal_moves));
     _initialize_dir();
@@ -113,6 +140,13 @@ void board::Board::Reset() noexcept{
     memset(state_black, 0, sizeof(state_black));
     strncpy(state_red, _initial_state, _chess_board_size);
     strncpy(state_black, _initial_state, _chess_board_size);
+    #if DEBUG
+    if(turn){
+        rotate(state_black);
+    }else{
+        rotate(state_red);
+    }
+    #endif
     state_red[_chess_board_size] = '\0';
     state_black[_chess_board_size] = '\0';
     memset(_is_legal_move, false, sizeof(_is_legal_move));
