@@ -497,23 +497,23 @@ bool board::AIBoard::GenMovesWithScore(int type){
                     }
                     if(cfoot == 0){
                         if(q == '.'){
-                        	if(type == 0){
+                            if(type == 0){
                                 legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
                                 ++num_of_legal_moves;
                             }else{
-                            	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
-                            	++num_of_legal_moves2;
+                                legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                                ++num_of_legal_moves2;
                             }
                         } else{
                             ++cfoot;
                         }
                     }else{
                         if(islower(q)) {
-                        	if(type == 0){
+                            if(type == 0){
                                 legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
                                 ++num_of_legal_moves;
                             }else{
-                            	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                                legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
                                 ++num_of_legal_moves2;
                             }
                             if(q == 'k') { mate = true; }
@@ -530,11 +530,11 @@ bool board::AIBoard::GenMovesWithScore(int type){
         else if(p == 'K'){
             for(unsigned char scanpos = i - 16; scanpos > A9; scanpos -= 16){
                 if(_state_pointer[scanpos] == 'k'){
-                	if(type == 0){
+                    if(type == 0){
                         legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, scanpos), i, scanpos);
                         ++num_of_legal_moves;
                     }else{
-                    	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, scanpos), i, scanpos);
+                        legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, scanpos), i, scanpos);
                         ++num_of_legal_moves2;
                     }
                     mate = true;
@@ -586,11 +586,11 @@ bool board::AIBoard::GenMovesWithScore(int type){
                     legal_moves[num_of_legal_moves] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
                     ++num_of_legal_moves;
                 }else{
-                	legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
+                    legal_moves2[num_of_legal_moves2] = std::make_tuple(_score_func(this, _state_pointer, i, j), i, j);
                     ++num_of_legal_moves2;
                 }
                 if(q == 'k'){
-                	mate = true;
+                    mate = true;
                 }
                 if((p != 'D' && p != 'R') || islower(q)){
                     break;
@@ -718,22 +718,22 @@ std::string board::AIBoard::Kaiju(){
         srand(time(NULL));
         int key = rand() % 80;
         if(key < 20){
-        	return "a3a4";
+            return "a3a4";
         }else if(key < 40){
-        	return "c3c4";
+            return "c3c4";
         }else if(key < 60){
-        	return "g3g4";
+            return "g3g4";
         }else if(key < 80){
-        	return "h3h4";
+            return "h3h4";
         }
     }else{
         std::string black = state_black;
         if(kaijuku.find(black) != kaijuku.end()){
-        	auto pair = kaijuku[black];
+            auto pair = kaijuku[black];
             std::cout << pair.first << ", " << pair.second << ", " << translate_ucci(pair.first, pair.second) << "\n";
-        	return translate_ucci(std::get<0>(pair), std::get<1>(pair));
+            return translate_ucci(std::get<0>(pair), std::get<1>(pair));
         }else{
-        	return _thinker_func(this);
+            return _thinker_func(this);
         }
     }
     return "";
@@ -983,11 +983,7 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
                     }
          
         }else if(p == 'I'){
-                if(state_pointer[src - 32] == 'r' || state_pointer[src - 32] == 'p'){
-                    score -= bp -> aiaverage[version][turn][0][0]/2;    
-                }else{
-                	score += 20;
-                }
+                score += 20;
         }//else if I
     }//else
         
