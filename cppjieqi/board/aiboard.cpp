@@ -1118,7 +1118,7 @@ short mtd_quiescence(board::AIBoard* self, const short gamma, int quiesc_depth){
     bool mate = self -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst);
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);
-    std::pair<uint64_t, int> pair = {self -> zobrist_hash, (quiesc_depth << 1) + (int)self -> turn};
+    std::pair<uint32_t, int> pair = {self -> zobrist_hash, (quiesc_depth << 1) + (int)self -> turn};
     if(self -> tp_score.find(pair) != self -> tp_score.end()){
         entry = self -> tp_score[pair];
     }
@@ -1196,7 +1196,7 @@ short mtd_alphabeta(board::AIBoard* self, const short gamma, int depth, const bo
     bool mate = self -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst);
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);
-    std::pair<uint64_t, int> pair = {self -> zobrist_hash, (depth << 1) + (int)self -> turn};
+    std::pair<uint32_t, int> pair = {self -> zobrist_hash, (depth << 1) + (int)self -> turn};
     if(self -> tp_score.find(pair) != self -> tp_score.end()){
         entry = self -> tp_score[pair];
     }
