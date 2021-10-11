@@ -43,6 +43,7 @@
 #include "../score/score.h"
 #include "thinker.h"
 #define ROOTED 0
+#define CLEAR_EVERY_DEPTH false
 
 #define CLEAR_STACK(STACK) \
 while(!STACK.empty()){ \
@@ -155,6 +156,7 @@ public:
     std::string DebugPrintPos(bool turn) const;
     void print_raw_board(const char* board, const char* hint);
     template<typename... Args> void print_raw_board(const char* board, const char* hint, Args... args);
+    std::vector<std::string> debug_flags;
     std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
     std::function<int(int)> translate_y = [](const int y) -> int {return 3 + y;};
     std::function<int(int, int)> translate_x_y = [](const int x, const int y) -> int{return 195 - 16 * x + y;};

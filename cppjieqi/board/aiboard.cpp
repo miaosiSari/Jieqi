@@ -895,9 +895,9 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
         score = bp -> aiaverage[version][turn][1][dst] - bp -> aiaverage[version][turn][0][0] + 20;
         if(p == 'D'){
             if(bp -> score_rough < -150){
-                score -= (30 * (possible_che_opponent/2 + bp -> che_opponent));
+                score -= (45 * (possible_che_opponent/2 + bp -> che_opponent));
             }else{
-                score -= (20 * (possible_che_opponent/2 + bp -> che_opponent));
+                score -= (30 * (possible_che_opponent/2 + bp -> che_opponent));
             }
         }else if(p == 'E'){
             if(src == 196 && dst == 165 && state_pointer[149] == 'I'){
@@ -1038,9 +1038,9 @@ inline short complicated_score_function(void* self, const char* state_pointer, u
             }
             if(q == 'D'){
                 if(bp -> score_rough > 150){
-                    score +=  30 * (possible_che/2 + bp -> che);
+                    score +=  45 * (possible_che/2 + bp -> che);
                 }else{
-                    score +=  20 * (possible_che/2 + bp -> che);
+                    score +=  30 * (possible_che/2 + bp -> che);
                 }                   
             }//if(q == 'D')
         }           
@@ -1073,11 +1073,15 @@ std::string mtd_thinker(void* self){
     board::AIBoard* bp = reinterpret_cast<board::AIBoard*>(self);
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
-    constexpr int max_depth = 4;
-    constexpr int quiesc_depth = 0;
+    constexpr int max_depth = 8;
+    constexpr int quiesc_depth = 4;
     int depth = 0;
     auto start = std::chrono::high_resolution_clock::now();
-    for(depth = 0; depth <= max_depth; ++depth){
+    for(depth = 7; depth <= max_depth; ++depth){
+        #if CLEAR_EVERY_ROOT
+        bp -> tp_score.clear();
+        bp -> tp_move.clear();
+        #endif
         short lower = -MATE_UPPER, upper = MATE_UPPER;
         while(lower < upper - EVAL_ROBUSTNESS){
             short gamma = (lower + upper + 1)/2; //不会溢出
