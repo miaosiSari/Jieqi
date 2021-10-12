@@ -202,7 +202,7 @@ std::string God::PrintEat(bool turn){
    if(turn){
       ret += "黑吃红: ";
       for(size_t i = 0; i < black_eat_red.size(); ++i){
-         ret += isdot(std::get<0>(black_eat_red[i]), false, (i == (black_eat_red.size() - 1)));
+         ret += isdot(std::get<0>(black_eat_red[i]), false, (i == (black_eat_red.size() - 1)), true);
       }
       ret += '\n';
       ret += "红吃黑: ";
@@ -211,15 +211,15 @@ std::string God::PrintEat(bool turn){
          if(std::get<1>(tuple) == 2){
             char covered = board_pointer -> random_map[turn][std::get<2>(tuple)];
             assert(covered == std::get<3>(tuple));
-            ret += isdot(covered, true, (i == (red_eat_black.size() - 1)));
+            ret += isdot(covered, true, (i == (red_eat_black.size() - 1)), false);
          }else{
-            ret += isdot(std::get<0>(tuple), false, (i == (red_eat_black.size() - 1)));
+            ret += isdot(std::get<0>(tuple), false, (i == (red_eat_black.size() - 1)), false);
          }
       }
    }else{
       ret += "红吃黑: ";
       for(size_t i = 0; i < red_eat_black.size(); ++i){
-         ret += isdot(std::get<0>(red_eat_black[i]), false, (i == (red_eat_black.size() - 1)));
+         ret += isdot(std::get<0>(red_eat_black[i]), false, (i == (red_eat_black.size() - 1)), false);
       }
       ret += '\n';
       ret += "黑吃红: ";
@@ -229,9 +229,9 @@ std::string God::PrintEat(bool turn){
             char covered = board_pointer -> random_map[turn][std::get<2>(tuple)];
             assert(covered == std::get<3>(tuple));
             std::cout << "turn = " << turn << ", place = " << std::get<2>(tuple) << ", char = " << covered << ".\n";
-            ret += isdot(covered, true, (i == (black_eat_red.size() - 1)));
+            ret += isdot(covered, true, (i == (black_eat_red.size() - 1)), true);
          }else{
-            ret += isdot(std::get<0>(tuple), false, (i == (black_eat_red.size() - 1)));
+            ret += isdot(std::get<0>(tuple), false, (i == (black_eat_red.size() - 1)), true);
          }
       }
    }

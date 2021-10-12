@@ -16,6 +16,9 @@ extern bool initialize_wrapper(const char* score_file, const char* debug_output_
 
 
 int main(void) {
+	#ifdef WIN32
+	srand(time(NULL));
+	#endif
     initialize_wrapper("../score.conf", "../kaijuku", "debug.log", 1.5);
     register_score_functions();
     board::AIBoard x;

@@ -1111,7 +1111,7 @@ std::string mtd_thinker(void* self){
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
     int max_depth = (bp -> round < 15?6:8);
-    constexpr int quiesc_depth = 2;
+    constexpr int quiesc_depth = 0;
     int depth = 6;
     auto start = std::chrono::high_resolution_clock::now();
     for(depth = 6; depth <= max_depth; ++depth){
@@ -1185,6 +1185,7 @@ short mtd_quiescence(board::AIBoard* self, const short gamma, int quiesc_depth, 
         if(_state_pointer[dst] == 'r' || _state_pointer[dst] == 'n' || _state_pointer[dst] == 'c' ||  (_state_pointer[dst] >= 'd' && _state_pointer[dst] <= 'i') || mate || mate_oppo){//走这步可以将到对手, 或正在被对手将军
             into = true;
             self -> Move(src, dst, std::get<0>(move_score_tuple));
+			//if(root) std::cout << std::get<0>(move_score_tuple) << " " << self->translate_ucci(src, dst) << "\n";
             score = -mtd_quiescence(self, 1 - gamma, quiesc_depth - 1, false);
             self -> UndoMove(1);
             if(judge(score, src, dst, &best)){

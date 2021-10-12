@@ -208,9 +208,19 @@ public:
     };
 
     std::function<uint32_t(void)> randU32 = []() -> uint32_t{
+	   //BUG: 在Windows上每次生成同样的随机数
+	   #ifdef WIN32
+	   //Windows RAND_MAX 0x7fff
+	   int a = rand();
+	   unsigned b = ((a & 1) << 15) | a; //符号位随机
+	   int c = rand();
+	   unsigned d = ((c & 1) << 15) | c; //符号位随机
+	   return (b << 16) | d;
+	   #else
        std::mt19937 gen(std::random_device{}());
        uint32_t randomNumber = gen();
        return randomNumber;
+	   #endif
     };
    
 private:
@@ -236,8 +246,9 @@ private:
     std::function<void(void)> _initialize_zobrist = [this](){
         for(int i = 0; i < 123; ++i){
             for(int j = 0; j < 256; ++j){
-                if(i != '.')
+                if(i != '.'){
                     _zobrist[i][j] = randU32();
+				}
                 else
                     _zobrist[i][j] = 0;
             }

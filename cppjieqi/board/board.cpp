@@ -41,6 +41,35 @@ const char board::Board::_initial_state[MAX] =
 #endif
 
 const std::unordered_map<std::string, std::string> board::Board::uni_pieces = {
+	#ifdef WIN32
+	{".", "．"},
+    {"R", "俥"},
+    {"N", "傌"},
+    {"B", "相"},
+    {"A", "仕"},
+    {"K", "帅"},
+    {"P", "兵"},
+    {"C", "炮"},
+    {"D", "红"},
+    {"E", "红"},
+    {"F", "红"},
+    {"G", "红"},
+    {"H", "红"},
+    {"I", "红"},
+    {"r", "车"},
+    {"n", "马"},
+    {"b", "象"},
+    {"a", "士"},
+    {"k", "将"},
+    {"p", "卒"},
+    {"c", "包"},
+    {"d", "黑"},
+    {"e", "黑"},
+    {"f", "黑"},
+    {"g", "黑"},
+    {"h", "黑"},
+    {"i", "黑"}
+	#else
     {".", "．"},
     {"R", "\033[31m俥\033[0m"},
     {"N", "\033[31m傌\033[0m"},
@@ -68,6 +97,7 @@ const std::unordered_map<std::string, std::string> board::Board::uni_pieces = {
     {"g", "暗"},
     {"h", "暗"},
     {"i", "暗"}
+	#endif
 };
 
 char board::Board::_dir[91][8] = {{0}};

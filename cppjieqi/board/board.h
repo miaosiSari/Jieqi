@@ -37,7 +37,11 @@
 
 
 #define TXY(x, y) (unsigned char)translate_x_y(x, y)
+#ifdef WIN32
+#define SV(vector) std::random_shuffle(vector.begin(), vector.end());
+#else
 #define SV(vector) shuffle(vector.begin(), vector.end(), std::default_random_engine(std::chrono::system_clock::now().time_since_epoch().count()))
+#endif
 #define FIND(c, place, perspective) \
 if(c == '.'){ \
     eat_type_tmp = 0; \

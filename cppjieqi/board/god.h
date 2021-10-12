@@ -53,7 +53,7 @@ struct God{
 
     std::function<std::string(const char)> getstring = [](const char c) -> std::string {
         std::string ret;
-        const std::string c_string(1, ::tolower(c));
+        const std::string c_string(1, c);
         ret = GetWithDefUnordered<std::string, std::string>(board::Board::uni_pieces, c_string, c_string);
         return ret;
     };
@@ -67,9 +67,9 @@ struct God{
         return true;
     };
 
-    std::function<std::string(const char, bool, bool)> isdot = [this](const char c, bool isdark, bool isend) -> std::string {
+    std::function<std::string(const char, bool, bool, bool)> isdot = [this](const char c, bool isdark, bool isend, bool turn) -> std::string {
         if(c == '.') return "";
-        std::string ret = getstring(c);
+        std::string ret = getstring(turn? ::toupper(c) : ::tolower(c));
         if(isdark && isend){
             ret = ret + "(暗).";
         }else if(isdark && !isend){
