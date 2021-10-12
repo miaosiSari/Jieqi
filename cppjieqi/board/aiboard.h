@@ -38,7 +38,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <tr1/functional>
-#include "../log/log.h"
 #include "../global/global.h"
 #include "../score/score.h"
 #include "thinker.h"

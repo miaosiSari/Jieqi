@@ -32,7 +32,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <ctype.h>
-#include "../log/log.h"
 #include "../global/global.h"
 #include "../score/score.h"
 

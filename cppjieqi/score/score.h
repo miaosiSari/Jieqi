@@ -13,7 +13,6 @@
 #include <regex>
 #include <stdio.h>
 #include <string.h>
-#include "../log/log.h"
 #include "../global/global.h"
 #define INTR (int)'R'
 #define INTN (int)'N'

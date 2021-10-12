@@ -6,7 +6,6 @@
 #include "board/god.h"
 #include "board/board.h"
 #include "board/aiboard.h"
-#include "log/log.h"
 #include "global/global.h"
 #include "score/score.h"
 
