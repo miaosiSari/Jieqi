@@ -8,7 +8,7 @@ On Ubuntu:
 
 On Windows:
 
-`mkdir build && cmake .. -G "MinGW Makefiles" && make`
+`mkdir build && cd build && cmake .. -G "MinGW Makefiles" && make`
 
 Windows的终端字符集要设为UTF-8, 否则会出现乱码
 
