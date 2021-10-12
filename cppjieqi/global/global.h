@@ -7,6 +7,7 @@
 #include <string>
 #include <regex>
 
+#define DEBUG 0
 #define RESET   "\033[0m"
 #define BLACK   "\033[30m"      /* Black */
 #define RED     "\033[31m"      /* Red */

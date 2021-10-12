@@ -25,16 +25,16 @@ const char board::Board::_initial_state[MAX] =
                     "                "
                     "                "
                     "                "
-                    "   d.fgkgfed    "
+                    "   defgkgfed    "
                     "   .........    "
-                    "   rh.....h.    "
-                    "   i.i.i.i.i    "
-                    "   .........    "
-                    "   C........    "
-                    "   ..I.I.I.I    "
-                    "   .H.....H.    "
-                    "   .........    "
-                    "   DEFGKGFED    "
+                    "   ....r..h.    "
+                    "   ..i...i.i    "
+                    "   c........    "
+                    "   .....r..N    "
+                    "   ..I.I.I..    "
+                    "   PHR...PH.    "
+                    "   ....A....    "
+                    "   D...KGF.D    "
                     "                "
                     "                "
                     "                ";
@@ -151,7 +151,9 @@ void board::Board::Reset() noexcept{
     state_black[_chess_board_size] = '\0';
     memset(_is_legal_move, false, sizeof(_is_legal_move));
     _initialize_dir();
-    GenerateRandomMap();
+    #if DEBUG
+    turn = false;
+    #endif
 }
 
 void board::Board::_initialize_dir(){
@@ -159,7 +161,7 @@ void board::Board::_initialize_dir(){
     _dir[(int)'P'][0] = NORTH;
     _dir[(int)'P'][1] = WEST;
     _dir[(int)'P'][2] = EAST;
-    
+
     _dir[(int)'I'][0] = NORTH;
     
     _dir[(int)'N'][0] = NORTH + NORTH + EAST; //N+N+E, E+N+E, E+S+E, S+S+E, S+S+W, W+S+W, W+N+W, N+N+W

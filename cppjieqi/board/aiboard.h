@@ -57,7 +57,7 @@ aisumall[VERSION][1] = numr; aisumall[VERSION][0] = numb;
 
 template <typename T, typename U, typename V>
 bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
-        return i > j;
+        return std::get<0>(i) > std::get<0>(j);
 }
 
 extern short pst[123][256];
@@ -100,7 +100,6 @@ struct myhash
 
 namespace board{
 class AIBoard : public Thinker{
-
 public:
     short aiaverage[VERSION_MAX][2][2][256];
     unsigned char aisumall[VERSION_MAX][2];
@@ -146,7 +145,7 @@ public:
     void KongTouPao(const char* _state_pointer, int pos, bool t);
     void Rooted();
     template<bool needscore=true, bool return_after_mate=false> 
-    bool GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst);
+    bool GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive);
     void OppoMateRooted(bool* mate_by_oppo,std::vector<unsigned char>* rooted);
     bool Ismate_After_Move(unsigned char src, unsigned char dst);
     void CopyData(const unsigned char di[5][2][123]);
@@ -156,7 +155,22 @@ public:
     std::string DebugPrintPos(bool turn) const;
     void print_raw_board(const char* board, const char* hint);
     template<typename... Args> void print_raw_board(const char* board, const char* hint, Args... args);
+    #if DEBUG
     std::vector<std::string> debug_flags;
+    int movecounter=0;
+    std::function<uint32_t()> get_theoretical_zobrist = [this]() -> uint32_t {
+        uint32_t theoretical_hash = 0;
+        for(int j = 51; j <= 203; ++j){
+            if(::isalpha(state_red[j])){
+                 theoretical_hash ^= _zobrist[(int)state_red[j]][j];
+            }
+        }
+        return theoretical_hash;
+    };
+    std::function<std::string(std::pair<unsigned char, unsigned char>)> render = [this](std::pair<unsigned char, unsigned char> t) -> std::string {
+        return translate_ucci(t.first, t.second);
+    };
+    #endif
     std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
     std::function<int(int)> translate_y = [](const int y) -> int {return 3 + y;};
     std::function<int(int, int)> translate_x_y = [](const int x, const int y) -> int{return 195 - 16 * x + y;};
@@ -181,7 +195,7 @@ public:
        return _state_pointer;
     };
 
-    std::function<std::string(int)> translate_single = [](int i) -> std::string{
+    std::function<std::string(int)> translate_single = [](unsigned char i) -> std::string{
        int x1 = 12 - (i >> 4);
        int y1 = (i & 15) - 3;
        std::string ret = "  ";
@@ -190,7 +204,7 @@ public:
        return ret;
     };
 
-    std::function<std::string(int, int)> translate_ucci = [this](int src, int dst) -> std::string{
+    std::function<std::string(int, int)> translate_ucci = [this](unsigned char src, unsigned char dst) -> std::string{
        return translate_single(src) + translate_single(dst);
     };
 
@@ -223,7 +237,10 @@ private:
     std::function<void(void)> _initialize_zobrist = [this](){
         for(int i = 0; i < 123; ++i){
             for(int j = 0; j < 256; ++j){
-                _zobrist[i][j] = randU32();
+                if(i != '.')
+                    _zobrist[i][j] = randU32();
+                else
+                    _zobrist[i][j] = 0;
             }
         }
         for(int j = 51; j <= 203; ++j){
@@ -236,7 +253,7 @@ private:
 };
 }
 
-short mtd_quiescence(board::AIBoard* self, const short gamma, int quiesc_depth);
+short mtd_quiescence(board::AIBoard* self, const short gamma, int quiesc_depth, const bool root);
 short mtd_alphabeta(board::AIBoard* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth);
 
 #endif

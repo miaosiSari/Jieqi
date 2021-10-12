@@ -178,6 +178,10 @@ int God::StartGame(){
    board_pointer -> Reset();
    while(result == NORMAL && board_pointer -> round < MAX_ROUNDS){
       result = StartThinker();
+      if(result == -1) {
+         printf("BUG!\n");
+         return -1;
+      }
       if(result == RED_WIN){
          printf("红胜!\n");
          return RED_WIN;
