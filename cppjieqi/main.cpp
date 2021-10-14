@@ -7,7 +7,6 @@
 #include "board/god.h"
 #include "score/score.h"
 
-extern void register_scoring_functions();
 extern bool read_score_table(const char* score_file);
 extern bool debug(const char* debug_output_file);
 extern bool initialize_wrapper(const char* score_file, const char* debug_output_file, float discount_factor=1.5);
@@ -16,8 +15,7 @@ extern bool initialize_wrapper(const char* score_file, const char* debug_output_
 int main(void) {
     srand(time(NULL));
     initialize_wrapper("../score.conf", "../kaijuku", "debug.log", 1.5);
-    register_score_functions();
     God g("../players.conf");
-    g.StartGame();
+    g.StartGameLoop(19);
     return 0;
 }

@@ -2,7 +2,7 @@
 #define global_h
 
 #define DEBUG 0
-#define BLACK 0
+#define BLACK 1
 #include <map>
 #include <unordered_map>
 #include <algorithm>

@@ -28,7 +28,7 @@
 #define INTp (int)'p'
 #define RETURN memset(pst, 0, sizeof(pst)); return false;
 #define ENCODE(x, y) ((16 * (x)) + (y) + 51)
-#define VERSION_MAX 5
+#define VERSION_MAX 2
 #define SUM(VERSION) \
 short numr = 0, numb = 0; \
 numr += di[VERSION][1][INTR]; numr += di[VERSION][1][INTN];  numr += di[VERSION][1][INTB];  numr += di[VERSION][1][INTA];  numr += di[VERSION][1][INTC]; numr += di[VERSION][1][INTP]; \

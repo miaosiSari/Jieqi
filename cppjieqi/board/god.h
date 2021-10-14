@@ -33,8 +33,9 @@ struct God{
     bool ok = false;
     int type1 = 0;
     int type2 = 0;
-    int redwin = 0;
-    int blackwin = 0;
+    size_t redwin = 0;
+    size_t blackwin = 0;
+    size_t draw = 0;
     std::string file;
     std::vector<std::tuple<char, int, int, char>> red_eat_black;
     std::vector<std::tuple<char, int, int, char>> black_eat_red;
@@ -48,6 +49,7 @@ struct God{
     ~God();
     bool GetTurn();
     int StartThinker();
+    int StartGameLoop(unsigned winning_threshold);
     int StartGame();
     std::string PrintEat(bool turn);
 

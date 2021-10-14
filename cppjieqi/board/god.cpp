@@ -31,44 +31,46 @@ bool isT(std::string s, T* i){
    }else{
       *i = -1;
       return false;
-     }
+   }
 }
 
 
-God::God(const char* file): redwin(0), blackwin(0), file(file){
+God::God(const char* file): ok(true), redwin(0), blackwin(0), draw(0), file(file){
    if(!file || (this -> file).size() == 0){
       ok = false;
       return;
    }
    board_pointer = Singleton<board::Board>::get();
-   if(!board_pointer){
-      ok = false;
-      return;
-   }
    std::ifstream instream(file);
    int counter = 0;
    std::string line;
    if(!instream.is_open()){
       ok = false;
+      assert(false);
       return;
    }
    while(std::getline(instream, line)){
       if(counter >= 2){
          ok = false;
-         return;
       }
       line = trim(line);
-      int type_tmp = 0;
-      ok = isT<int>(line, &type_tmp);
-      if(!ok) { return; }
+
       if(counter == 0){
-         type1 = type_tmp;
-      }else{
-         type2 = type_tmp;
+         if(!isT<int>(line, &type1)){
+            ok = false;
+         }
       }
+
+      if(counter == 1){
+         if(!isT<int>(line, &type2)){
+            ok = false;
+         }
+      }
+
       ++counter;
    }
-   printf("I am the Referee. You two must listen to me!\n");
+   printf("I am the referee. You two must listen to me! player1 = %d, player2 = %d\n", type1, type2);
+   assert(ok);
    ok = true;
    instream.close();
 }
@@ -83,9 +85,10 @@ bool God::Reset(const char* another_file, bool clear_winning_log){
    if(clear_winning_log){
       redwin = 0;
       blackwin = 0;
+      draw = 0;
    }
    ok = Singleton<board::Board>::reset();
-   if(!ok) return false;
+   assert(ok);
    board_pointer = Singleton<board::Board>::get();
    if(another_file){
       file = another_file;
@@ -95,39 +98,29 @@ bool God::Reset(const char* another_file, bool clear_winning_log){
    std::string line;
    if(!instream.is_open()){
       ok = false;
-      return false;
    }
    while(std::getline(instream, line)){
       if(counter >= 2){
          ok = false;
-         return false;
       }
       line = trim(line);
-      if(line.size() != 1) {
-         ok = false;
-         return false;
-      }
-      if(line[0] != '0' && line[0] != '1'){
-         ok = false;
-         return false;
-      }else if(line[0] == '0'){
-         if(counter == 0){
-            type1 = false;
-         }else{
-            type2 = false;
+      if(counter == 0){
+         if(!isT<int>(line, &type1)){
+            ok = false;
          }
-      }else if(line[0] == '1'){
-         if(counter == 0){
-            type1 = true;
-         }else{
-            type2 = true;
+      }
+
+      if(counter == 1){
+         if(!isT<int>(line, &type2)){
+            ok = false;
          }
       }
       ++counter;
    }
-   printf("I am the referee. You two must listen to me!\n");
+   printf("I am the referee. You two must listen to me! player1 = %d, player2 = %d\n", type1, type2);
    ok = true;
    instream.close();
+   assert(ok);
    return true;
 }
 
@@ -136,7 +129,9 @@ int God::StartThinker(){
    if(!ok) return -1;
    board_pointer -> GenMovesWithScore();
    board_pointer -> CopyToIsLegalMove();
-   //board_pointer -> DebugDI();
+   #if DEBUG
+   board_pointer -> DebugDI();
+   #endif
    if(board_pointer -> turn){
       if(type1 == 0){
          printf("红方行棋!\n");
@@ -208,12 +203,40 @@ int God::StartGame(){
       }
       if(result == RED_WIN){
          printf("红胜!\n");
+         ++redwin;
          return RED_WIN;
       }else if(result == BLACK_WIN){
          printf("黑胜!\n");
+         ++blackwin;
          return BLACK_WIN;
       }
    }
+   ++draw;
+   return DRAW;
+}
+
+int God::StartGameLoop(unsigned winning_threshold){
+   size_t i = 0;
+   redwin = 0;
+   draw = 0;
+   blackwin = 0;
+   size_t maxgame = 2 * winning_threshold - 1;
+   while(i < maxgame && draw < maxgame){
+      int state = StartGame();
+      printf("红%zu : 和%zu : 黑%zu\n", redwin, draw, blackwin);
+      if(state != DRAW){
+         ++i;
+      }
+      if(redwin >= winning_threshold){
+         printf("红方最终胜利!\n");
+         return RED_WIN;
+      }
+      if(blackwin >= winning_threshold){
+         printf("黑方最终胜利!\n");
+         return BLACK_WIN;
+      }
+   }
+   printf("握手言和\n");
    return DRAW;
 }
 

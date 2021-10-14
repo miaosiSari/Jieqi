@@ -2,6 +2,27 @@
 
 
 const int board::Board::_chess_board_size = CHESS_BOARD_SIZE;
+
+#if 0
+const char board::Board::_initial_state[MAX] = 
+                    "                "
+                    "                "
+                    "                "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "   .........    "
+                    "                "
+                    "                "
+                    "                ";
+#endif
+
 #if !DEBUG
 const char board::Board::_initial_state[MAX] = 
                     "                "
@@ -25,16 +46,16 @@ const char board::Board::_initial_state[MAX] =
                     "                "
                     "                "
                     "                "
-                    "   defgkgfed    "
-                    "   .........    "
-                    "   .h.....h.    "
-                    "   i.i.i.i.i    "
+                    "   ....k....    "
                     "   .........    "
                     "   .........    "
-                    "   I.I.I.I.I    "
-                    "   .H..C..H.    "
+                    "   ........i    "
                     "   .........    "
-                    "   DEFGKG.ED    "
+                    "   .........    "
+                    "   ....C....    "
+                    "   .........    "
+                    "   .........    "
+                    "   ...GK....    "
                     "                "
                     "                "
                     "                ";
@@ -156,9 +177,25 @@ void board::Board::Reset() noexcept{
 }
 
 void board::Board::initialize_di(){
-   memmove(this -> di, ::di, sizeof(::di));
-   memmove(this -> di_red, ::di, sizeof(::di));
-   memmove(this -> di_black, ::di, sizeof(::di));
+    #if DEBUG
+    memset(this -> di, 0, sizeof(::di));
+    std::unordered_set<int> redplaces = {195, 196, 197, 198, 200, 201, 202, 203, 164, 170, 147, 149, 151, 153, 155};
+    std::unordered_set<int> blackplaces = {59, 58, 57, 56, 54, 53, 52, 51, 90, 84, 107, 105, 103, 101, 99};
+    for(int pos: redplaces){
+        for(int i = 0; i < VERSION_MAX; ++i){
+           di[i][1][(int)random_map[true][pos]] += (state_red[pos] >= 'D' && state_red[pos] <= 'I') ? 1 : 0;
+        }
+    }
+    for(int pos: blackplaces){
+        for(int i = 0; i < VERSION_MAX; ++i){
+           di[i][0][(int)random_map[true][pos]] += (state_red[pos] >= 'd' && state_red[pos] <= 'i') ? 1 : 0;
+        }
+    }
+    #else
+    memmove(this -> di, ::di, sizeof(::di));
+    #endif
+    memmove(this -> di_red, this -> di, sizeof(this -> di));
+    memmove(this -> di_black, this -> di, sizeof(this -> di));
 }
 
 void board::Board::_initialize_dir(){

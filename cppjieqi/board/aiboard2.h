@@ -55,14 +55,14 @@ extern short average[VERSION_MAX][2][2][256];
 extern unsigned char sumall[VERSION_MAX][2];
 extern unsigned char di[VERSION_MAX][2][123];
 extern std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
-std::string mtd_thinker1(void* self);
+std::string mtd_thinker2(void* self);
 typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
 typedef std::string(*THINKER)(void* board_pointer);
-inline void complicated_kongtoupao_score_function1(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
-inline short complicated_score_function1(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
-void register_score_functions1();
-std::string SearchScoreFunction1(void* score_func, int type);
+inline void complicated_kongtoupao_score_function2(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
+inline short complicated_score_function2(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
+void register_score_functions2();
+std::string SearchScoreFunction2(void* score_func, int type);
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
 
@@ -89,7 +89,7 @@ struct myhash
 
 
 namespace board{
-class AIBoard1 : public Thinker{
+class AIBoard2 : public Thinker{
 public:
     short aiaverage[VERSION_MAX][2][2][256];
     unsigned char aisumall[VERSION_MAX][2];
@@ -123,10 +123,10 @@ public:
     //tp_score: (zobrist_key, turn, depth <depth * 2 + turn>) --> (lower, upper)
     std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>> tp_score;
     std::unordered_map<std::string, bool> hist;
-    AIBoard1() noexcept;
-    AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist) noexcept;
-    AIBoard1(const AIBoard1& another_board) = delete;
-    virtual ~AIBoard1()=default;
+    AIBoard2() noexcept;
+    AIBoard2(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist) noexcept;
+    AIBoard2(const AIBoard2& another_board) = delete;
+    virtual ~AIBoard2()=default;
     void Reset() noexcept;
     void SetScoreFunction(std::string function_name, int type);
     std::string SearchScoreFunction(int type);
@@ -278,7 +278,7 @@ private:
 };
 }
 
-short mtd_quiescence1(board::AIBoard1* self, const short gamma, int quiesc_depth, const bool root);
-short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth);
+short mtd_quiescence2(board::AIBoard2* self, const short gamma, int quiesc_depth, const bool root);
+short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth);
 
 #endif
