@@ -10,10 +10,14 @@
 #include <stdio.h>
 #include "board.h"
 #include "thinker.h"
-#include "aiboard.h"
+#include "aiboard1.h"
 #include "human.h"
 #include "../global/global.h"
 #include "../score/score.h"
+
+namespace board{
+    extern std::unordered_map<std::string, std::function<Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>)>> bean;  //define in ../global/global.cpp
+}
 
 #define INVALID -1
 #define NORMAL 0
@@ -21,17 +25,14 @@
 #define BLACK_WIN 1
 #define RED_WIN 2
 #define MAX_ROUNDS 200
-
-extern unsigned char di[VERSION_MAX][2][123];
+#define NEWRED(X) board::get_withprefix("AIBoard", X, board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, board_pointer -> di_red, 0, board_pointer -> hist)
+#define NEWBLACK(X) board::get_withprefix("AIBoard", X, board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, board_pointer -> di_black, 0, board_pointer -> hist)
 
 struct God{
-    unsigned char di[VERSION_MAX][2][123];
-    unsigned char di_red[VERSION_MAX][2][123];
-    unsigned char di_black[VERSION_MAX][2][123];
     char eat = '.';
     bool ok = false;
-    bool type1 = false;
-    bool type2 = false;
+    int type1 = 0;
+    int type2 = 0;
     int redwin = 0;
     int blackwin = 0;
     std::string file;
@@ -45,7 +46,6 @@ struct God{
     God(const char* file);
     bool Reset(const char* another_file, bool clear_winning_log);
     ~God();
-    void initialize_di();
     bool GetTurn();
     int StartThinker();
     int StartGame();
@@ -53,7 +53,7 @@ struct God{
 
     std::function<std::string(const char)> getstring = [](const char c) -> std::string {
         std::string ret;
-        const std::string c_string(1, ::tolower(c));
+        const std::string c_string(1, c);
         ret = GetWithDefUnordered<std::string, std::string>(board::Board::uni_pieces, c_string, c_string);
         return ret;
     };
@@ -67,9 +67,9 @@ struct God{
         return true;
     };
 
-    std::function<std::string(const char, bool, bool)> isdot = [this](const char c, bool isdark, bool isend) -> std::string {
+    std::function<std::string(const char, bool, bool, bool)> isdot = [this](const char c, bool isdark, bool isend, bool turn) -> std::string {
         if(c == '.') return "";
-        std::string ret = getstring(c);
+        std::string ret = getstring(turn? ::toupper(c) : ::tolower(c));
         if(isdark && isend){
             ret = ret + "(暗).";
         }else if(isdark && !isend){

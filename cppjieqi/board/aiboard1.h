@@ -23,6 +23,7 @@
 #include <tuple>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <iostream>
 #include <functional>
 #include <algorithm>
@@ -44,10 +45,6 @@
 #define ROOTED 0
 #define CLEAR_EVERY_DEPTH false
 
-#define CLEAR_STACK(STACK) \
-while(!STACK.empty()){ \
-   STACK.pop(); \
-} 
 #define AISUM(VERSION) \
 short numr = 0, numb = 0; \
 numr += aidi[VERSION][1][INTR]; numr += aidi[VERSION][1][INTN];  numr += di[VERSION][1][INTB];  numr += aidi[VERSION][1][INTA];  numr += aidi[VERSION][1][INTC]; numr += aidi[VERSION][1][INTP]; \
@@ -98,7 +95,7 @@ struct myhash
 
 
 namespace board{
-class AIBoard : public Thinker{
+class AIBoard1 : public Thinker{
 public:
     short aiaverage[VERSION_MAX][2][2][256];
     unsigned char aisumall[VERSION_MAX][2];
@@ -106,6 +103,8 @@ public:
     int version = 0;
     int round = 0;
     bool turn = true; //true红black黑
+    const bool original_turn;//游戏时的红黑
+    int original_depth;
     unsigned char che = 0;
     unsigned char che_opponent = 0;
     unsigned char zu = 0;
@@ -117,27 +116,30 @@ public:
     unsigned char kongtoupao_opponent = 0;
     short kongtoupao_score = 0;
     short kongtoupao_score_opponent = 0;
-    int rnci = 0;
     uint32_t zobrist_hash = 0;
     char state_red[MAX];
     char state_black[MAX];
     std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
-    short score;
+    short score;//局面分数
     std::stack<short> score_cache;
+    std::unordered_set<uint32_t> zobrist_cache;
     std::set<unsigned char> rooted_chesses;
     //tp_move: (zobrist_key, turn) --> move
     std::unordered_map<std::pair<uint32_t, bool>, std::pair<unsigned char, unsigned char>, myhash<uint32_t, bool>> tp_move;
     //tp_score: (zobrist_key, turn, depth <depth * 2 + turn>) --> (lower, upper)
     std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>> tp_score;
-    AIBoard() noexcept;
-    AIBoard(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score) noexcept;
-    AIBoard(const AIBoard& another_board) = delete;
-    virtual ~AIBoard();
+    std::unordered_map<std::string, bool> hist;
+    AIBoard1() noexcept;
+    AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist) noexcept;
+    AIBoard1(const AIBoard1& another_board) = delete;
+    virtual ~AIBoard1()=default;
     void Reset() noexcept;
     void SetScoreFunction(std::string function_name, int type);
     std::string SearchScoreFunction(int type);
-    std::vector<std::string> GetStateString() const;
-    void Move(const unsigned char encode_from, const unsigned char encode_to, short score_step);
+    std::string GetName(){
+        return _myname;
+    }
+    bool Move(const unsigned char encode_from, const unsigned char encode_to, short score_step);
     void NULLMove();
     void UndoMove(int type);
     void Scan();
@@ -145,7 +147,9 @@ public:
     void Rooted();
     template<bool needscore=true, bool return_after_mate=false> 
     bool GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive);
-    void OppoMateRooted(bool* mate_by_oppo,std::vector<unsigned char>* rooted);
+    template<bool doublereverse=true> bool Mate();
+    bool Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp);
+    bool ExecutedDebugger(bool *oppo_mate);
     bool Ismate_After_Move(unsigned char src, unsigned char dst);
     void CopyData(const unsigned char di[5][2][123]);
     std::string Kaiju();
@@ -169,6 +173,17 @@ public:
     std::function<std::string(std::pair<unsigned char, unsigned char>)> render = [this](std::pair<unsigned char, unsigned char> t) -> std::string {
         return translate_ucci(t.first, t.second);
     };
+    bool C(std::vector<std::string> prefix){
+        if(debug_flags.size() < prefix.size()){
+            return false;
+        }
+        for(size_t i = 0; i < prefix.size(); ++i){
+            if(prefix[i] != debug_flags[i]){
+                return false;
+            }
+        }
+        return true;
+    }
     #endif
     std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
     std::function<int(int)> translate_y = [](const int y) -> int {return 3 + y;};
@@ -207,13 +222,29 @@ public:
        return translate_single(src) + translate_single(dst);
     };
 
+    std::function<std::string(std::tuple<short, unsigned char, unsigned char>)> translate_tuple = \
+       [this](std::tuple<short, unsigned char, unsigned char> t) -> std::string{ 
+       return translate_single(std::get<1>(t)) + translate_single(std::get<2>(t));
+    };
+
     std::function<uint32_t(void)> randU32 = []() -> uint32_t{
+	   //BUG: 在Windows上每次生成同样的随机数
+	   #ifdef WIN32
+	   //Windows RAND_MAX 0x7fff
+	   int a = rand();
+	   unsigned b = ((a & 1) << 15) | a; //符号位随机
+	   int c = rand();
+	   unsigned d = ((c & 1) << 15) | c; //符号位随机
+	   return (b << 16) | d;
+	   #else
        std::mt19937 gen(std::random_device{}());
        uint32_t randomNumber = gen();
        return randomNumber;
+	   #endif
     };
    
 private:
+    std::string _myname;
     uint32_t _zobrist[123][256];
     bool _has_initialized = false;
     static const int _chess_board_size;
@@ -236,8 +267,9 @@ private:
     std::function<void(void)> _initialize_zobrist = [this](){
         for(int i = 0; i < 123; ++i){
             for(int j = 0; j < 256; ++j){
-                if(i != '.')
+                if(i != '.'){
                     _zobrist[i][j] = randU32();
+				}
                 else
                     _zobrist[i][j] = 0;
             }
@@ -252,7 +284,7 @@ private:
 };
 }
 
-short mtd_quiescence(board::AIBoard* self, const short gamma, int quiesc_depth, const bool root);
-short mtd_alphabeta(board::AIBoard* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth);
+short mtd_quiescence(board::AIBoard1* self, const short gamma, int quiesc_depth, const bool root);
+short mtd_alphabeta(board::AIBoard1* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth);
 
 #endif

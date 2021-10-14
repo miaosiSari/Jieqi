@@ -1,5 +1,39 @@
 #include "god.h"
-#include "board.h"
+
+namespace board{
+   template<typename... Args>
+   Thinker* get(std::string x, Args... args){
+      if(bean.find(x) != bean.end()){
+         return bean[x](args...);
+      }
+      return NULL;
+   }
+
+   template<typename... Args>
+   Thinker* get_withprefix(std::string prefix, std::string x, Args... args){
+      return get(prefix + x, args...);
+   }
+
+   template<typename T, typename... Args>
+   typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, Thinker*>::type get_withprefix(std::string prefix, T x, Args... args){
+      return get(prefix + std::to_string(x), args...);
+   }
+}
+
+template<typename T>
+bool isT(std::string s, T* i){
+   //用于判断字符串是否为整数/浮点型
+   std::stringstream ss;
+   ss << s;
+   ss >> *i;
+   if(!ss.fail() && ss.eof()) { 
+      return true; 
+   }else{
+      *i = -1;
+      return false;
+     }
+}
+
 
 God::God(const char* file): redwin(0), blackwin(0), file(file){
    if(!file || (this -> file).size() == 0){
@@ -11,7 +45,6 @@ God::God(const char* file): redwin(0), blackwin(0), file(file){
       ok = false;
       return;
    }
-   initialize_di();
    std::ifstream instream(file);
    int counter = 0;
    std::string line;
@@ -25,29 +58,17 @@ God::God(const char* file): redwin(0), blackwin(0), file(file){
          return;
       }
       line = trim(line);
-      if(line.size() != 1) {
-         ok = false;
-         return;
-      }
-      if(line[0] != '0' && line[0] != '1'){
-         ok = false;
-         return;
-      }else if(line[0] == '0'){
-         if(counter == 0){
-            type1 = false;
-         }else{
-            type2 = false;
-         }
-      }else if(line[0] == '1'){
-         if(counter == 0){
-            type1 = true;
-         }else{
-            type2 = true;
-         }
+      int type_tmp = 0;
+      ok = isT<int>(line, &type_tmp);
+      if(!ok) { return; }
+      if(counter == 0){
+         type1 = type_tmp;
+      }else{
+         type2 = type_tmp;
       }
       ++counter;
    }
-   printf("I am the referee. You two must listen to me!\n");
+   printf("I am the Referee. You two must listen to me!\n");
    ok = true;
    instream.close();
 }
@@ -66,7 +87,6 @@ bool God::Reset(const char* another_file, bool clear_winning_log){
    ok = Singleton<board::Board>::reset();
    if(!ok) return false;
    board_pointer = Singleton<board::Board>::get();
-   initialize_di();
    if(another_file){
       file = another_file;
    }
@@ -111,27 +131,27 @@ bool God::Reset(const char* another_file, bool clear_winning_log){
    return true;
 }
 
-void God::initialize_di(){
-   memmove(this -> di, ::di, sizeof(::di));
-   memmove(this -> di_red, ::di, sizeof(::di));
-   memmove(this -> di_black, ::di, sizeof(::di));
-}
 
 int God::StartThinker(){
    if(!ok) return -1;
    board_pointer -> GenMovesWithScore();
    board_pointer -> CopyToIsLegalMove();
+   //board_pointer -> DebugDI();
    if(board_pointer -> turn){
-      if(type1){
+      if(type1 == 0){
          printf("红方行棋!\n");
          std::cout << PrintEat(board_pointer -> turn) << std::endl;
          board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
          thinker1.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
       }else{
-         thinker1.reset(new board::AIBoard(board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, this -> di_red, 0));
+         thinker1.reset(NEWRED(type1));
+      }
+      if(!thinker1){
+         printf("红空指针!\n");
+         return BLACK_WIN;
       }
       thinker1 -> thinker_type = type1;
-      thinker1 -> retry_num = thinker1 -> thinker_type?3:1;
+      thinker1 -> retry_num = thinker1 -> thinker_type?1:5;
       for(int i = 0; i < thinker1 -> retry_num; ++i){
          std::string think_result = thinker1 -> Think(); // This function might cost a lot of time!
          if(!check_legal(think_result)) continue;
@@ -146,16 +166,20 @@ int God::StartThinker(){
       printf("红方连续%d个无效棋步, 判输!\n", thinker1 -> retry_num);
       return BLACK_WIN;
    }else{
-      if(type2){
+      if(type2 == 0){
          printf("黑方行棋!\n");
          std::cout << PrintEat(board_pointer -> turn) << std::endl;
          board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
          thinker2.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
       }else{
-         thinker2.reset(new board::AIBoard(board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, this -> di_black, 0));
+         thinker2.reset(NEWBLACK(type2));
+      }
+      if(!thinker2){
+         printf("黑空指针!\n");
+         return RED_WIN;
       }
       thinker2 -> thinker_type = type2;
-      thinker2 -> retry_num = thinker2 -> thinker_type?3:1;
+      thinker2 -> retry_num = thinker2 -> thinker_type?1:5;
       for(int i = 0; i < thinker2 -> retry_num; ++i){
          std::string think_result = thinker2 -> Think(); // This function might cost a lot of time!
          if(!check_legal(think_result)) continue;
@@ -202,7 +226,18 @@ std::string God::PrintEat(bool turn){
    if(turn){
       ret += "黑吃红: ";
       for(size_t i = 0; i < black_eat_red.size(); ++i){
-         ret += isdot(std::get<0>(black_eat_red[i]), false, (i == (black_eat_red.size() - 1)));
+         #ifdef SHOWDARK
+         auto tuple = black_eat_red[i];
+         if(std::get<1>(tuple) == 2){
+            char covered = board_pointer -> random_map[!turn][std::get<2>(tuple)];
+            assert(covered == std::get<3>(tuple));
+            ret += isdot(covered, true, (i == (black_eat_red.size() - 1)), true);
+         }else{
+            ret += isdot(std::get<0>(tuple), false, (i == (black_eat_red.size() - 1)), true);
+         }
+         #else
+         ret += isdot(std::get<0>(black_eat_red[i]), false, (i == (black_eat_red.size() - 1)), true);
+         #endif
       }
       ret += '\n';
       ret += "红吃黑: ";
@@ -211,15 +246,26 @@ std::string God::PrintEat(bool turn){
          if(std::get<1>(tuple) == 2){
             char covered = board_pointer -> random_map[turn][std::get<2>(tuple)];
             assert(covered == std::get<3>(tuple));
-            ret += isdot(covered, true, (i == (red_eat_black.size() - 1)));
+            ret += isdot(covered, true, (i == (red_eat_black.size() - 1)), false);
          }else{
-            ret += isdot(std::get<0>(tuple), false, (i == (red_eat_black.size() - 1)));
+            ret += isdot(std::get<0>(tuple), false, (i == (red_eat_black.size() - 1)), false);
          }
       }
    }else{
       ret += "红吃黑: ";
       for(size_t i = 0; i < red_eat_black.size(); ++i){
-         ret += isdot(std::get<0>(red_eat_black[i]), false, (i == (red_eat_black.size() - 1)));
+         #ifdef SHOWDARK
+         auto tuple = red_eat_black[i];
+         if(std::get<1>(tuple) == 2){
+            char covered = board_pointer -> random_map[!turn][std::get<2>(tuple)];
+            assert(covered == std::get<3>(tuple));
+            ret += isdot(covered, true, (i == (red_eat_black.size() - 1)), false);
+         }else{
+            ret += isdot(std::get<0>(tuple), false, (i == (red_eat_black.size() - 1)), false);
+         }
+         #else
+         ret += isdot(std::get<0>(red_eat_black[i]), false, (i == (red_eat_black.size() - 1)), false);
+         #endif
       }
       ret += '\n';
       ret += "黑吃红: ";
@@ -228,10 +274,9 @@ std::string God::PrintEat(bool turn){
          if(std::get<1>(tuple) == 2){
             char covered = board_pointer -> random_map[turn][std::get<2>(tuple)];
             assert(covered == std::get<3>(tuple));
-            std::cout << "turn = " << turn << ", place = " << std::get<2>(tuple) << ", char = " << covered << ".\n";
-            ret += isdot(covered, true, (i == (black_eat_red.size() - 1)));
+            ret += isdot(covered, true, (i == (black_eat_red.size() - 1)), true);
          }else{
-            ret += isdot(std::get<0>(tuple), false, (i == (black_eat_red.size() - 1)));
+            ret += isdot(std::get<0>(tuple), false, (i == (black_eat_red.size() - 1)), true);
          }
       }
    }

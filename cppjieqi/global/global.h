@@ -1,30 +1,26 @@
 #ifndef global_h
 #define global_h
 
+#define DEBUG 0
+#define BLACK 0
 #include <map>
 #include <unordered_map>
 #include <algorithm>
 #include <string>
 #include <regex>
+#include <functional>
+#include <iostream>
+#include <type_traits>
 
-#define DEBUG 0
-#define RESET   "\033[0m"
-#define BLACK   "\033[30m"      /* Black */
-#define RED     "\033[31m"      /* Red */
-#define GREEN   "\033[32m"      /* Green */
-#define YELLOW  "\033[33m"      /* Yellow */
-#define BLUE    "\033[34m"      /* Blue */
-#define MAGENTA "\033[35m"      /* Magenta */
-#define CYAN    "\033[36m"      /* Cyan */
-#define WHITE   "\033[37m"      /* White */
-#define BOLDBLACK   "\033[1m\033[30m"      /* Bold Black */
-#define BOLDRED     "\033[1m\033[31m"      /* Bold Red */
-#define BOLDGREEN   "\033[1m\033[32m"      /* Bold Green */
-#define BOLDYELLOW  "\033[1m\033[33m"      /* Bold Yellow */
-#define BOLDBLUE    "\033[1m\033[34m"      /* Bold Blue */
-#define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
-#define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
-#define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+namespace board{
+   class Thinker;
+   int register_func(std::string x, std::function<board::Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>)> y);
+}
+
+#define REGISTER(class, baseclass) \
+int tmp_ ## class ##_ ## baseclass = board::register_func(#class, [](const char another_state[], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist)\
+ -> board::baseclass * {return new board::class(another_state, turn, round, di, score, hist);});
+
 
 //GetWithDef: If K does not exist, return the default value!
 template <typename K, typename V>

@@ -27,20 +27,49 @@ const char board::Board::_initial_state[MAX] =
                     "                "
                     "   defgkgfed    "
                     "   .........    "
-                    "   ....r..h.    "
-                    "   ..i...i.i    "
-                    "   c........    "
-                    "   .....r..N    "
-                    "   ..I.I.I..    "
-                    "   PHR...PH.    "
-                    "   ....A....    "
-                    "   D...KGF.D    "
+                    "   .h.....h.    "
+                    "   i.i.i.i.i    "
+                    "   .........    "
+                    "   .........    "
+                    "   I.I.I.I.I    "
+                    "   .H..C..H.    "
+                    "   .........    "
+                    "   DEFGKG.ED    "
                     "                "
                     "                "
                     "                ";
 #endif
 
 const std::unordered_map<std::string, std::string> board::Board::uni_pieces = {
+	#ifdef WIN32
+	{".", "．"},
+    {"R", "俥"},
+    {"N", "傌"},
+    {"B", "相"},
+    {"A", "仕"},
+    {"K", "帅"},
+    {"P", "兵"},
+    {"C", "炮"},
+    {"D", "红"},
+    {"E", "红"},
+    {"F", "红"},
+    {"G", "红"},
+    {"H", "红"},
+    {"I", "红"},
+    {"r", "车"},
+    {"n", "马"},
+    {"b", "象"},
+    {"a", "士"},
+    {"k", "将"},
+    {"p", "卒"},
+    {"c", "包"},
+    {"d", "黑"},
+    {"e", "黑"},
+    {"f", "黑"},
+    {"g", "黑"},
+    {"h", "黑"},
+    {"i", "黑"}
+	#else
     {".", "．"},
     {"R", "\033[31m俥\033[0m"},
     {"N", "\033[31m傌\033[0m"},
@@ -68,6 +97,7 @@ const std::unordered_map<std::string, std::string> board::Board::uni_pieces = {
     {"g", "暗"},
     {"h", "暗"},
     {"i", "暗"}
+	#endif
 };
 
 char board::Board::_dir[91][8] = {{0}};
@@ -92,46 +122,13 @@ board::Board::Board() noexcept: finished(false),
     memset(legal_moves, 0, sizeof(legal_moves));
     _initialize_dir();
     GenerateRandomMap();
-    _has_initialized = true;
-}
-
-board::Board::Board(const char another_state[MAX], bool turn, int round) noexcept {
-    this -> turn = turn;
-    this -> round = round;
-    this -> finished = false;
-    num_of_legal_moves = 0;
-    strncpy(state_red, another_state, _chess_board_size);
-    strncpy(state_black, another_state, _chess_board_size);
-    state_red[_chess_board_size] = '\0';
-    state_black[_chess_board_size] = '\0';
-    if(turn){
-        rotate(state_black);
-    }else{
-        rotate(state_red);
-    }
-    memset(_is_legal_move, false, sizeof(_is_legal_move));
-    memset(legal_moves, 0, sizeof(legal_moves));
-    _initialize_dir();
-    GenerateRandomMap();
-    _has_initialized = true;
-}
-
-board::Board::Board(const board::Board& another_board){
-    this -> finished = another_board.finished;
-    this -> turn = another_board.turn;
-    this -> round = another_board.round;
-    strncpy(this -> state_red, another_board.state_red, _chess_board_size);
-    strncpy(this -> state_black, another_board.state_black, _chess_board_size);
-    memset(_is_legal_move, false, sizeof(_is_legal_move));
-    memset(legal_moves, 0, sizeof(legal_moves));
-    GenMovesWithScore();
-    CopyToIsLegalMove();
-    this -> random_map = another_board.random_map;
-    _initialize_dir();
+    hist[state_red] = false;
+    initialize_di();
     _has_initialized = true;
 }
 
 void board::Board::Reset() noexcept{
+    hist.clear();
     finished = false;
     turn = true;
     round = 0;
@@ -151,9 +148,17 @@ void board::Board::Reset() noexcept{
     state_black[_chess_board_size] = '\0';
     memset(_is_legal_move, false, sizeof(_is_legal_move));
     _initialize_dir();
-    #if DEBUG
+    hist[state_red] = false;
+    initialize_di();
+    #if DEBUG && BLACK
     turn = false;
     #endif
+}
+
+void board::Board::initialize_di(){
+   memmove(this -> di, ::di, sizeof(::di));
+   memmove(this -> di_red, ::di, sizeof(::di));
+   memmove(this -> di_black, ::di, sizeof(::di));
 }
 
 void board::Board::_initialize_dir(){
@@ -314,11 +319,19 @@ std::shared_ptr<InfoDict> board::Board::Move(const int x1, const int y1, const i
         eat_check = eat_tmp;
         eat_type = eat_type_tmp;
         eat_rb = eat;
+        for(int i = 0; i < VERSION_MAX && eat_type == 2; ++i){
+            di_red[i][0][(int)eat_check] -= 1;
+        }
         state_red[encode_to] = state_red[encode_from];
         FIND(state_red[encode_to], encode_from, turn);
+        for(int i = 0; i < VERSION_MAX; ++i){//红方暗子翻出, 双方都减1
+            di_red[i][1][(int)state_red[encode_to]] -= 1; 
+            di_black[i][0][(int)state_red[encode_to]] -= 1;
+        }
         state_red[encode_from] = '.';
         state_black[reverse_encode_to] = state_black[reverse_encode_from];
         FIND(state_black[reverse_encode_to], reverse_encode_from, !turn);
+        assert(swapcase(state_black[reverse_encode_to]) == state_red[encode_to]);
         state_black[reverse_encode_from] = '.';
     } else{
         eat = state_black[encode_to];
@@ -327,19 +340,46 @@ std::shared_ptr<InfoDict> board::Board::Move(const int x1, const int y1, const i
         eat_check = eat_tmp;
         eat_type = eat_type_tmp;
         eat_rb = swapcase(eat);
+        //黑吃红暗子减di_black
+        for(int i = 0; i < VERSION_MAX && eat_type == 2; ++i){
+            di_black[i][1][(int)swapcase(eat_check)] -= 1;
+        }
         state_black[encode_to] = state_black[encode_from];
         FIND(state_black[encode_to], encode_from, turn);
+        for(int i = 0; i < VERSION_MAX; ++i){//黑方暗子翻出, 双方都减1
+            di_red[i][1][(int)state_black[encode_to]] -= 1; 
+            di_black[i][0][(int)state_black[encode_to]] -= 1;
+        }
         state_black[encode_from] = '.';
         state_red[reverse_encode_to] = state_red[reverse_encode_from];
         FIND(state_red[reverse_encode_to], reverse_encode_from, !turn);
+        assert(swapcase(state_black[encode_to]) == state_red[reverse_encode_to]);
         state_red[reverse_encode_from] = '.';
     }
     std::shared_ptr<InfoDict> p(new InfoDict(true, turn, round, (eat == 'k'), eat, eat_rb, eat_type, x1, y1, x2, y2, eat_check));
     turn = !turn;
+    hist[state_red] = turn;
     if(turn){
        ++round;
     }
     return p;
+}
+
+void board::Board::DebugDI(){
+    printf("红方视角:\n");
+    for(char c: MINGZI){
+        if(c == 'K') {
+            continue;
+        }
+        printf("红方字符=%c, 红方相应个数: %d, 黑方字符=%c, 黑方相应个数=%d\n", c, di_red[0][1][(int)c], swapcase(c), di_red[0][0][(int)swapcase(c)]);
+    }
+    printf("黑方视角:\n");
+    for(char c: MINGZI){
+        if(c == 'K') {
+            continue;
+        }
+        printf("红方字符=%c, 红方相应个数: %d, 黑方字符=%c, 黑方相应个数=%d\n", c, di_red[0][1][(int)c], swapcase(c), di_red[0][0][(int)swapcase(c)]);
+    }
 }
 
 void board::Board::GenMovesWithScore(){

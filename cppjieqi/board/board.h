@@ -37,7 +37,11 @@
 
 
 #define TXY(x, y) (unsigned char)translate_x_y(x, y)
+#ifdef WIN32
+#define SV(vector) std::random_shuffle(vector.begin(), vector.end());
+#else
 #define SV(vector) shuffle(vector.begin(), vector.end(), std::default_random_engine(std::chrono::system_clock::now().time_since_epoch().count()))
+#endif
 #define FIND(c, place, perspective) \
 if(c == '.'){ \
     eat_type_tmp = 0; \
@@ -48,20 +52,25 @@ if(c == '.'){ \
     eat_type_tmp = 1; \
 }
 
+extern unsigned char di[VERSION_MAX][2][123];
+
 namespace board{
 class Board{
 public:
+    unsigned char di[VERSION_MAX][2][123];
+    unsigned char di_red[VERSION_MAX][2][123];
+    unsigned char di_black[VERSION_MAX][2][123];
     bool finished = false;
     int num_of_legal_moves = 0;
     char state_red[MAX];
     char state_black[MAX];
     bool turn; //true红black黑
     int round; //回合, 从0开始
+    std::unordered_map<std::string, bool> hist;
     static const std::unordered_map<std::string, std::string> uni_pieces;
     Board() noexcept;
-    Board(const char another_state[MAX], bool turn, int round) noexcept;
-    Board(const Board& another_board);
     void Reset() noexcept;
+    void initialize_di();
     const std::vector<std::string>& GetHistory() const;
     std::vector<std::string> GetStateString() const;
     bool GetTurn() const;
@@ -73,6 +82,7 @@ public:
     std::shared_ptr<InfoDict> Move(const std::string ucci, const bool = false); //ucci representation
     std::shared_ptr<InfoDict> Move(const char* ucci, const bool = false);
     std::shared_ptr<InfoDict> Move(const int x1, const int y1, const int x2, const int y2, const bool = false);
+    void DebugDI();
     void GenMovesWithScore();
     void CopyToIsLegalMove();
     void GenerateRandomMap();

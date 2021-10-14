@@ -3,10 +3,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <time.h>
-#include "board/god.h"
-#include "board/board.h"
-#include "board/aiboard.h"
 #include "global/global.h"
+#include "board/god.h"
 #include "score/score.h"
 
 extern void register_scoring_functions();
@@ -16,9 +14,9 @@ extern bool initialize_wrapper(const char* score_file, const char* debug_output_
 
 
 int main(void) {
+    srand(time(NULL));
     initialize_wrapper("../score.conf", "../kaijuku", "debug.log", 1.5);
     register_score_functions();
-    board::AIBoard x;
     God g("../players.conf");
     g.StartGame();
     return 0;
