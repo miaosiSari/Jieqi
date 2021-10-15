@@ -169,6 +169,7 @@ void board::Board::Reset() noexcept{
     state_black[_chess_board_size] = '\0';
     memset(_is_legal_move, false, sizeof(_is_legal_move));
     _initialize_dir();
+    GenerateRandomMap();
     hist[state_red] = false;
     initialize_di();
     #if DEBUG && BLACK
