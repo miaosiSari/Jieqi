@@ -149,6 +149,11 @@ int God::StartThinker(){
       thinker1 -> retry_num = thinker1 -> thinker_type?1:5;
       for(int i = 0; i < thinker1 -> retry_num; ++i){
          std::string think_result = thinker1 -> Think(); // This function might cost a lot of time!
+         if(trim(think_result) == "W"){
+            return RED_WIN;
+         }else if(trim(think_result) == "R"){
+            return BLACK_WIN;
+         }
          if(!check_legal(think_result)) continue;
          std::shared_ptr<InfoDict> p = board_pointer -> Move(think_result, true);
          if(p && p -> islegal){
@@ -177,6 +182,11 @@ int God::StartThinker(){
       thinker2 -> retry_num = thinker2 -> thinker_type?1:5;
       for(int i = 0; i < thinker2 -> retry_num; ++i){
          std::string think_result = thinker2 -> Think(); // This function might cost a lot of time!
+         if(trim(think_result) == "R"){
+            return RED_WIN;
+         }else if(trim(think_result) == "W"){
+            return BLACK_WIN;
+         }
          if(!check_legal(think_result)) continue;
          std::shared_ptr<InfoDict> p = board_pointer -> Move(think_result, true);
          if(p && p -> islegal){
@@ -193,6 +203,8 @@ int God::StartThinker(){
 }
 
 int God::StartGame(){
+   red_eat_black.clear();
+   black_eat_red.clear();
    int result = NORMAL;
    board_pointer -> Reset();
    while(result == NORMAL && board_pointer -> round < MAX_ROUNDS){
@@ -238,6 +250,49 @@ int God::StartGameLoop(unsigned winning_threshold){
    }
    printf("握手言和\n");
    return DRAW;
+}
+
+int God::StartGameLoopAlternatively(unsigned winning_threshold){
+   redwin = 0;
+   draw = 0;
+   blackwin = 0;
+   size_t player1win = 0;
+   size_t player2win = 0;
+   size_t i = 0;
+   bool cnt = true;
+   size_t maxgame = 2 * winning_threshold - 1;
+   while(i < maxgame && draw < maxgame){
+      printf("cnt = %d. Player1_win %zu : Draw %zu : Player2_win %zu\n", cnt, player1win, draw, player2win);
+      int state = StartGame();
+      if(cnt){
+         if(state == RED_WIN){
+            ++player1win;
+            ++i;
+         }else if(state == BLACK_WIN){
+            ++player2win;
+            ++i;
+         }
+      }else{
+         if(state == RED_WIN){
+            ++player2win;
+            ++i;
+         }else if(state == BLACK_WIN){
+            ++player1win;
+            ++i;
+         }
+      }
+      if(player1win >= winning_threshold){
+         printf("玩家1获胜!\n");
+         return 1;
+      }else if(player2win >= winning_threshold){
+         printf("玩家2获胜!\n");
+         return 2;
+      }
+      cnt = !cnt;
+      std::swap(type1, type2);
+   }
+   printf("握手言和!\n");
+   return 0;
 }
 
 bool God::GetTurn(){

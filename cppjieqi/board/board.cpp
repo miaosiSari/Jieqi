@@ -49,13 +49,13 @@ const char board::Board::_initial_state[MAX] =
                     "   ....k....    "
                     "   .........    "
                     "   .........    "
-                    "   ........i    "
+                    "   ....i....    "
                     "   .........    "
                     "   .........    "
-                    "   ....C....    "
                     "   .........    "
+                    "   ....R....    "
                     "   .........    "
-                    "   ...GK....    "
+                    "   ....K....    "
                     "                "
                     "                "
                     "                ";
@@ -178,8 +178,7 @@ void board::Board::Reset() noexcept{
 }
 
 void board::Board::initialize_di(){
-    #if DEBUG
-    memset(this -> di, 0, sizeof(::di));
+    memset(this -> di, 0, sizeof(this -> di));
     std::unordered_set<int> redplaces = {195, 196, 197, 198, 200, 201, 202, 203, 164, 170, 147, 149, 151, 153, 155};
     std::unordered_set<int> blackplaces = {59, 58, 57, 56, 54, 53, 52, 51, 90, 84, 107, 105, 103, 101, 99};
     for(int pos: redplaces){
@@ -192,9 +191,6 @@ void board::Board::initialize_di(){
            di[i][0][(int)random_map[true][pos]] += (state_red[pos] >= 'd' && state_red[pos] <= 'i') ? 1 : 0;
         }
     }
-    #else
-    memmove(this -> di, ::di, sizeof(::di));
-    #endif
     memmove(this -> di_red, this -> di, sizeof(this -> di));
     memmove(this -> di_black, this -> di, sizeof(this -> di));
 }
@@ -362,9 +358,9 @@ std::shared_ptr<InfoDict> board::Board::Move(const int x1, const int y1, const i
         }
         state_red[encode_to] = state_red[encode_from];
         FIND(state_red[encode_to], encode_from, turn);
-        for(int i = 0; i < VERSION_MAX; ++i){//红方暗子翻出, 双方都减1
+        for(int i = 0; i < VERSION_MAX && eat_type_tmp == 2; ++i){//红方暗子翻出, 双方都减1
             di_red[i][1][(int)state_red[encode_to]] -= 1; 
-            di_black[i][0][(int)state_red[encode_to]] -= 1;
+            di_black[i][1][(int)state_red[encode_to]] -= 1;
         }
         state_red[encode_from] = '.';
         state_black[reverse_encode_to] = state_black[reverse_encode_from];
@@ -384,9 +380,9 @@ std::shared_ptr<InfoDict> board::Board::Move(const int x1, const int y1, const i
         }
         state_black[encode_to] = state_black[encode_from];
         FIND(state_black[encode_to], encode_from, turn);
-        for(int i = 0; i < VERSION_MAX; ++i){//黑方暗子翻出, 双方都减1
-            di_red[i][1][(int)state_black[encode_to]] -= 1; 
-            di_black[i][0][(int)state_black[encode_to]] -= 1;
+        for(int i = 0; i < VERSION_MAX && eat_type_tmp == 2; ++i){//黑方暗子翻出, 双方都减1
+            di_red[i][0][(int)swapcase(state_black[encode_to])] -= 1; 
+            di_black[i][0][(int)swapcase(state_black[encode_to])] -= 1;
         }
         state_black[encode_from] = '.';
         state_red[reverse_encode_to] = state_red[reverse_encode_from];
@@ -416,7 +412,7 @@ void board::Board::DebugDI(){
         if(c == 'K') {
             continue;
         }
-        printf("红方字符=%c, 红方相应个数: %d, 黑方字符=%c, 黑方相应个数=%d\n", c, di_red[0][1][(int)c], swapcase(c), di_red[0][0][(int)swapcase(c)]);
+        printf("红方字符=%c, 红方相应个数: %d, 黑方字符=%c, 黑方相应个数=%d\n", c, di_black[0][1][(int)c], swapcase(c), di_black[0][0][(int)swapcase(c)]);
     }
 }
 
@@ -576,8 +572,29 @@ void board::Board::PrintAllMoves(){
 }
 
 void board::Board::GenerateRandomMap(){
+    auto pop_chess = [](std::vector<char>& v, char c){
+        for(std::vector<char>::iterator it = v.begin(); it != v.end(); ){
+            if(*it == c){
+                v.erase(it++);
+                return;
+            }
+            else{
+                it++;
+            }
+        }
+    };
+
     std::vector<char> chararray_red = {'R', 'R', 'N', 'N', 'B', 'B', 'A', 'A', 'C', 'C', 'P', 'P', 'P', 'P', 'P'};
     std::vector<char> chararray_black = {'r', 'r', 'n', 'n', 'b', 'b', 'a', 'a', 'c', 'c', 'p', 'p', 'p', 'p', 'p'};
+    for(int i = 51; i <= 203; ++i){
+        if(::isupper(state_red[i]) && state_red[i] != 'K' && MINGZI.find(state_red[i]) != std::string::npos){
+            pop_chess(chararray_red, state_red[i]);
+        }
+        if(::islower(state_red[i]) && state_red[i] != 'k' && MINGZI.find(swapcase(state_red[i])) != std::string::npos){
+            pop_chess(chararray_black, state_red[i]);
+        }
+    }
+
     std::vector<unsigned char> position_red = {TXY(0, 0), TXY(0, 1), TXY(0, 2), TXY(0, 3), TXY(0, 5), TXY(0, 6), \
         TXY(0, 7), TXY(0, 8), TXY(2, 1), TXY(2, 7), TXY(3, 0), TXY(3, 2), TXY(3, 4), TXY(3, 6), TXY(3, 8)};
     std::vector<unsigned char> position_black = {TXY(9, 0), TXY(9, 1), TXY(9, 2), TXY(9, 3), TXY(9, 5), TXY(9, 6), \
@@ -586,11 +603,23 @@ void board::Board::GenerateRandomMap(){
     SV(chararray_red); 
     SV(chararray_black);
     std::unordered_map<unsigned char, char> r, b;
-    for(int i = 0; i < size; ++i){
-        r[position_red[i]] = chararray_red[i];
-        r[position_black[i]] = chararray_black[i];
-        b[reverse(position_red[i])] = swapcase(chararray_red[i]);
-        b[reverse(position_black[i])] = swapcase(chararray_black[i]);
+    for(int i = 0, cnt = 0; i < size; ++i){
+        if(state_red[position_red[i]] >= 'D' && state_red[position_red[i]] <= 'I'){
+            r[position_red[i]] = chararray_red[cnt];
+            b[reverse(position_red[i])] = swapcase(chararray_red[cnt]);
+            ++cnt;
+        }else{
+            continue;
+        }
+    }
+    for(int i = 0, cnt = 0; i < size; ++i){
+        if(state_red[position_black[i]] >= 'd' && state_red[position_black[i]] <= 'i'){
+            r[position_black[i]] = chararray_black[cnt]; 
+            b[reverse(position_black[i])] = swapcase(chararray_black[cnt]);
+            ++cnt;
+        }else{
+            continue;
+        }
     }
     random_map[true] = r;
     random_map[false] = b;

@@ -7,15 +7,15 @@
 #include "board/god.h"
 #include "score/score.h"
 
-extern bool read_score_table(const char* score_file);
-extern bool debug(const char* debug_output_file);
-extern bool initialize_wrapper(const char* score_file, const char* debug_output_file, float discount_factor=1.5);
-
+extern bool read_score_table(const char* score_file, short pst[][256]);
+extern void copy_pst(short dst[][256], short src[][256]);
+extern short pstglobal[2][123][256];
 
 int main(void) {
     srand(time(NULL));
-    initialize_wrapper("../score.conf", "../kaijuku", "debug.log", 1.5);
+    assert(read_score_table("../score.conf", pstglobal[0]));
+    assert(read_score_table("../score.conf", pstglobal[1]));
     God g("../players.conf");
-    g.StartGameLoop(19);
+    DEBUG ? g.StartGame() : g.StartGameLoopAlternatively(5);
     return 0;
 }

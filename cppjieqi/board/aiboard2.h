@@ -50,11 +50,6 @@ bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
         return std::get<0>(i) > std::get<0>(j);
 }
 
-extern short pst[123][256];
-extern short average[VERSION_MAX][2][2][256];
-extern unsigned char sumall[VERSION_MAX][2];
-extern unsigned char di[VERSION_MAX][2][123];
-extern std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
 std::string mtd_thinker2(void* self);
 typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
@@ -63,8 +58,10 @@ inline void complicated_kongtoupao_score_function2(void* board_pointer, short* k
 inline short complicated_score_function2(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
 void register_score_functions2();
 std::string SearchScoreFunction2(void* score_func, int type);
+extern short pstglobal[2][123][256];
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
+extern void copy_pst(short dst[][256], short src[][256]);
 
 template<typename T>
 inline void hash_combine(std::size_t& seed, const T& val)
@@ -115,6 +112,7 @@ public:
     char state_black[MAX];
     std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
     short score;//局面分数
+    short pst[123][256];
     std::stack<short> score_cache;
     std::unordered_set<uint32_t> zobrist_cache;
     std::set<unsigned char> rooted_chesses;
@@ -123,6 +121,7 @@ public:
     //tp_score: (zobrist_key, turn, depth <depth * 2 + turn>) --> (lower, upper)
     std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>> tp_score;
     std::unordered_map<std::string, bool> hist;
+    std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
     AIBoard2() noexcept;
     AIBoard2(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist) noexcept;
     AIBoard2(const AIBoard2& another_board) = delete;
@@ -138,7 +137,6 @@ public:
     void UndoMove(int type);
     void Scan();
     void KongTouPao(const char* _state_pointer, int pos, bool t);
-    void Rooted();
     template<bool needscore=true, bool return_after_mate=false> 
     bool GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive);
     template<bool doublereverse=true> bool Mate();
@@ -203,7 +201,7 @@ public:
        return _state_pointer;
     };
 
-    std::function<std::string(int)> translate_single = [](unsigned char i) -> std::string{
+    std::function<std::string(unsigned char)> translate_single = [](unsigned char i) -> std::string{
        int x1 = 12 - (i >> 4);
        int y1 = (i & 15) - 3;
        std::string ret = "  ";
@@ -212,7 +210,7 @@ public:
        return ret;
     };
 
-    std::function<std::string(int, int)> translate_ucci = [this](unsigned char src, unsigned char dst) -> std::string{
+    std::function<std::string(unsigned char, unsigned char)> translate_ucci = [this](unsigned char src, unsigned char dst) -> std::string{
        return translate_single(src) + translate_single(dst);
     };
 
@@ -238,6 +236,7 @@ public:
     };
    
 private:
+    const char* _kaijuku_file;
     std::string _myname;
     uint32_t _zobrist[123][256];
     bool _has_initialized = false;
@@ -279,6 +278,6 @@ private:
 }
 
 short mtd_quiescence2(board::AIBoard2* self, const short gamma, int quiesc_depth, const bool root);
-short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth);
+short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
 
 #endif

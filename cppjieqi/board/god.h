@@ -50,6 +50,7 @@ struct God{
     bool GetTurn();
     int StartThinker();
     int StartGameLoop(unsigned winning_threshold);
+    int StartGameLoopAlternatively(unsigned winning_threshold);//红黑交替
     int StartGame();
     std::string PrintEat(bool turn);
 

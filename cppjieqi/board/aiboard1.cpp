@@ -86,6 +86,7 @@ board::AIBoard1::AIBoard1() noexcept:
                     original_depth(0),
                     zobrist_hash(0),
                     score(0),
+                    _kaijuku_file("../kaijuku"),
                     _myname("AI1"),
                     _has_initialized(false),
                     _score_func(NULL),
@@ -99,12 +100,13 @@ board::AIBoard1::AIBoard1() noexcept:
     memset(state_black, 0, sizeof(state_black));
     strncpy(state_red, _initial_state, _chess_board_size);
     strncpy(state_black, _initial_state, _chess_board_size);
-    CopyData(di);
+    copy_pst(this -> pst, ::pstglobal[0]);
     _initialize_dir();
     _initialize_zobrist();
     zobrist_cache.insert((zobrist_hash << 1)|original_turn);
     Scan();
     register_score_functions1();
+    read_kaijuku(_kaijuku_file, kaijuku);
     _has_initialized = true;
 }
 
@@ -117,6 +119,7 @@ board::AIBoard1::AIBoard1(const char another_state[MAX], bool turn, int round, c
                                                                                                                             zobrist_hash(0), 
                                                                                                                             score(score),
                                                                                                                             hist(hist),
+                                                                                                                            _kaijuku_file("../kaijuku"),
                                                                                                                             _myname("AI1"),
                                                                                                                             _has_initialized(false),
                                                                                                                             _score_func(NULL),
@@ -135,12 +138,16 @@ board::AIBoard1::AIBoard1(const char another_state[MAX], bool turn, int round, c
     }else{
         rotate(state_red);
     }
+    copy_pst(this -> pst, ::pstglobal[0]);
     CopyData(di);
     _initialize_dir();
     _initialize_zobrist();
     zobrist_cache.insert((zobrist_hash << 1)|original_turn);
     Scan();
     register_score_functions1();
+    if(round == 0){
+        read_kaijuku(_kaijuku_file, kaijuku);
+    }
     _has_initialized = true;
 }
 
@@ -479,7 +486,7 @@ bool board::AIBoard1::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
                                 score_tmp = _score_func(this, _state_pointer, i, j);
                             }
                             legal_moves[num_of_legal_moves] = std::make_tuple(score_tmp, i, j);
-                            if(killer && killer -> first == i && killer -> second == j){
+                            if(killer && killer -> first == i && killer -> second == j && needscore){
                                 killer_score = score_tmp;
                                 killer_is_alive = true;
                             }
@@ -494,7 +501,7 @@ bool board::AIBoard1::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
                                 score_tmp = _score_func(this, _state_pointer, i, j);
                             }
                             legal_moves[num_of_legal_moves] = std::make_tuple(score_tmp, i, j);
-                            if(killer && killer -> first == i && killer -> second == j){
+                            if(killer && killer -> first == i && killer -> second == j && needscore){
                                 killer_score = score_tmp;
                                 killer_is_alive = true;
                             }
@@ -522,7 +529,7 @@ bool board::AIBoard1::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
                         score_tmp = _score_func(this, _state_pointer, i, scanpos);
                     }
                     legal_moves[num_of_legal_moves] = std::make_tuple(score_tmp, i, scanpos);
-                    if(killer && killer -> first == i && killer -> second == scanpos){
+                    if(killer && killer -> first == i && killer -> second == scanpos && needscore){
                         killer_score = score_tmp;
                         killer_is_alive = true;
                     }
@@ -579,7 +586,7 @@ bool board::AIBoard1::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
                     score_tmp = _score_func(this, _state_pointer, i, j);
                 }
                 legal_moves[num_of_legal_moves] = std::make_tuple(score_tmp, i, j);
-                if(killer && killer -> first == i && killer -> second == j){
+                if(killer && killer -> first == i && killer -> second == j && needscore){
                     killer_score = score_tmp;
                     killer_is_alive = true;
                 }
@@ -601,68 +608,6 @@ bool board::AIBoard1::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
     return mate;
 }//GenMovesWithScore()
 
-void board::AIBoard1::Rooted(){
-    rooted_chesses.clear();
-    const char *_state_pointer = turn?state_red:state_black;
-    for(unsigned char i = 51; i <= 203; ++i){
-        char p = _state_pointer[i];
-        int intp = (int)p;
-        if(!::isupper(p) || p == 'U'){
-            continue;
-        }
-        if(p == 'C' || p == 'H'){
-            for(unsigned char cnt = 0; cnt < 8; ++cnt){
-                if(_dir[intp][cnt] == 0){
-                    break;
-                }
-                const char d = _dir[intp][cnt];
-                int cfoot = 0;
-                for(int j = i + d;; j += d){
-                    char q = _state_pointer[j];
-                    if(q == ' ') break;
-                    if(cfoot == 0 && q == '.') continue;
-                    else if(cfoot == 0 && q != '.') ++cfoot;
-                    else if(cfoot == 1 && ::islower(q)) break;
-                    else if(cfoot == 1 && ::isupper(q)) {rooted_chesses.insert(j); break;}
-                }
-            }
-        }
-        else{
-            for(unsigned char cnt = 0; cnt < 8; ++cnt){
-                if(_dir[intp][cnt] == 0){
-                    break;
-                }
-                const char d = _dir[intp][cnt];
-                if(i > 128 && p == 'P' && (d == EAST || d == WEST)) {
-                    break;
-                }
-                for(int j = i + d;; j += d){
-                    char q = _state_pointer[j];
-                    if(q == ' ' || ::islower(q)) { break; }
-                    else if(p == 'K' && (j < 160 || (j & 15) > 8 || (j & 15) < 6)) { break; }
-                    else if(p == 'G' && j != 183) { break; }
-                    else if(p == 'N' || p == 'E'){
-                        int n_diff_x = ((int)(j - i)) & 15;
-                        if(n_diff_x == 2 || n_diff_x == 14){
-                            if(_state_pointer[i + (n_diff_x == 2?1:-1)] != '.') { break; }
-                        }else{
-                            if(j > i && _state_pointer[i + 16] != '.') { break; }
-                            if(j < i && _state_pointer[i - 16] != '.') { break; }
-                        }
-                    }
-                    else if((p == 'B' || p == 'F') && _state_pointer[i + d/2] != '.') { break; }
-                    if(::isupper(q)){
-                        rooted_chesses.insert(j);
-                        break;
-                    }
-                    if(p != 'D' && p != 'R'){
-                        break;
-                    }
-                } //for
-            }//for dir
-        }//else 
-    }//for i
-}
 
 template<bool doublereverse=true>
 bool board::AIBoard1::Mate(){
@@ -908,26 +853,9 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
         return MATE_UPPER;
     }
     if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
-        score = pst[intp][dst] - pst[intp][src];
-        //沉底炮逻辑
-        if(p == 'C'){
-            if(((src >> 4) != 3) && ((dst >> 4) == 3) && bp -> endline <= 2){
-                do{
-                    if((dst == 51 || dst == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
-                    if((dst == 59 || dst == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
-                    score -= (bp -> endline >= 1 ? 30 : 55);            
-                }while(false);
-            }
-            if(((src >> 4) == 3) && ((dst >> 4) != 3) && bp -> endline <= 2){
-                do{
-                    if((src == 51 || src == 52) && state_pointer[53] == 'f' &&  state_pointer[54] == 'g') { break; }
-                    if((src == 59 || src == 58) && state_pointer[57] == 'f' &&  state_pointer[56] == 'g') { break; }
-                    score += (bp -> endline >= 1 ? 30 : 55);            
-                }while(false);
-            }
-        }//if(p == 'C')
-        
-        else if(p == 'R'){
+        score = bp -> pst[intp][dst] -  bp -> pst[intp][src];
+
+        if(p == 'R'){
             if(state_pointer[51] != 'd' && state_pointer[51] != 'r' && state_pointer[54] != 'a' && state_pointer[71] != 'a' && (state_pointer[71] == 'p' || state_pointer[87] != 'n')){
                 if( (dst & 15) == 6 && (src & 15) != 6 ) { score += 30; }
                 else if((src & 15) == 6 && (dst & 15) != 6) { score -= 30; }
@@ -937,21 +865,11 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
                 if( (dst & 15) == 8 && (src & 15) != 8 ) { score += 30; }
                 else if((src & 15) == 8 && (dst & 15) != 8) { score -= 30; }
             }
-            
-            if((src >> 4) == 3 && (dst >> 4) != 3){
-                if(bp -> endline <= 1) { score += 30; }
-                else if(bp -> score_rough < -150) { score += 40; }
-            }
-            
-            if((src >> 4) != 3 && (dst >> 4) == 3){
-                if(bp -> endline <= 1) { score -= 30; }
-                else if(bp -> score_rough < -150) { score -= 40; }
-            }
         }//else if( p == 'R')
     }
     
     else{
-        score = bp -> aiaverage[version][turn][1][dst] - bp -> aiaverage[version][turn][0][0] + 20;
+        score = bp -> aiaverage[version][turn][1][dst] - bp -> aiaverage[version][turn][0][0];
         float che_zu_possibility = bp -> aisumall[version][turn] > 0 ? (bp -> aidi[version][turn][che_char] + bp -> aidi[version][turn][zu_char])/bp -> aisumall[version][turn] : 0.0;
         float scorediff = bp -> aiaverage[version][turn][0][0] * che_zu_possibility;
         if(p == 'D'){
@@ -1090,7 +1008,7 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
             if((src == 164 && dst == 52 && state_pointer[52] == 'e' && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) || \
                     (src == 170 && dst == 58 && state_pointer[58] == 'e' && (state_pointer[59] == 'd' || state_pointer[59] == 'r'))){
                         if((src == 164 && state_pointer[148] == 'p') || (src == 170 && state_pointer[154] == 'p')) {;}
-                        if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) {score -= 100; }
+                        if((bp -> che) < (bp -> che_opponent) || bp -> che == 0 || (bp -> score_rough < 150)) { score -= 150; }
                         //else if(che == che_opponent): Python BUG
                     }
          
@@ -1107,7 +1025,7 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
     if(q >= 'A' && q <= 'Z'){
         int k = 254 - dst;
         if(q == 'R' || q == 'N' || q == 'B' || q == 'A' || q == 'C' || q == 'P'){
-            score += pst[intq][k];
+            score +=  bp -> pst[intq][k];
             if(q == 'P' && state_pointer[dst + 32] == 'I'){
                 score += 20;  
             }
@@ -1120,9 +1038,6 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
                 }                   
             }else{
                 score += bp -> aiaverage[version][1 - turn][1][k];
-                if((dst >> 4) == 7 && (dst & 1) == 1){
-                    score += 30;  
-                }
             }
             if(q == 'D'){
                 if(bp -> score_rough > 150){
@@ -1142,16 +1057,16 @@ inline void complicated_kongtoupao_score_function1(void* self, short* kongtoupao
     board::AIBoard1* bp = reinterpret_cast<board::AIBoard1*>(self);
     if(bp -> kongtoupao > bp -> kongtoupao_opponent){
         if((bp -> che >= bp -> che_opponent && bp -> che > 0) || bp -> kongtoupao >= 3)
-            *kongtoupao_score = 100;
+            *kongtoupao_score = 180;
         else
-            *kongtoupao_score = 60;
+            *kongtoupao_score = 140;
     }
 
     else if(bp -> kongtoupao_opponent > bp -> kongtoupao){
         if((bp -> che_opponent >= bp -> che && bp -> che_opponent > 0) || bp -> kongtoupao_opponent >= 3)
-            *kongtoupao_score_opponent = 100;
+            *kongtoupao_score_opponent = 180;
         else
-            *kongtoupao_score_opponent = 60;
+            *kongtoupao_score_opponent = 140;
     }
 }
 
@@ -1160,11 +1075,12 @@ std::string mtd_thinker1(void* self){
     board::AIBoard1* bp = reinterpret_cast<board::AIBoard1*>(self);
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
-    int max_depth = (bp -> round < 15?6:8);
+    bool traverse_all_strategy = true;
+    int max_depth = (bp -> round < 15?5:7);
     int quiesc_depth = (bp -> round < 15?1:0);
     int depth = 0;
     auto start = std::chrono::high_resolution_clock::now();
-    for(depth = 6; depth <= max_depth; ++depth){
+    for(depth = 5; depth <= max_depth; ++depth){
         #if CLEAR_EVERY_ROOT
         bp -> tp_score.clear();
         bp -> tp_move.clear();
@@ -1172,11 +1088,11 @@ std::string mtd_thinker1(void* self){
         short lower = -MATE_UPPER, upper = MATE_UPPER;
         while(lower < upper - EVAL_ROBUSTNESS){
             short gamma = (lower + upper + 1)/2; //不会溢出
-            short score = mtd_alphabeta1(bp, gamma, depth + quiesc_depth, true, true, true, quiesc_depth);
+            short score = mtd_alphabeta1(bp, gamma, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy);
             if(score >= gamma) { lower = score; }
             if(score < gamma) { upper = score; }
         }
-        mtd_alphabeta1(bp, lower, depth + quiesc_depth, true, true, true, quiesc_depth);
+        mtd_alphabeta1(bp, lower, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy);
         size_t int_ms = (size_t)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
         if(int_ms > 50000 || depth == max_depth){
             auto move = bp -> tp_move[{bp -> zobrist_hash, bp -> turn}];
@@ -1187,6 +1103,7 @@ std::string mtd_thinker1(void* self){
                 bool killer_is_alive = false;
                 short killer_score = 0;
                 bp -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
+                exit(-1);
                 std::cout << "[AM I FAILED?]" << num_of_legal_moves_tmp << " My move: " << bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0])) << ", duration = " << int_ms << ", depth = " << depth + quiesc_depth << "." << std::endl;
                 if(num_of_legal_moves_tmp != 0){
                     return bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0]));
@@ -1281,7 +1198,7 @@ short mtd_quiescence1(board::AIBoard1* self, const short gamma, int quiesc_depth
     return best;
 }
 
-short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth){
+short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy){
     constexpr short MATE_UPPER = 3696;
     unsigned char mate_src = 0, mate_dst = 0;
     if(root) { 
@@ -1338,19 +1255,19 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
     do{
         if(nullmove && nullmove_now && depth > 3 && !mate && !root){
             self -> NULLMove();
-            score = -mtd_alphabeta1(self, 1 - gamma, depth - 3, false, nullmove, nullmove, quiesc_depth); //Attempt: false --> nullmove
+            score = -mtd_alphabeta1(self, 1 - gamma, depth - 3, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy); //Attempt: false --> nullmove
             self -> UndoMove(0);
-            if(judge(score, 0, 0, &best)){
+            if(judge(score, 0, 0, &best) && (!root || !traverse_all_strategy)){
                 break;
             }
         }
         if(killer_is_alive){
             bool retval = self -> Move(killer.first, killer.second, killer_score);
             if(retval){
-                score = -mtd_alphabeta1(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth);
+                score = -mtd_alphabeta1(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy);
             }
             self -> UndoMove(1);
-            if(retval && judge(score, killer.first, killer.second, &best)){
+            if(retval && judge(score, killer.first, killer.second, &best) && (!root || !traverse_all_strategy)){
                 break;
             }
         }
@@ -1365,13 +1282,14 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
             #endif
             bool retval = self -> Move(src, dst, std::get<0>(move_score_tuple));
             if(retval){
-                score = -mtd_alphabeta1(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth);
+                score = -mtd_alphabeta1(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy);
             }
             self -> UndoMove(1);
             #if DEBUG
             self -> debug_flags.pop_back();
+            //if(root) std::cout << self -> translate_tuple(move_score_tuple) << " " << score << " " << GS(move_score_tuple) << "\n";
             #endif
-            if(retval && judge(score, src, dst, &best)){
+            if(retval && judge(score, src, dst, &best) && (!root || !traverse_all_strategy)){
                 break;
             }
         }

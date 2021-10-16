@@ -16,6 +16,7 @@
 #define EAST 1
 #define SOUTH 16
 #define WEST -1
+#define GS(x) std::get<0>(x)
 
 #include <cstddef>
 #include <vector>
@@ -50,11 +51,6 @@ bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
         return std::get<0>(i) > std::get<0>(j);
 }
 
-extern short pst[123][256];
-extern short average[VERSION_MAX][2][2][256];
-extern unsigned char sumall[VERSION_MAX][2];
-extern unsigned char di[VERSION_MAX][2][123];
-extern std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
 std::string mtd_thinker1(void* self);
 typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
 typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
@@ -63,8 +59,10 @@ inline void complicated_kongtoupao_score_function1(void* board_pointer, short* k
 inline short complicated_score_function1(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
 void register_score_functions1();
 std::string SearchScoreFunction1(void* score_func, int type);
+extern short pstglobal[2][123][256];
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
+extern void copy_pst(short dst[][256], short src[][256]);
 
 template<typename T>
 inline void hash_combine(std::size_t& seed, const T& val)
@@ -115,6 +113,7 @@ public:
     char state_black[MAX];
     std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
     short score;//局面分数
+    short pst[123][256];
     std::stack<short> score_cache;
     std::unordered_set<uint32_t> zobrist_cache;
     std::set<unsigned char> rooted_chesses;
@@ -123,6 +122,7 @@ public:
     //tp_score: (zobrist_key, turn, depth <depth * 2 + turn>) --> (lower, upper)
     std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>> tp_score;
     std::unordered_map<std::string, bool> hist;
+    std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
     AIBoard1() noexcept;
     AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist) noexcept;
     AIBoard1(const AIBoard1& another_board) = delete;
@@ -138,7 +138,6 @@ public:
     void UndoMove(int type);
     void Scan();
     void KongTouPao(const char* _state_pointer, int pos, bool t);
-    void Rooted();
     template<bool needscore=true, bool return_after_mate=false> 
     bool GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive);
     template<bool doublereverse=true> bool Mate();
@@ -159,7 +158,7 @@ public:
         uint32_t theoretical_hash = 0;
         for(int j = 51; j <= 203; ++j){
             if(::isalpha(state_red[j])){
-                 theoretical_hash ^= _zobrist[(int)state_red[j]][j];
+                theoretical_hash ^= _zobrist[(int)state_red[j]][j];
             }
         }
         return theoretical_hash;
@@ -178,6 +177,10 @@ public:
         }
         return true;
     }
+    bool IAMDebugger(std::string s){
+        assert(s.size() == 4);
+        return Ismate_After_Move(f(s.substr(0, 2)), f(s.substr(2, 2)));
+    }
     #endif
     std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
     std::function<int(int)> translate_y = [](const int y) -> int {return 3 + y;};
@@ -185,59 +188,67 @@ public:
     std::function<int(int, int)> encode = [](const int x, const int y) -> int {return 16 * x + y;};  
     std::function<int(int)> reverse = [](const int x) -> int {return 254 - x;};
     std::function<char(char)> swapcase = [](const char c) -> char{
-       if(isalpha(c)) {
+        if(isalpha(c)) {
            return c ^ 32;
-       }
-       return c;
+        }
+        return c;
     };
 
     std::function<void(char*)> rotate = [this](char* p){
-       std::reverse(p, p+255);
-       std::transform(p, p+255, p, this -> swapcase);
-       p[255] = ' ';
-       memset(p + 256, 0, (MAX - 256) * sizeof(char));
+        std::reverse(p, p+255);
+        std::transform(p, p+255, p, this -> swapcase);
+        p[255] = ' ';
+        memset(p + 256, 0, (MAX - 256) * sizeof(char));
     };
    
     std::function<const char*(void)> getstatepointer = [this](){
-	   const char* _state_pointer = (this -> turn? this -> state_red : this -> state_black);
-       return _state_pointer;
+	    const char* _state_pointer = (this -> turn? this -> state_red : this -> state_black);
+        return _state_pointer;
     };
 
-    std::function<std::string(int)> translate_single = [](unsigned char i) -> std::string{
-       int x1 = 12 - (i >> 4);
-       int y1 = (i & 15) - 3;
-       std::string ret = "  ";
-       ret[0] = 'a' + y1;
-       ret[1] = '0' + x1;
-       return ret;
+    std::function<unsigned char(std::string)> f = [](std::string s) -> unsigned char {
+        if(s.size() != 2) return 0;
+        unsigned char x = s[1] - '0';
+        unsigned char y = s[0] - 'a';
+        return 195 - 16 * x + y;
     };
 
-    std::function<std::string(int, int)> translate_ucci = [this](unsigned char src, unsigned char dst) -> std::string{
-       return translate_single(src) + translate_single(dst);
+    std::function<std::string(unsigned char)> translate_single = [](unsigned char i) -> std::string{
+        int x1 = 12 - (i >> 4);
+        int y1 = (i & 15) - 3;
+        std::string ret = "  ";
+        ret[0] = 'a' + y1;
+        ret[1] = '0' + x1;
+        return ret;
+    };
+
+    std::function<std::string(unsigned char, unsigned char)> translate_ucci = [this](unsigned char src, unsigned char dst) -> std::string{
+        return translate_single(src) + translate_single(dst);
     };
 
     std::function<std::string(std::tuple<short, unsigned char, unsigned char>)> translate_tuple = \
-       [this](std::tuple<short, unsigned char, unsigned char> t) -> std::string{ 
-       return translate_single(std::get<1>(t)) + translate_single(std::get<2>(t));
+        [this](std::tuple<short, unsigned char, unsigned char> t) -> std::string{ 
+        return translate_single(std::get<1>(t)) + translate_single(std::get<2>(t));
     };
 
     std::function<uint32_t(void)> randU32 = []() -> uint32_t{
-	   //BUG: 在Windows上每次生成同样的随机数
-	   #ifdef WIN32
-	   //Windows RAND_MAX 0x7fff
-	   int a = rand();
-	   unsigned b = ((a & 1) << 15) | a; //符号位随机
-	   int c = rand();
-	   unsigned d = ((c & 1) << 15) | c; //符号位随机
-	   return (b << 16) | d;
-	   #else
-       std::mt19937 gen(std::random_device{}());
-       uint32_t randomNumber = gen();
-       return randomNumber;
-	   #endif
+	    //BUG: 在Windows上每次生成同样的随机数
+	    #ifdef WIN32
+	    //Windows RAND_MAX 0x7fff
+	    int a = rand();
+	    unsigned b = ((a & 1) << 15) | a; //符号位随机
+	    int c = rand();
+	    unsigned d = ((c & 1) << 15) | c; //符号位随机
+	    return (b << 16) | d;
+	    #else
+        std::mt19937 gen(std::random_device{}());
+        uint32_t randomNumber = gen();
+        return randomNumber;
+	    #endif
     };
    
 private:
+    const char* _kaijuku_file;
     std::string _myname;
     uint32_t _zobrist[123][256];
     bool _has_initialized = false;
@@ -279,6 +290,6 @@ private:
 }
 
 short mtd_quiescence1(board::AIBoard1* self, const short gamma, int quiesc_depth, const bool root);
-short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth);
+short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
 
 #endif

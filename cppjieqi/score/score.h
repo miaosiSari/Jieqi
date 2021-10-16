@@ -26,7 +26,7 @@
 #define INTa (int)'a'
 #define INTc (int)'c'
 #define INTp (int)'p'
-#define RETURN memset(pst, 0, sizeof(pst)); return false;
+#define RETURN memset(pst, 0, 123*256); return false;
 #define ENCODE(x, y) ((16 * (x)) + (y) + 51)
 #define VERSION_MAX 2
 #define SUM(VERSION) \
@@ -36,11 +36,8 @@ numb += di[VERSION][0][INTr]; numb += di[VERSION][0][INTn];  numb += di[VERSION]
 sumall[VERSION][1] = numr; sumall[VERSION][0] = numb;
 
 const std::string MINGZI = "RNBAKCP";
-bool read_score_table(const char* score_file);
-bool read_kaijuku(const char* kaijuku_file);
-void initialize_score_table(float discount_factor);
-bool debug(const char* debug_output_file);
-bool initialize_wrapper(const char* score_file, const char* kaijuku_file, const char* debug_output_file, float discount_factor);
-bool read_kaijuku(const char* kaijuku_file);
+bool read_score_table(const char* score_file, short pst[][256]);
+void copy_pst(short dst[][256], short src[][256]);
+bool read_kaijuku(const char* kaijuku_file, std::unordered_map<std::string, std::pair<unsigned char, unsigned char>>& kaijuku);
 
 #endif
