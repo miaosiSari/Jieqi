@@ -1044,9 +1044,8 @@ std::string mtd_thinker2(void* self){
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
     bp -> Scan();
-    bool traverse_all_strategy = bp -> all >= 8 ? false : true;
-    //bool traverse_all_strategy = true;
-    int max_depth = (bp -> round < 15?6:8);
+    bool traverse_all_strategy = true;
+    int max_depth = (bp -> round < 15?5:7);
     int quiesc_depth = (bp -> round < 15?1:0);
     int depth = 0;
     auto start = std::chrono::high_resolution_clock::now();
@@ -1062,7 +1061,7 @@ std::string mtd_thinker2(void* self){
             if(score >= gamma) { lower = score; }
             if(score < gamma) { upper = score; }
         }
-        mtd_alphabeta2(bp, lower, depth + quiesc_depth, true, true, true, quiesc_depth, true);
+        mtd_alphabeta2(bp, lower, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy);
         size_t int_ms = (size_t)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
         if(int_ms > 50000 || depth == max_depth){
             auto move = bp -> tp_move[{bp -> zobrist_hash, bp -> turn}];
@@ -1192,7 +1191,7 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
     bool mate = (depth == quiesc_depth ? self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive) : self -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
     mate = self -> Mate();
-    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp)){
+    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp) || self -> score < -MATE_UPPER/2){
         return -MATE_UPPER;
     }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);

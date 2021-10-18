@@ -1073,7 +1073,7 @@ std::string mtd_thinker1(void* self){
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
     bp -> Scan();
-    bool traverse_all_strategy = bp -> all >= 8 ? false : true;
+    bool traverse_all_strategy = true;
     int max_depth = (bp -> round < 15?5:7);
     int quiesc_depth = (bp -> round < 15?1:0);
     int depth = 0;
@@ -1221,7 +1221,7 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
     bool mate = (depth == quiesc_depth ? self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive) : self -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
     mate = self -> Mate();
-    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp)){
+    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp) || self -> score < -MATE_UPPER/2){
         return -MATE_UPPER;
     }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);

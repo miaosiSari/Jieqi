@@ -153,6 +153,10 @@ int God::StartThinker(){
             return RED_WIN;
          }else if(trim(think_result) == "R"){
             return BLACK_WIN;
+         }else if(trim(think_result) == "D"){
+            return DRAW;
+         }else if(trim(think_result) == "P"){
+            return WASTE;
          }
          if(!check_legal(think_result)) continue;
          std::shared_ptr<InfoDict> p = board_pointer -> Move(think_result, true);
@@ -186,6 +190,10 @@ int God::StartThinker(){
             return RED_WIN;
          }else if(trim(think_result) == "W"){
             return BLACK_WIN;
+         }else if(trim(think_result) == "D"){
+            return DRAW;
+         }else if(trim(think_result) == "P"){
+            return WASTE;
          }
          if(!check_legal(think_result)) continue;
          std::shared_ptr<InfoDict> p = board_pointer -> Move(think_result, true);
@@ -222,6 +230,13 @@ int God::StartGame(){
          ++blackwin;
          return BLACK_WIN;
       }
+      if(result == WASTE){
+         return WASTE;
+      }
+      if(result == DRAW){
+         ++draw;
+         return DRAW;
+      }
    }
    ++draw;
    return DRAW;
@@ -236,7 +251,7 @@ int God::StartGameLoop(unsigned winning_threshold){
    while(i < maxgame && draw < maxgame){
       int state = StartGame();
       printf("红%zu : 和%zu : 黑%zu\n", redwin, draw, blackwin);
-      if(state != DRAW){
+      if(state != DRAW && state != WASTE){
          ++i;
       }
       if(redwin >= winning_threshold){

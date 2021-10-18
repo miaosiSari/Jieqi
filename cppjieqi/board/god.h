@@ -21,9 +21,10 @@ namespace board{
 
 #define INVALID -1
 #define NORMAL 0
-#define DRAW 0
 #define BLACK_WIN 1
 #define RED_WIN 2
+#define WASTE 3
+#define DRAW 4
 #define MAX_ROUNDS 200
 #define NEWRED(X) board::get_withprefix("AIBoard", X, board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, board_pointer -> di_red, 0, board_pointer -> hist)
 #define NEWBLACK(X) board::get_withprefix("AIBoard", X, board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, board_pointer -> di_black, 0, board_pointer -> hist)
