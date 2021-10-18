@@ -68,6 +68,16 @@ bool read_score_table(const char* score_file, short pst[123][256]){
         }
     }
     if(!ret) { RETURN; }
+
+    //FIX BUG: AVERAGE VALUE IS NOT CALCULATED!
+    for(char c:MINGZI){
+        int sum = 0;
+        for(int i = 51; i <= 203; ++i){
+            if((i & 15) < 3 || (i & 15) > 11) { continue; }
+            sum += pst[(int)c][i];
+        }
+        pst[(int)c][0] = sum / 90;
+    }
     return true;
 }
 

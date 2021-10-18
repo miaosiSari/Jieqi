@@ -97,6 +97,7 @@ public:
     bool turn = true; //true红black黑
     const bool original_turn;//游戏时的红黑
     int original_depth;
+    unsigned char all = 0;
     unsigned char che = 0;
     unsigned char che_opponent = 0;
     unsigned char zu = 0;

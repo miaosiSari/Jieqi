@@ -44,6 +44,7 @@
 #include "thinker.h"
 #define ROOTED 0
 #define CLEAR_EVERY_DEPTH false
+#define GS(x) std::get<0>(x)
 
 template <typename T, typename U, typename V>
 bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
@@ -96,6 +97,7 @@ public:
     bool turn = true; //true红black黑
     const bool original_turn;//游戏时的红黑
     int original_depth;
+    unsigned char all = 0;
     unsigned char che = 0;
     unsigned char che_opponent = 0;
     unsigned char zu = 0;

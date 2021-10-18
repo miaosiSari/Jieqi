@@ -42,20 +42,40 @@ const char board::Board::_initial_state[MAX] =
                     "                "
                     "                ";
 #else
+/*
 const char board::Board::_initial_state[MAX] = 
                     "                "
                     "                "
                     "                "
-                    "   ....k....    "
+                    "   defgkgfed    "
                     "   .........    "
+                    "   .h.....h.    "
+                    "   i.i...i.i    "
+                    "   ....r....    "
+                    "   ......C..    "
+                    "   I.I.I...I    "
+                    "   .H.....H.    "
                     "   .........    "
-                    "   ....i....    "
+                    "   DEFGKGFED    "
+                    "                "
+                    "                "
+                    "                ";
+//这种情况黑方会车五进二吃兵, 目前框架理论上无法解决(因为吃兵也不是坏棋), 考虑使用双递归解决。
+*/
+const char board::Board::_initial_state[MAX] = 
+                    "                "
+                    "                "
+                    "                "
+                    "   defgkgfed    "
                     "   .........    "
+                    "   .h.....h.    "
+                    "   i.i...i.i    "
+                    "   ....r....    "
+                    "   ......C..    "
+                    "   I.I.I...I    "
+                    "   .H.....H.    "
                     "   .........    "
-                    "   .........    "
-                    "   ....R....    "
-                    "   .........    "
-                    "   ....K....    "
+                    "   DEFGKGFED    "
                     "                "
                     "                "
                     "                ";

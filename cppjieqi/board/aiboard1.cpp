@@ -348,6 +348,7 @@ void board::AIBoard1::UndoMove(int type){
 }
 
 void board::AIBoard1::Scan(){
+    all = 0;
     che = 0;
     che_opponent = 0;
     zu = 0;
@@ -363,8 +364,8 @@ void board::AIBoard1::Scan(){
     for(int i = 51; i <= 203; ++i){
         if((i & 15) < 3 || (i & 15) > 11) { continue; }
         const char p = _state_pointer[i];
-        if((i >> 4) == 3 && (p == 'd' || p == 'e' || p == 'f' || p == 'g' || p == 'r' || p == 'n' || p == 'c')){
-            ++endline;
+        if(p != '.'){
+            ++all;
         }
         if(p == 'R' || p == 'N' || p == 'B' || p == 'A' || p == 'K' || p == 'C' || p == 'P'){
             score_rough += pst[(int)p][i];
@@ -462,6 +463,7 @@ bool board::AIBoard1::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
     killer_is_alive = false;
     const char *_state_pointer = turn?state_red:state_black;
     for(unsigned char i = 51; i <= 203; ++i){
+        if((i & 15) < 3 || (i & 15) > 11) { continue; }
         const char p = _state_pointer[i];
         int intp = (int)p;
         if(!isupper(p) || p == 'U') {
@@ -684,7 +686,7 @@ void board::AIBoard1::CopyData(const unsigned char di[5][2][123]){
     memset(aisumall, 0, sizeof(aisumall));
     memset(aidi, 0, sizeof(aidi));
     memcpy(aidi, di, sizeof(aidi));
-    const float discount_factor = 1.2;
+    const float discount_factor = 1.5;
 
     for(int ver = 0; ver < VERSION_MAX; ++ver){
         short numr = 0, numb = 0; 
@@ -983,6 +985,7 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
             
             
         }else if(p == 'H'){
+
             if(src == 164 && dst == 68 && state_pointer[52] == 'e'){
                 short bonus = ::round(zu_possibility * bp -> aiaverage[version][turn][0][0]/2);
                 score += bonus/2;
@@ -1012,7 +1015,7 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
                         //else if(che == che_opponent): Python BUG
                     }
          
-        }else if(p == 'I'){
+        }else if(p == 'I' && state_pointer[src - 32] != 'r' && state_pointer[src - 32] != 'p'){
             if(state_pointer[src - 48] == 'i') {
                 score += 25; //制约对方兵
             }
@@ -1026,16 +1029,10 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
         int k = 254 - dst;
         if(q == 'R' || q == 'N' || q == 'B' || q == 'A' || q == 'C' || q == 'P'){
             score +=  bp -> pst[intq][k];
-            if(q == 'P' && state_pointer[dst + 32] == 'I'){
-                score += 20;  
-            }
         }
         else{
             if(q != 'U'){
-                score += bp -> aiaverage[version][1 - turn][0][0];
-                if(q == 'I'){
-                    score += 10;
-                }                   
+                score += bp -> aiaverage[version][1 - turn][0][0];                  
             }else{
                 score += bp -> aiaverage[version][1 - turn][1][k];
             }
@@ -1075,7 +1072,8 @@ std::string mtd_thinker1(void* self){
     board::AIBoard1* bp = reinterpret_cast<board::AIBoard1*>(self);
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
-    bool traverse_all_strategy = true;
+    bp -> Scan();
+    bool traverse_all_strategy = bp -> all >= 8 ? false : true;
     int max_depth = (bp -> round < 15?5:7);
     int quiesc_depth = (bp -> round < 15?1:0);
     int depth = 0;
@@ -1203,9 +1201,8 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
     unsigned char mate_src = 0, mate_dst = 0;
     if(root) { 
         self -> original_depth = depth;
-        self -> Scan();
     }
-    if(depth == self -> original_depth - 1 && self -> hist.find(self -> state_red) != self -> hist.end() && self -> hist[self -> state_red] != self -> original_turn){
+    if(self -> hist.find(self -> state_red) != self -> hist.end() && self -> hist[self -> state_red] != self -> original_turn){
         //假设AI执红。校验对象红方(self->original_turn)
         //红方走了一步, 形成局面A, self -> hist[self -> state_red] == false(因为现在是黑方)
         //如果和当前局面重复(当前局面为!self -> original_turn), 且turn也相同, 直接判断黑方胜利
@@ -1223,6 +1220,10 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
     }
     bool mate = (depth == quiesc_depth ? self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive) : self -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
+    mate = self -> Mate();
+    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp)){
+        return -MATE_UPPER;
+    }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);
     std::pair<uint32_t, int> pair = {self -> zobrist_hash, (depth << 1) + (int)self -> turn};
     if(self -> tp_score.find(pair) != self -> tp_score.end()){
@@ -1273,7 +1274,6 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
         }
 
         for(int j = 0; j < num_of_legal_moves_tmp; ++j){
-            //No forbidden move now!
             auto move_score_tuple = legal_moves_tmp[j];
             auto src = std::get<1>(move_score_tuple), dst = std::get<2>(move_score_tuple);
             #if DEBUG
