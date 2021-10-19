@@ -29,7 +29,7 @@ bool isT(std::string s, T* i){
    if(!ss.fail() && ss.eof()) { 
       return true; 
    }else{
-      *i = -1;
+      *i = 0;//由于有无符号数, = 0 更好
       return false;
    }
 }
@@ -50,8 +50,9 @@ God::God(const char* file): ok(true), redwin(0), blackwin(0), draw(0), file(file
       return;
    }
    while(std::getline(instream, line)){
-      if(counter >= 2){
+      if(counter >= 3){
          ok = false;
+         break;
       }
       line = trim(line);
 
@@ -61,8 +62,14 @@ God::God(const char* file): ok(true), redwin(0), blackwin(0), draw(0), file(file
          }
       }
 
-      if(counter == 1){
+      else if(counter == 1){
          if(!isT<int>(line, &type2)){
+            ok = false;
+         }
+      }
+
+      else if(counter == 2){
+         if(!isT<size_t>(line, &winning_threshold_class)){
             ok = false;
          }
       }
@@ -100,8 +107,9 @@ bool God::Reset(const char* another_file, bool clear_winning_log){
       ok = false;
    }
    while(std::getline(instream, line)){
-      if(counter >= 2){
+      if(counter >= 3){
          ok = false;
+         break;
       }
       line = trim(line);
       if(counter == 0){
@@ -115,10 +123,16 @@ bool God::Reset(const char* another_file, bool clear_winning_log){
             ok = false;
          }
       }
+
+      else if(counter == 2){
+         if(!isT<size_t>(line, &winning_threshold_class)){
+            ok = false;
+         }
+      }
+
       ++counter;
    }
    printf("I am the referee. You two must listen to me! player1 = %d, player2 = %d\n", type1, type2);
-   ok = true;
    instream.close();
    assert(ok);
    return true;
@@ -242,7 +256,10 @@ int God::StartGame(){
    return DRAW;
 }
 
-int God::StartGameLoop(unsigned winning_threshold){
+int God::StartGameLoop(size_t winning_threshold){
+   if(winning_threshold == 0) {
+      return DRAW;
+   }
    size_t i = 0;
    redwin = 0;
    draw = 0;
@@ -256,21 +273,31 @@ int God::StartGameLoop(unsigned winning_threshold){
       }
       if(redwin >= winning_threshold){
          printf("红方最终胜利!\n");
+         printf("红%zu : 和%zu : 黑%zu\n", redwin, draw, blackwin);
          return RED_WIN;
       }
       if(blackwin >= winning_threshold){
          printf("黑方最终胜利!\n");
+         printf("红%zu : 和%zu : 黑%zu\n", redwin, draw, blackwin);
          return BLACK_WIN;
       }
    }
+   printf("红%zu : 和%zu : 黑%zu\n", redwin, draw, blackwin);
    printf("握手言和\n");
    return DRAW;
 }
 
-int God::StartGameLoopAlternatively(unsigned winning_threshold){
+int God::StartGameLoop(){
+   return StartGameLoop(this -> winning_threshold_class);
+}
+
+int God::StartGameLoopAlternatively(size_t winning_threshold){
    redwin = 0;
    draw = 0;
    blackwin = 0;
+   if(winning_threshold == 0) {
+      return DRAW;
+   }
    size_t player1win = 0;
    size_t player2win = 0;
    size_t i = 0;
@@ -298,16 +325,23 @@ int God::StartGameLoopAlternatively(unsigned winning_threshold){
       }
       if(player1win >= winning_threshold){
          printf("玩家1获胜!\n");
+         printf("cnt = %d. Player1_win %zu : Draw %zu : Player2_win %zu\n", cnt, player1win, draw, player2win);
          return 1;
       }else if(player2win >= winning_threshold){
          printf("玩家2获胜!\n");
+         printf("cnt = %d. Player1_win %zu : Draw %zu : Player2_win %zu\n", cnt, player1win, draw, player2win);
          return 2;
       }
       cnt = !cnt;
       std::swap(type1, type2);
    }
    printf("握手言和!\n");
+   printf("cnt = %d. Player1_win %zu : Draw %zu : Player2_win %zu\n", cnt, player1win, draw, player2win);
    return 0;
+}
+
+int God::StartGameLoopAlternatively(){
+   return StartGameLoopAlternatively(winning_threshold_class);
 }
 
 bool God::GetTurn(){

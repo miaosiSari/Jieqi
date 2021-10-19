@@ -49,7 +49,7 @@ extern unsigned char L1[256][256];
 #define CH(X) self->C(X)
 
 namespace board{
-    class AIBoard2;
+    class AIBoard4;
 }
 
 template <typename T, typename U, typename V>
@@ -57,11 +57,11 @@ bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
         return std::get<0>(i) > std::get<0>(j);
 }
 
-typedef short(*SCORE)(board::AIBoard2* bp, const char* state_pointer, unsigned char src, unsigned char dst);
-typedef void(*KONGTOUPAO_SCORE)(board::AIBoard2* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
-typedef std::string(*THINKER)(board::AIBoard2* bp);
-void register_score_functions2();
-std::string SearchScoreFunction2(void* score_func, int type);
+typedef short(*SCORE)(board::AIBoard4* bp, const char* state_pointer, unsigned char src, unsigned char dst);
+typedef void(*KONGTOUPAO_SCORE)(board::AIBoard4* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
+typedef std::string(*THINKER)(board::AIBoard4* bp);
+void register_score_functions4();
+std::string SearchScoreFunction4(void* score_func, int type);
 extern short pstglobal[5][123][256];
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
@@ -90,7 +90,7 @@ struct myhash
 
 
 namespace board{
-class AIBoard2 : public Thinker{
+class AIBoard4 : public Thinker{
 public:
     short aiaverage[VERSION_MAX][2][2][256];
     unsigned char aisumall[VERSION_MAX][2];
@@ -129,10 +129,10 @@ public:
     std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>> tp_score;
     std::unordered_map<std::string, bool>* hist;
     std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
-    AIBoard2() noexcept;
-    AIBoard2(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept;
-    AIBoard2(const AIBoard2& another_board) = delete;
-    virtual ~AIBoard2()=default;
+    AIBoard4() noexcept;
+    AIBoard4(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept;
+    AIBoard4(const AIBoard4& another_board) = delete;
+    virtual ~AIBoard4()=default;
     void Reset() noexcept;
     void SetScoreFunction(std::string function_name, int type);
     std::string SearchScoreFunction(int type);
@@ -317,10 +317,10 @@ private:
 };
 }
 
-std::string mtd_thinker2(board::AIBoard2* bp);
-void complicated_kongtoupao_score_function2(board::AIBoard2* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
-short complicated_score_function2(board::AIBoard2* bp, const char* state_pointer, unsigned char src, unsigned char dst);
-short mtd_quiescence2(board::AIBoard2* self, const short gamma, int quiesc_depth, const bool root);
-short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
+std::string mtd_thinker4(board::AIBoard4* bp);
+void complicated_kongtoupao_score_function4(board::AIBoard4* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
+short complicated_score_function4(board::AIBoard4* self, const char* state_pointer, unsigned char src, unsigned char dst);
+short mtd_quiescence4(board::AIBoard4* self, const short gamma, int quiesc_depth, const bool root);
+short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
 
 #endif

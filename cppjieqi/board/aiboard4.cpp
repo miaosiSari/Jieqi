@@ -1,8 +1,8 @@
-#include "aiboard2.h"
+#include "aiboard4.h"
 
-REGISTER(AIBoard2, Thinker);
+REGISTER(AIBoard4, Thinker);
 
-std::unordered_map<int, char> LUT2 = {
+std::unordered_map<int, char> LUT4 = {
    {195, 'D'},
    {196, 'E'},
    {197, 'F'},
@@ -20,8 +20,8 @@ std::unordered_map<int, char> LUT2 = {
    {155, 'I'}
 };
 
-const int board::AIBoard2::_chess_board_size = CHESS_BOARD_SIZE;
-const char board::AIBoard2::_initial_state[MAX] = 
+const int board::AIBoard4::_chess_board_size = CHESS_BOARD_SIZE;
+const char board::AIBoard4::_initial_state[MAX] = 
                     "                "
                     "                "
                     "                "
@@ -41,7 +41,7 @@ const char board::AIBoard2::_initial_state[MAX] =
 
 
 
-const std::unordered_map<std::string, std::string> board::AIBoard2::_uni_pieces = {
+const std::unordered_map<std::string, std::string> board::AIBoard4::_uni_pieces = {
     {".", "．"},
     {"R", "\033[31m俥\033[0m"},
     {"N", "\033[31m傌\033[0m"},
@@ -73,12 +73,12 @@ const std::unordered_map<std::string, std::string> board::AIBoard2::_uni_pieces 
     {"u", "不"},
 };
 
-char board::AIBoard2::_dir[91][8] = {{0}};
-std::unordered_map<std::string, SCORE> score_bean2;
-std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean2;
-std::unordered_map<std::string, THINKER> thinker_bean2;
+char board::AIBoard4::_dir[91][8] = {{0}};
+std::unordered_map<std::string, SCORE> score_bean4;
+std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean4;
+std::unordered_map<std::string, THINKER> thinker_bean4;
 
-board::AIBoard2::AIBoard2() noexcept: 
+board::AIBoard4::AIBoard4() noexcept: 
                     version(0),
                     round(0),
                     turn(true),
@@ -87,12 +87,12 @@ board::AIBoard2::AIBoard2() noexcept:
                     zobrist_hash(0),
                     score(0),
                     _kaijuku_file("../kaijuku"),
-                    _myname("AI2"),
+                    _myname("AI4"),
                     _has_initialized(false),
                     _score_func(NULL),
                     _kongtoupao_score_func(NULL){
-    SetScoreFunction("complicated_score_function2", 0);
-    SetScoreFunction("complicated_kongtoupao_score_function2", 1);
+    SetScoreFunction("complicated_score_function4", 0);
+    SetScoreFunction("complicated_kongtoupao_score_function4", 1);
     tp_score.clear();
     tp_move.clear();
     score_cache.push(score);
@@ -100,18 +100,18 @@ board::AIBoard2::AIBoard2() noexcept:
     memset(state_black, 0, sizeof(state_black));
     strncpy(state_red, _initial_state, _chess_board_size);
     strncpy(state_black, _initial_state, _chess_board_size);
-    copy_pst(this -> pst, ::pstglobal[1]);
+    copy_pst(this -> pst, ::pstglobal[2]);
     _initialize_dir();
     _initialize_zobrist();
     zobrist_cache.insert((zobrist_hash << 1)|original_turn);
     Scan();
-    register_score_functions2();
+    register_score_functions4();
     read_kaijuku(_kaijuku_file, kaijuku);
     _has_initialized = true;
 }
 
 
-board::AIBoard2::AIBoard2(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
+board::AIBoard4::AIBoard4(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
                                                                                                                             version(0), 
                                                                                                                             round(round), 
                                                                                                                             turn(turn), 
@@ -120,12 +120,12 @@ board::AIBoard2::AIBoard2(const char another_state[MAX], bool turn, int round, c
                                                                                                                             score(score),
                                                                                                                             hist(hist),
                                                                                                                             _kaijuku_file("../kaijuku"),
-                                                                                                                            _myname("AI2"),
+                                                                                                                            _myname("AI4"),
                                                                                                                             _has_initialized(false),
                                                                                                                             _score_func(NULL),
                                                                                                                             _kongtoupao_score_func(NULL){
-    SetScoreFunction("complicated_score_function2", 0);
-    SetScoreFunction("complicated_kongtoupao_score_function2", 1);
+    SetScoreFunction("complicated_score_function4", 0);
+    SetScoreFunction("complicated_kongtoupao_score_function4", 1);
     tp_score.clear();
     tp_move.clear();
     score_cache.push(score);
@@ -144,14 +144,14 @@ board::AIBoard2::AIBoard2(const char another_state[MAX], bool turn, int round, c
     _initialize_zobrist();
     zobrist_cache.insert((zobrist_hash << 1)|original_turn);
     Scan();
-    register_score_functions2();
+    register_score_functions4();
     if(round == 0){
         read_kaijuku(_kaijuku_file, kaijuku);
     }
     _has_initialized = true;
 }
 
-void board::AIBoard2::_initialize_dir(){
+void board::AIBoard4::_initialize_dir(){
     memset(_dir, 0, sizeof(_dir));
     _dir[(int)'P'][0] = NORTH;
     _dir[(int)'P'][1] = WEST;
@@ -214,28 +214,28 @@ void board::AIBoard2::_initialize_dir(){
     _dir[(int)'K'][3] = WEST;
 }
 
-void board::AIBoard2::SetScoreFunction(std::string function_name, int type){
+void board::AIBoard4::SetScoreFunction(std::string function_name, int type){
     if(type == 0){
-        _score_func = GetWithDefUnordered<std::string, SCORE>(score_bean2, function_name, complicated_score_function2);
+        _score_func = GetWithDefUnordered<std::string, SCORE>(score_bean4, function_name, complicated_score_function4);
     }else if(type == 1){
-        _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE>(kongtoupao_score_bean2, function_name, complicated_kongtoupao_score_function2);
+        _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE>(kongtoupao_score_bean4, function_name, complicated_kongtoupao_score_function4);
     }else if(type == 2){
-        _thinker_func = GetWithDefUnordered<std::string, THINKER>(thinker_bean2, function_name, mtd_thinker2);
+        _thinker_func = GetWithDefUnordered<std::string, THINKER>(thinker_bean4, function_name, mtd_thinker4);
     }
 }
 
-std::string board::AIBoard2::SearchScoreFunction(int type){
+std::string board::AIBoard4::SearchScoreFunction(int type){
     if(type == 0){
-        return ::SearchScoreFunction2(reinterpret_cast<void*>(_score_func), type);
+        return ::SearchScoreFunction4(reinterpret_cast<void*>(_score_func), type);
     }else if(type == 1){
-        return ::SearchScoreFunction2(reinterpret_cast<void*>(_kongtoupao_score_func), type);
+        return ::SearchScoreFunction4(reinterpret_cast<void*>(_kongtoupao_score_func), type);
     }else if(type == 2){
-        return ::SearchScoreFunction2(reinterpret_cast<void*>(_thinker_func), type);
+        return ::SearchScoreFunction4(reinterpret_cast<void*>(_thinker_func), type);
     }
     return "";
 }
 
-bool board::AIBoard2::Move(const unsigned char encode_from, const unsigned char encode_to, short score_step){
+bool board::AIBoard4::Move(const unsigned char encode_from, const unsigned char encode_to, short score_step){
     const unsigned char reverse_encode_from = reverse(encode_from);
     const unsigned char reverse_encode_to = reverse(encode_to);
     if(turn){
@@ -286,7 +286,7 @@ bool board::AIBoard2::Move(const unsigned char encode_from, const unsigned char 
     return retval;
 }
 
-void board::AIBoard2::NULLMove(){
+void board::AIBoard4::NULLMove(){
     turn = !turn;
     zobrist_cache.insert((zobrist_hash << 1)|turn);
     score = -score;
@@ -294,7 +294,7 @@ void board::AIBoard2::NULLMove(){
     Scan();
 }
 
-void board::AIBoard2::UndoMove(int type){
+void board::AIBoard4::UndoMove(int type){
     score_cache.pop();
     score = score_cache.top();
     zobrist_cache.erase((zobrist_hash<<1)|turn);
@@ -313,9 +313,9 @@ void board::AIBoard2::UndoMove(int type){
         if(turn){
             zobrist_hash ^= _zobrist[(int)state_red[encode_to]][encode_to];
             if(state_red[encode_to] == 'U'){
-                state_red[encode_from] = LUT2[encode_from];
+                state_red[encode_from] = LUT4[encode_from];
                 state_red[encode_to] = eat;
-                state_black[reverse_encode_from] = swapcase(LUT2[encode_from]);
+                state_black[reverse_encode_from] = swapcase(LUT4[encode_from]);
                 state_black[reverse_encode_to] = swapcase(eat);
             }else{
                 state_red[encode_from] = state_red[encode_to];
@@ -328,9 +328,9 @@ void board::AIBoard2::UndoMove(int type){
         }else{
             zobrist_hash ^= _zobrist[(int)state_red[reverse_encode_to]][reverse_encode_to];
             if(state_black[encode_to] == 'U'){
-                state_black[encode_from] = LUT2[encode_from];
+                state_black[encode_from] = LUT4[encode_from];
                 state_black[encode_to] = eat;
-                state_red[reverse_encode_from] = swapcase(LUT2[encode_from]);
+                state_red[reverse_encode_from] = swapcase(LUT4[encode_from]);
                 state_red[reverse_encode_to] = swapcase(eat);
             }else{
                 state_black[encode_from] = state_black[encode_to];
@@ -347,7 +347,7 @@ void board::AIBoard2::UndoMove(int type){
     }
 }
 
-void board::AIBoard2::Scan(){
+void board::AIBoard4::Scan(){
     all = 0;
     che = 0;
     che_opponent = 0;
@@ -405,7 +405,7 @@ void board::AIBoard2::Scan(){
     _kongtoupao_score_func(this, &kongtoupao_score, &kongtoupao_score_opponent);
 }
 
-short board::AIBoard2::ScanProtectors(){
+short board::AIBoard4::ScanProtectors(){
     const char *_state_pointer = turn?state_red:state_black;
     protector = 4;
     protector_oppo = 4;
@@ -467,7 +467,7 @@ short board::AIBoard2::ScanProtectors(){
     return bonus;
 }
 
-void board::AIBoard2::KongTouPao(const char* _state_pointer, int pos, bool myself){
+void board::AIBoard4::KongTouPao(const char* _state_pointer, int pos, bool myself){
     char cannon = myself?'C':'c';
     char king = myself?'k':'K';
     if(myself){
@@ -518,7 +518,7 @@ void board::AIBoard2::KongTouPao(const char* _state_pointer, int pos, bool mysel
 } //KongTouPao
 
 template<bool needscore=true, bool return_after_mate=false>
-bool board::AIBoard2::GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive){
+bool board::AIBoard4::GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive){
     num_of_legal_moves = 0;
     killer_score = 0;
     bool mate = false;
@@ -674,7 +674,7 @@ bool board::AIBoard2::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
 
 
 template<bool doublereverse=true>
-bool board::AIBoard2::Mate(){
+bool board::AIBoard4::Mate(){
     if(doublereverse)
         turn = !turn;
     std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[MAX_POSSIBLE_MOVES];
@@ -688,7 +688,7 @@ bool board::AIBoard2::Mate(){
     return mate;
 }
 
-bool board::AIBoard2::Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp){
+bool board::AIBoard4::Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp){
     //判断是否被对方将死
     //注意, 这个函数应该在mate_by_oppo为true的时候调用。如mate_by_oppo==false, 根本没将军, 调用没意义
     if(!*oppo_mate){
@@ -711,7 +711,7 @@ bool board::AIBoard2::Executed(bool* oppo_mate, std::tuple<short, unsigned char,
 }
 
 #if DEBUG
-bool board::AIBoard2::ExecutedDebugger(bool *oppo_mate){
+bool board::AIBoard4::ExecutedDebugger(bool *oppo_mate){
     std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[MAX_POSSIBLE_MOVES];
     int num_of_legal_moves_tmp = 0;
     short killer_score = 0;
@@ -722,7 +722,7 @@ bool board::AIBoard2::ExecutedDebugger(bool *oppo_mate){
 }
 #endif
 
-bool board::AIBoard2::Ismate_After_Move(unsigned char src, unsigned char dst){
+bool board::AIBoard4::Ismate_After_Move(unsigned char src, unsigned char dst){
     //判断本方在走完某步棋后是否对对方形成将军
     //return true: 形成将军
     //return false: 不形成将军
@@ -743,7 +743,7 @@ bool board::AIBoard2::Ismate_After_Move(unsigned char src, unsigned char dst){
     return mate;
 }
 
-void board::AIBoard2::CopyData(const unsigned char di[5][2][123]){
+void board::AIBoard4::CopyData(const unsigned char di[5][2][123]){
     memset(aiaverage, 0, sizeof(aiaverage));
     memset(aisumall, 0, sizeof(aisumall));
     memset(aidi, 0, sizeof(aidi));
@@ -786,7 +786,7 @@ void board::AIBoard2::CopyData(const unsigned char di[5][2][123]){
     }
 }
 
-std::string board::AIBoard2::Kaiju(){
+std::string board::AIBoard4::Kaiju(){
     if(turn){
         #if DEBUG
         return _thinker_func(this);
@@ -816,13 +816,13 @@ std::string board::AIBoard2::Kaiju(){
     return "";
 }
 
-std::string board::AIBoard2::Think(){
+std::string board::AIBoard4::Think(){
     SetScoreFunction("mtd_thinker", 2);
     return round == 0 ? Kaiju() : _thinker_func(this);
 }
 
 
-void board::AIBoard2::PrintPos(bool turn) const{
+void board::AIBoard4::PrintPos(bool turn) const{
     printf("version = %d, turn = %d, this -> turn = %d, round = %d\n", version, turn, this -> turn, round);
     if(turn){
         printf("红方视角:\n");
@@ -840,7 +840,7 @@ void board::AIBoard2::PrintPos(bool turn) const{
     std::cout << "  ａｂｃｄｅｆｇｈｉ\n\n";
 }
 
-std::string board::AIBoard2::DebugPrintPos(bool turn) const{
+std::string board::AIBoard4::DebugPrintPos(bool turn) const{
     std::string ret;
     if(turn){
         ret += "RED\n";   
@@ -860,7 +860,7 @@ std::string board::AIBoard2::DebugPrintPos(bool turn) const{
     return ret;
 }
 
-void board::AIBoard2::print_raw_board(const char* board, const char* hint){
+void board::AIBoard4::print_raw_board(const char* board, const char* hint){
     std::cout << hint << std::endl;
     int row = 9;
     for(int i = 51; i < 203; i += 16){
@@ -876,15 +876,16 @@ void board::AIBoard2::print_raw_board(const char* board, const char* hint){
 
 
 template<typename... Args>
-void board::AIBoard2::print_raw_board(const char* board, const char* hint, Args... args){
+void board::AIBoard4::print_raw_board(const char* board, const char* hint, Args... args){
     print_raw_board(board, hint);
     print_raw_board(args...);
 }
 
-short complicated_score_function2(board::AIBoard2* bp, const char* state_pointer, unsigned char src, unsigned char dst){
+inline short complicated_score_function4(board::AIBoard4* self, const char* state_pointer, unsigned char src, unsigned char dst){
     #define LOWER_BOUND -32768
     #define UPPER_BOUND 32767
     constexpr short MATE_UPPER = 3696;
+    board::AIBoard4* bp = reinterpret_cast<board::AIBoard4*>(self);
     int version = bp -> version;
     int turn = bp -> turn ? 1 : 0;
     int che_char = bp -> turn ? (int)'R': (int)'r';
@@ -1082,7 +1083,7 @@ short complicated_score_function2(board::AIBoard2* bp, const char* state_pointer
     return (short)round(score);
 }
 
-void complicated_kongtoupao_score_function2(board::AIBoard2* bp, short* kongtoupao_score, short* kongtoupao_score_opponent){
+inline void complicated_kongtoupao_score_function4(board::AIBoard4* bp, short* kongtoupao_score, short* kongtoupao_score_opponent){
     if(bp -> kongtoupao > bp -> kongtoupao_opponent){
         if((bp -> che >= bp -> che_opponent && bp -> che > 0) || bp -> kongtoupao >= 3)
             *kongtoupao_score = 180;
@@ -1099,7 +1100,7 @@ void complicated_kongtoupao_score_function2(board::AIBoard2* bp, short* kongtoup
 }
 
 
-std::string mtd_thinker2(board::AIBoard2* bp){
+std::string mtd_thinker4(board::AIBoard4* bp){
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 0;
     bp -> Scan();
@@ -1116,11 +1117,11 @@ std::string mtd_thinker2(board::AIBoard2* bp){
         short lower = -MATE_UPPER, upper = MATE_UPPER;
         while(lower < upper - EVAL_ROBUSTNESS){
             short gamma = (lower + upper + 1)/2; //不会溢出
-            short score = mtd_alphabeta2(bp, gamma, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy);
+            short score = mtd_alphabeta4(bp, gamma, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy);
             if(score >= gamma) { lower = score; }
             if(score < gamma) { upper = score; }
         }
-        mtd_alphabeta2(bp, lower, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy);
+        mtd_alphabeta4(bp, lower, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy);
         size_t int_ms = (size_t)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
         if(int_ms > 50000 || depth == max_depth){
             auto move = bp -> tp_move[{bp -> zobrist_hash, bp -> turn}];
@@ -1143,7 +1144,7 @@ std::string mtd_thinker2(board::AIBoard2* bp){
     return "";
 }
 
-short mtd_quiescence2(board::AIBoard2* self, const short gamma, int quiesc_depth, const bool root){
+short mtd_quiescence4(board::AIBoard4* self, const short gamma, int quiesc_depth, const bool root){
     constexpr short MATE_UPPER = 3696;
     constexpr int TOPK = 3;
     unsigned char mate_src = 0, mate_dst = 0;
@@ -1206,7 +1207,7 @@ short mtd_quiescence2(board::AIBoard2* self, const short gamma, int quiesc_depth
             into = true;
             bool retval = self -> Move(src, dst, std::get<0>(move_score_tuple));
             if(retval){
-                score = -mtd_quiescence2(self, 1 - gamma, quiesc_depth - 1, false);
+                score = -mtd_quiescence4(self, 1 - gamma, quiesc_depth - 1, false);
             }
             self -> UndoMove(1);
             if(retval && judge(score, src, dst, &best)){
@@ -1226,7 +1227,7 @@ short mtd_quiescence2(board::AIBoard2* self, const short gamma, int quiesc_depth
     return best;
 }
 
-short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy){
+short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy){
     constexpr short MATE_UPPER = 3696;
     unsigned char mate_src = 0, mate_dst = 0;
     if(root) { 
@@ -1267,7 +1268,7 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
     }
     mate = self -> Mate();
     if(depth == quiesc_depth){
-        return mtd_quiescence2(self, gamma, quiesc_depth, true);
+        return mtd_quiescence4(self, gamma, quiesc_depth, true);
     }
     short score = 0, best = -MATE_UPPER;
     std::function<bool(short, unsigned char, unsigned char, short*)> judge = [&](short score, unsigned char src, unsigned char dst, short* best){
@@ -1286,7 +1287,7 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
     do{
         if(nullmove && nullmove_now && depth > 3 && !mate && !root){
             self -> NULLMove();
-            score = -mtd_alphabeta2(self, 1 - gamma, depth - 3, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy); //Attempt: false --> nullmove
+            score = -mtd_alphabeta4(self, 1 - gamma, depth - 3, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy); //Attempt: false --> nullmove
             self -> UndoMove(0);
             if(judge(score, 0, 0, &best) && (!root || !traverse_all_strategy)){
                 break;
@@ -1295,7 +1296,7 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
         if(killer_is_alive){
             bool retval = self -> Move(killer.first, killer.second, killer_score);
             if(retval){
-                score = -mtd_alphabeta2(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy);
+                score = -mtd_alphabeta4(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy);
             }
             self -> UndoMove(1);
             if(retval && judge(score, killer.first, killer.second, &best) && (!root || !traverse_all_strategy)){
@@ -1312,7 +1313,7 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
             #endif
             bool retval = self -> Move(src, dst, std::get<0>(move_score_tuple));
             if(retval){
-                score = -mtd_alphabeta2(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy);
+                score = -mtd_alphabeta4(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy);
             }
             self -> UndoMove(1);
             #if DEBUG
@@ -1332,29 +1333,29 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
     return best;
 }
 
-void register_score_functions2(){
-    score_bean2.insert({"complicated_score_function2", complicated_score_function2});
-    kongtoupao_score_bean2.insert({"complicated_kongtoupao_score_function2", complicated_kongtoupao_score_function2});
-    thinker_bean2.insert({"mtd_thinker2", mtd_thinker2});
+void register_score_functions4(){
+    score_bean4.insert({"complicated_score_function4", complicated_score_function4});
+    kongtoupao_score_bean4.insert({"complicated_kongtoupao_score_function4", complicated_kongtoupao_score_function4});
+    thinker_bean4.insert({"mtd_thinker4", mtd_thinker4});
 }
 
-std::string SearchScoreFunction2(void* score_func, int type){
+std::string SearchScoreFunction4(void* score_func, int type){
     if(type == 0){
-        for(auto it = score_bean2.begin(); it != score_bean2.end(); ++it){
+        for(auto it = score_bean4.begin(); it != score_bean4.end(); ++it){
             if(it -> second == score_func){
                 return it -> first;
             }
         } 
         return "";
     }else if(type == 1){
-        for(auto it = kongtoupao_score_bean2.begin(); it != kongtoupao_score_bean2.end(); ++it){
+        for(auto it = kongtoupao_score_bean4.begin(); it != kongtoupao_score_bean4.end(); ++it){
             if(it -> second == score_func){
                 return it -> first;
             }
         } 
         return "";
     }else if(type == 2){
-        for(auto it = thinker_bean2.begin(); it != thinker_bean2.end(); ++it){
+        for(auto it = thinker_bean4.begin(); it != thinker_bean4.end(); ++it){
             if(it -> second == score_func){
                 return it -> first;
             }

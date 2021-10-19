@@ -1,5 +1,6 @@
 #include "score.h"
-short pstglobal[2][123][256];
+short pstglobal[5][123][256];
+unsigned char L1[256][256]; //L1 distance between chesses
 
 bool read_score_table(const char* score_file, short pst[123][256]){
     std::unordered_map<char, bool> is_read;
@@ -134,4 +135,16 @@ bool read_kaijuku(const char* kaijuku_file, std::unordered_map<std::string, std:
         state = (state + 1) % 2;
     }
     return true;
+}
+
+void IntializeL1(){
+    for(int i = 0; i < 256; ++i){
+        for(int j = 0; j < 256; ++j){
+            int x1 = i >> 4;
+            int x2 = j >> 4;
+            int y1 = i & 15;
+            int y2 = j & 15;
+            L1[i][j] = (unsigned char)(abs(x2 - x1) + abs(y2 - y1));
+        }
+    }
 }

@@ -2,7 +2,7 @@
 #define global_h
 
 #define DEBUG 0
-#define BLACK 0
+#define BLACK 1
 #include <map>
 #include <unordered_map>
 #include <algorithm>
@@ -14,11 +14,11 @@
 
 namespace board{
    class Thinker;
-   int register_func(std::string x, std::function<board::Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>)> y);
+   int register_func(std::string x, std::function<board::Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>*)> y);
 }
 
 #define REGISTER(class, baseclass) \
-int tmp_ ## class ##_ ## baseclass = board::register_func(#class, [](const char another_state[], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist)\
+int tmp_ ## class ##_ ## baseclass = board::register_func(#class, [](const char another_state[], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist)\
  -> board::baseclass * {return new board::class(another_state, turn, round, di, score, hist);});
 
 

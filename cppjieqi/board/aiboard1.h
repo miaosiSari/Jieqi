@@ -17,6 +17,7 @@
 #define SOUTH 16
 #define WEST -1
 #define GS(x) std::get<0>(x)
+extern unsigned char L1[256][256];
 
 #include <cstddef>
 #include <vector>
@@ -45,21 +46,23 @@
 #include "thinker.h"
 #define ROOTED 0
 #define CLEAR_EVERY_DEPTH false
+#define CH(X) self->C(X)
+
+namespace board{
+    class AIBoard1;
+}
 
 template <typename T, typename U, typename V>
 bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
         return std::get<0>(i) > std::get<0>(j);
 }
 
-std::string mtd_thinker1(void* self);
-typedef short(*SCORE)(void* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
-typedef void(*KONGTOUPAO_SCORE)(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
-typedef std::string(*THINKER)(void* board_pointer);
-inline void complicated_kongtoupao_score_function1(void* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
-inline short complicated_score_function1(void* self, const char* state_pointer, unsigned char src, unsigned char dst);
+typedef short(*SCORE)(board::AIBoard1* board_pointer, const char* state_pointer, unsigned char src, unsigned char dst);
+typedef void(*KONGTOUPAO_SCORE)(board::AIBoard1* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
+typedef std::string(*THINKER)(board::AIBoard1* board_pointer);
 void register_score_functions1();
 std::string SearchScoreFunction1(void* score_func, int type);
-extern short pstglobal[2][123][256];
+extern short pstglobal[5][123][256];
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
 extern void copy_pst(short dst[][256], short src[][256]);
@@ -122,10 +125,10 @@ public:
     std::unordered_map<std::pair<uint32_t, bool>, std::pair<unsigned char, unsigned char>, myhash<uint32_t, bool>> tp_move;
     //tp_score: (zobrist_key, turn, depth <depth * 2 + turn>) --> (lower, upper)
     std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>> tp_score;
-    std::unordered_map<std::string, bool> hist;
+    std::unordered_map<std::string, bool>* hist;
     std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
     AIBoard1() noexcept;
-    AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist) noexcept;
+    AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept;
     AIBoard1(const AIBoard1& another_board) = delete;
     virtual ~AIBoard1()=default;
     void Reset() noexcept;
@@ -178,6 +181,26 @@ public:
         }
         return true;
     }
+
+    bool _C(std::vector<std::string>& prefix){
+        return C(prefix);
+    }
+
+    template <typename... Args>
+    bool _C(std::vector<std::string>& prefix, std::string& now, Args... args){
+        prefix.push_back(now);
+        return _C(prefix, args...);
+    }
+ 
+    template <typename... Args>
+    bool C(Args... args){
+        if(sizeof...(args) == 0) {
+            return true;
+        }
+        std::vector<std::string> prefix;
+        return _C(prefix, args...);
+    }
+
     bool IAMDebugger(std::string s){
         assert(s.size() == 4);
         return Ismate_After_Move(f(s.substr(0, 2)), f(s.substr(2, 2)));
@@ -290,6 +313,9 @@ private:
 };
 }
 
+std::string mtd_thinker1(board::AIBoard1* bp);
+void complicated_kongtoupao_score_function1(board::AIBoard1* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
+short complicated_score_function1(board::AIBoard1* self, const char* state_pointer, unsigned char src, unsigned char dst);
 short mtd_quiescence1(board::AIBoard1* self, const short gamma, int quiesc_depth, const bool root);
 short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
 

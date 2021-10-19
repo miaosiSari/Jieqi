@@ -91,8 +91,8 @@ board::AIBoard1::AIBoard1() noexcept:
                     _has_initialized(false),
                     _score_func(NULL),
                     _kongtoupao_score_func(NULL){
-    SetScoreFunction("complicated_score_function", 0);
-    SetScoreFunction(std::string("complicated_kongtoupao_score_function"), 1);
+    SetScoreFunction("complicated_score_function1", 0);
+    SetScoreFunction("complicated_kongtoupao_score_function1", 1);
     tp_score.clear();
     tp_move.clear();
     score_cache.push(score);
@@ -111,7 +111,7 @@ board::AIBoard1::AIBoard1() noexcept:
 }
 
 
-board::AIBoard1::AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool> hist) noexcept: 
+board::AIBoard1::AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
                                                                                                                             version(0), 
                                                                                                                             round(round), 
                                                                                                                             turn(turn), 
@@ -124,8 +124,8 @@ board::AIBoard1::AIBoard1(const char another_state[MAX], bool turn, int round, c
                                                                                                                             _has_initialized(false),
                                                                                                                             _score_func(NULL),
                                                                                                                             _kongtoupao_score_func(NULL){
-    SetScoreFunction("complicated_score_function", 0);
-    SetScoreFunction(std::string("complicated_kongtoupao_score_function"), 1);
+    SetScoreFunction("complicated_score_function1", 0);
+    SetScoreFunction("complicated_kongtoupao_score_function1", 1);
     tp_score.clear();
     tp_move.clear();
     score_cache.push(score);
@@ -203,7 +203,6 @@ void board::AIBoard1::_initialize_dir(){
     _dir[(int)'A'][0] = NORTH + EAST;
     _dir[(int)'A'][1] = SOUTH + EAST;
     _dir[(int)'A'][2] = NORTH + WEST;
-    _dir[(int)'A'][3] = SOUTH + WEST;
 
     _dir[(int)'G'][0] = NORTH + EAST;
     _dir[(int)'G'][1] = NORTH + WEST;
@@ -819,11 +818,10 @@ void board::AIBoard1::print_raw_board(const char* board, const char* hint, Args.
     print_raw_board(args...);
 }
 
-inline short complicated_score_function1(void* self, const char* state_pointer, unsigned char src, unsigned char dst){
+short complicated_score_function1(board::AIBoard1* bp, const char* state_pointer, unsigned char src, unsigned char dst){
     #define LOWER_BOUND -32768
     #define UPPER_BOUND 32767
     constexpr short MATE_UPPER = 3696;
-    board::AIBoard1* bp = reinterpret_cast<board::AIBoard1*>(self);
     int version = bp -> version;
     int turn = bp -> turn ? 1 : 0;
     int che_char = bp -> turn ? (int)'R': (int)'r';
@@ -1050,8 +1048,7 @@ inline short complicated_score_function1(void* self, const char* state_pointer, 
     return (short)round(score);
 }
 
-inline void complicated_kongtoupao_score_function1(void* self, short* kongtoupao_score, short* kongtoupao_score_opponent){
-    board::AIBoard1* bp = reinterpret_cast<board::AIBoard1*>(self);
+void complicated_kongtoupao_score_function1(board::AIBoard1* bp, short* kongtoupao_score, short* kongtoupao_score_opponent){
     if(bp -> kongtoupao > bp -> kongtoupao_opponent){
         if((bp -> che >= bp -> che_opponent && bp -> che > 0) || bp -> kongtoupao >= 3)
             *kongtoupao_score = 180;
@@ -1068,13 +1065,12 @@ inline void complicated_kongtoupao_score_function1(void* self, short* kongtoupao
 }
 
 
-std::string mtd_thinker1(void* self){
-    board::AIBoard1* bp = reinterpret_cast<board::AIBoard1*>(self);
+std::string mtd_thinker1(board::AIBoard1* bp){
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 13;
     bp -> Scan();
     bool traverse_all_strategy = true;
-    int max_depth = (bp -> round < 15?5:7);
+    int max_depth = (bp -> round < 15?6:7);
     int quiesc_depth = (bp -> round < 15?1:0);
     int depth = 0;
     auto start = std::chrono::high_resolution_clock::now();
@@ -1101,7 +1097,6 @@ std::string mtd_thinker1(void* self){
                 bool killer_is_alive = false;
                 short killer_score = 0;
                 bp -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
-                exit(-1);
                 std::cout << "[AM I FAILED?]" << num_of_legal_moves_tmp << " My move: " << bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0])) << ", duration = " << int_ms << ", depth = " << depth + quiesc_depth << "." << std::endl;
                 if(num_of_legal_moves_tmp != 0){
                     return bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0]));
@@ -1202,7 +1197,7 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
     if(root) { 
         self -> original_depth = depth;
     }
-    if(self -> hist.find(self -> state_red) != self -> hist.end() && self -> hist[self -> state_red] != self -> original_turn){
+    if(self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){
         //假设AI执红。校验对象红方(self->original_turn)
         //红方走了一步, 形成局面A, self -> hist[self -> state_red] == false(因为现在是黑方)
         //如果和当前局面重复(当前局面为!self -> original_turn), 且turn也相同, 直接判断黑方胜利
@@ -1303,9 +1298,9 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
 }
 
 void register_score_functions1(){
-    score_bean1.insert({"complicated_score_function", complicated_score_function1});
-    kongtoupao_score_bean1.insert({"complicated_kongtoupao_score_function", complicated_kongtoupao_score_function1});
-    thinker_bean1.insert({"mtd_thinker", mtd_thinker1});
+    score_bean1.insert({"complicated_score_function1", complicated_score_function1});
+    kongtoupao_score_bean1.insert({"complicated_kongtoupao_score_function1", complicated_kongtoupao_score_function1});
+    thinker_bean1.insert({"mtd_thinker1", mtd_thinker1});
 }
 
 std::string SearchScoreFunction1(void* score_func, int type){

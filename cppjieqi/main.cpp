@@ -9,13 +9,19 @@
 
 extern bool read_score_table(const char* score_file, short pst[][256]);
 extern void copy_pst(short dst[][256], short src[][256]);
-extern short pstglobal[2][123][256];
+extern void IntializeL1();
+extern short pstglobal[5][123][256];
+extern unsigned char L1[256][256];
 
 int main(void) {
     srand(time(NULL));
+    IntializeL1();
+    printf("%d\n", L1[183][168]);
+    memset(pstglobal, 0, sizeof(pstglobal));
     assert(read_score_table("../score.conf", pstglobal[0]));
     assert(read_score_table("../score.conf", pstglobal[1]));
+    assert(read_score_table("../score.conf", pstglobal[2]));
     God g("../players.conf");
-    DEBUG ? g.StartGame() : g.StartGameLoopAlternatively(5);
+    DEBUG ? g.StartGame() : g.StartGameLoopAlternatively();
     return 0;
 }

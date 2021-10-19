@@ -64,100 +64,40 @@ initial_covered = (
     '               \n'  # 0
     '               \n'  # 1
     '               \n'  # 2
-    '   defgkgfed   \n'  # 3
-    '   .........   \n'  # 4
+    '   defg.kfed   \n'  # 3
+    '   ....a....   \n'  # 4
     '   .h.....h.   \n'  # 5
-    '   i.i.i.i.i   \n'  # 6
-    '   .........   \n'  # 7
+    '   i.i...i.i   \n'  # 6
+    '   .....r...   \n'  # 7
     '   .........   \n'  # 8
     '   I.I.I.I.I   \n'  # 9
-    '   .H.....H.   \n'  # 10
-    '   .........   \n'  # 11
-    '   DEFGKGFED   \n'  # 12
-    '               \n'  # 13
-    '               \n'  # 14
-    '                '  # 15
-)
-
-'''
-bug = (
-    '               \n'  # 0
-    '               \n'  # 1
-    '               \n'  # 2
-    '   defgkgfed   \n'  # 3
-    '   .........   \n'  # 4
-    '   .h.....h.   \n'  # 5
-    '   i.i...i..   \n'  # 6
-    '   ....a...p   \n'  # 7
-    '   A...C.B..   \n'  # 8
-    '   ..I.....I   \n'  # 9
-    '   .H.....H.   \n'  # 10
-    '   .........   \n'  # 11
-    '   DEFGKGFED   \n'  # 12
-    '               \n'  # 13
-    '               \n'  # 14
-    '                '  # 15
-)
-'''
-
-'''
-bug = (
-    '               \n'  # 0
-    '               \n'  # 1
-    '               \n'  # 2
-    '   d.fgkgf.d   \n'  # 3
-    '   .........   \n'  # 4
-    '   b.....p..   \n'  # 5
-    '   i.i...i..   \n'  # 6
-    '   ....p..np   \n'  # 7
-    '   .cP...P.B   \n'  # 8
-    '   I...I....   \n'  # 9
-    '   .H.R...H.   \n'  # 10
-    '   C........   \n'  # 11
-    '   DE.GKGFED   \n'  # 12
-    '               \n'  # 13
-    '               \n'  # 14
-    '                '  # 15
-)
-'''
-
-bug = (
-    '               \n'  # 0
-    '               \n'  # 1
-    '               \n'  # 2
-    '   ....k....   \n'  # 3
-    '   .........   \n'  # 4
-    '   .........   \n'  # 5
-    '   .........   \n'  # 6
-    '   ...rC....   \n'  # 7
-    '   .........   \n'  # 8
-    '   .........   \n'  # 9
-    '   .........   \n'  # 10
-    '   .........   \n'  # 11
-    '   ....K....   \n'  # 12
-    '               \n'  # 13
-    '               \n'  # 14
-    '                '  # 15
-)
-
-bug = (
-     '               \n'  # 0
-    '               \n'  # 1
-    '               \n'  # 2
-    '   defgkgfed   \n'  # 3
-    '   .........   \n'  # 4
-    '   .P.....hp   \n'  # 5
-    '   ......i.i   \n'  # 6
-    '   b.c.p....   \n'  # 7
-    '   .........   \n'  # 8
-    '   I.I.I.I..   \n'  # 9
     '   .H..B..H.   \n'  # 10
     '   .........   \n'  # 11
-    '   DE.GKGFED   \n'  # 12
+    '   DEFGKG.ED   \n'  # 12
     '               \n'  # 13
     '               \n'  # 14
     '                '  # 15
 )
+
+bug = (
+    '               \n'  # 0
+    '               \n'  # 1
+    '               \n'  # 2
+    '   d..gk....   \n'  # 3
+    '   ....p....   \n'  # 4
+    '   .C.......   \n'  # 5
+    '   ..C......   \n'  # 6
+    '   .........   \n'  # 7
+    '   .........   \n'  # 8
+    '   r........   \n'  # 9
+    '   .........   \n'  # 10
+    '   ....A....   \n'  # 11
+    '   ...AK....   \n'  # 12
+    '               \n'  # 13
+    '               \n'  # 14
+    '                '  # 15
+)
+
 # Lists of possible moves for each piece type.
 N, E, S, W = -16, 1, 16, -1
 directions = {
@@ -191,6 +131,7 @@ uni_pieces = {
     'G': '\033[31m暗\033[0m',
     'H': '\033[31m暗\033[0m',
     'I': '\033[31m暗\033[0m',
+    'U': '\033[31m不\033[0m',
     'r': '车',
     'n': '马',
     'b': '象',
@@ -203,7 +144,8 @@ uni_pieces = {
     'f': '暗',
     'g': '暗',
     'h': '暗',
-    'i': '暗'
+    'i': '暗',
+    'u': '不'
 }
 
 MATE_LOWER = piece['K'] - (2*piece['R'] + 2*piece['N'] + 2*piece['B'] + 2*piece['A'] + 2*piece['C'] + 5*piece['P'])
@@ -217,6 +159,7 @@ QS_LIMIT = 219
 EVAL_ROUGHNESS = 13
 DRAW_TEST = True
 THINK_TIME = 1
+THRESHOLD = 150
 
 
 ###############################################################################
@@ -225,6 +168,7 @@ THINK_TIME = 1
 ###############################################################################
 mapping = {}
 average = {0: {}}
+depths = (2, 2); len_depths = len(depths)
 
 # mapping: 暗子到明子映射
 # di:
@@ -804,6 +748,7 @@ class Searcher:
     def __init__(self):
         self.tp_score = {}
         self.tp_move = {}
+        self.result_dict = {}
         self.history = set()
         self.nodes = 0
 
@@ -970,6 +915,250 @@ class Searcher:
 
         return best
 
+    def alphabeta_double_recursive(self, pos, alpha, beta, depth, root=True, nullmove=False, nullmove_now=False, version=0, pruning=False):
+        """ returns r where
+                s(pos) <= r < gamma    if gamma > s(pos)
+                gamma <= r <= s(pos)   if gamma <= s(pos)"""
+        global debug_var
+        if pruning is True:
+            pruning = 5
+
+        oppo = pos.rotate()
+
+        if root:
+            self.tp_score = {}
+            self.tp_move = {}
+        self.nodes += 1
+
+        # Depth <= 0 is QSearch. Here any position is searched as deeply as is needed for
+        # calmness, and from this point on there is no difference in behaviour depending on
+        # depth, so so there is no reason to keep different depths in the transposition table.
+        depth = max(depth, 0)
+
+        # Sunfish is a king-capture engine, so we should always check if we
+        # still have a king. Notice since this is the only termination check,
+        # the remaining code has to be comfortable with being mated, stalemated
+        # or able to capture the opponent king.
+        if pos.score <= -MATE_LOWER:
+            return -MATE_UPPER
+
+        moves = sorted(pos.gen_moves(), key=pos.value, reverse=True)
+        killer = self.tp_move.get(pos)
+        for move in [killer] + moves:
+            if (move is not None) and pos.board[move[1]] == 'k':
+                self.tp_move[pos] = move
+                return MATE_UPPER
+
+        # Look in the table if we have already searched this position before.
+        # We also need to be sure, that the stored search was over the same
+        # nodes as the current search.
+        entry = self.tp_score.get((pos, depth, root), Entry(-MATE_UPPER, MATE_UPPER))
+        if entry.lower >= beta and (not root or self.tp_move.get(pos) is not None):
+            return entry.lower
+        if entry.upper < alpha:
+            return entry.upper
+
+        if nullmove_now and depth > 3 and not root and any(c in pos.board for c in 'RNCI'):
+            if all(oppo.board[m[1]] != 'k' for m in oppo.gen_moves()):
+                val = -self.alphabeta_double_recursive(pos.rotate(), -beta, 1 - beta, depth - 3, root=False, nullmove=nullmove,
+                                      nullmove_now=False, version=version, pruning=pruning)
+                if val >= beta and self.alphabeta_double_recursive(pos, alpha, beta, depth - 3, root=False, nullmove=nullmove,
+                                                  nullmove_now=False, version=version, pruning=pruning):
+                    return val
+
+        nullmove_now = nullmove
+
+        # For QSearch we have a different kind of null-move, namely we can just stop
+        # and not capture anything else.
+        if depth == 0:
+            return self.evaluate(pos, oppo, version+1, pruning=pruning)
+        # Then killer move. We search it twice, but the tp will fix things for us.
+        # Note, we don't have to check for legality, since we've already done it
+        # before. Also note that in QS the killer must be a capture, otherwise we
+        # will be non deterministic.
+        best = -MATE_UPPER
+
+        # Then all the other moves
+        mvBest = None
+
+        counter = 0
+        for move in [killer] + moves:
+            if root and move in forbidden_moves:
+                continue
+            if root and counter >= pruning > 0:
+                break
+            if (move is not None) and (depth > 0):
+                if best == -MATE_UPPER:
+                    val = -self.alphabeta_double_recursive(pos.move(move), -beta, -alpha, depth - 1, root=False, nullmove=nullmove,
+                                          nullmove_now=nullmove_now, version=version, pruning=pruning)
+                else:
+                    val = -self.alphabeta_double_recursive(pos.move(move), -alpha - 1, -alpha, depth - 1, root=False, nullmove=nullmove,
+                                          nullmove_now=nullmove_now, version=version, pruning=pruning)
+                    if alpha < val < beta:
+                        val = -self.alphabeta_double_recursive(pos.move(move), -beta, -alpha, depth - 1, root=False, nullmove=nullmove,
+                                              nullmove_now=nullmove_now, version=version, pruning=pruning)
+                if val >= MATE_UPPER:
+                    updated = pos.move(move).nullmove()
+                    if any(updated.board[m[1]] == 'k' for m in updated.gen_moves()):
+                        mvBest = move
+                        best = val
+                        break
+                if val > best and val > -MATE_UPPER:
+                    best = val
+                    mvBest = move
+                    if val > beta:
+                        break
+                    if val > alpha:
+                        alpha = val
+            counter += 1
+
+        if not mvBest and moves:
+            mvBest = moves[0]
+
+        if mvBest is not None:
+            # Clear before setting, so we always have a value
+            # Save the move for pv construction and killer heuristic
+            if len(self.tp_move) > TABLE_SIZE: self.tp_move.clear()
+            self.tp_move[pos] = mvBest
+
+        # Stalemate checking is a bit tricky: Say we failed low, because
+        # we can't (legally) move and so the (real) score is -infty.
+        # At the next depth we are allowed to just return r, -infty <= r < gamma,
+        # which is normally fine.
+        # However, what if gamma = -10 and we don't have any legal moves?
+        # Then the score is actaully a draw and we should fail high!
+        # Thus, if best < gamma and best < 0 we need to double check what we are doing.
+        # This doesn't prevent sunfish from making a move that results in stalemate,
+        # but only if depth == 1, so that's probably fair enough.
+        # (Btw, at depth 1 we can also mate without realizing.)
+        if best < alpha and best < 0 and depth > 0:
+            is_dead = lambda pos: any(pos.value(m) >= MATE_LOWER for m in pos.gen_moves())
+            if all(is_dead(pos.move(m)) for m in pos.gen_moves()):
+                in_check = is_dead(pos.nullmove())
+                best = -MATE_UPPER if in_check else 0
+
+        # Clear before setting, so we always have a value
+        if len(self.tp_score) > TABLE_SIZE: self.tp_score.clear()
+        # Table part 2
+        if best >= beta:
+            self.tp_score[pos, depth, root] = Entry(best, entry.upper)
+        if best < alpha:
+            self.tp_score[pos, depth, root] = Entry(entry.lower, best)
+
+        return best
+
+    def _inner_recur(self, version, uncertainty_dict, uncertainty_keys, len_uncertainty_keys, i, board, score, turn, me=1, op=1, pruning=False):
+        '''
+        uncertainty_dict 记录位置到U/u的映射
+        例如board[2] = 'U', 则uncertainty_dict[2] = 'U'。
+        mul_black 黑色子力组合计数
+        mul_red 红色子力组合计数
+        '''
+        notturn = not turn
+        if i >= len_uncertainty_keys:
+            pos = Position(board, score, turn, version)
+            pos.set()
+            self.calc_average(version)
+            sumall[version] = {}
+            sumall[version][True] = sum(di[version][True][key] for key in di[version][True])
+            sumall[version][False] = sum(di[version][False][key] for key in di[version][False])
+            ############################################
+            # 这里我们需要new一个pos
+            # 在new一个pos的时候，需要四个参数:
+            # board, score, turn, version
+            # 最后别忘了set, 以及重新计算version版本的均值数组
+            ############################################
+            result = self.alphabeta_double_recursive(
+                pos, -MATE_UPPER, MATE_UPPER, depth=depths[version], root=True, nullmove=NULLMOVE, nullmove_now=NULLMOVE, version=version, pruning=pruning)
+            self.result_dict[version][board] = (result, me, op)
+            return
+
+        key = uncertainty_keys[i]
+        if uncertainty_dict[key] == 'U':
+            for di_key in di[version][turn]:
+                if di[version][turn][di_key] > 0 and di_key in 'RPCrpc':
+                    di[version][turn][di_key] -= 1
+                    newboard = put(board, key, di_key.upper())
+                    score_diff = pst[di_key.upper()][key] - average[version - 1][turn][True][key]
+                    self._inner_recur(version, uncertainty_dict, uncertainty_keys, len_uncertainty_keys, i+1, newboard,
+                                      score+score_diff, turn, me=me*(di[version][turn][di_key]+1), op=op, pruning=pruning)
+                    di[version][turn][di_key] += 1
+
+        elif uncertainty_dict[key] == 'u':
+            for di_key in di[version][notturn]:
+                if di[version][notturn][di_key] > 0 and di_key in 'RPCrpc':
+                    di[version][notturn][di_key] -= 1
+                    newboard = put(board, key, di_key.lower())
+                    rkey = 254 - key
+                    score_diff = pst[di_key.upper()][rkey] - average[version - 1][notturn][True][rkey]
+                    ###################################################################################
+                    # score_diff 这一行逻辑特别复杂，指的是
+                    # 如果将不确定子变成明子，带来的分数变化。
+                    # 1. pst[di_key.upper()][254 - key]
+                    # 首先, di_key不一定是大写，先变为大写, 这样才能在分值字典中访问到相关的子力
+                    # 其次，这里key是本方坐标，而我们需要计算对手子力在key处的分值，所以我们需要使用逆转函数:254-key
+                    # 2. average[version - 1][notturn][True][di_key][254 - rkey]
+                    # version - 1是版本号，访问的是上一版本的average数据
+                    # notturn = not turn, 表明访问的是对手的average字典
+                    # True, 表示访问的是不确定子的数据。如访问暗子的数据，应该是False。
+                    # rkey: 同上。
+                    ###################################################################################
+                    self._inner_recur(version, uncertainty_dict, uncertainty_keys, len_uncertainty_keys, i+1, newboard,
+                                      score-score_diff, turn, me=me, op=op*(di[version][notturn][di_key]+1), pruning=pruning)
+                    di[version][notturn][di_key] += 1
+
+    def evaluate(self, pos, oppo, version, pruning=False):
+        if version >= len_depths:
+            moves = pos.gen_moves()
+            if QS:
+                score = self.quiescence(pos, moves, oppo)
+                return pos.score + pos.kongtou_score - pos.kongtou_score_opponent + score[0]
+            else:
+                return pos.score + pos.kongtou_score - pos.kongtou_score_opponent
+
+        elif version == 0:
+            self.calc_average(0)
+            return self.alphabeta_double_recursive(
+                pos, -MATE_UPPER, MATE_UPPER, depth=depths[version], root=True, nullmove=NULLMOVE, nullmove_now=NULLMOVE, version=version, pruning=pruning)
+
+        else:
+            di[version] = deepcopy(di[version-1])
+            self.result_dict[version] = {}
+            uncertainty_dict = {}
+            for i, x in enumerate(pos.board):
+                if x == 'U':
+                    uncertainty_dict[i] = x
+                elif x == 'u':
+                    uncertainty_dict[i] = x
+            uncertainty_keys = list(uncertainty_dict.keys())
+            len_uncertainty_keys = len(uncertainty_keys)
+            self._inner_recur(version, uncertainty_dict, uncertainty_keys, len_uncertainty_keys, 0, pos.board, pos.score,
+                              pos.turn, me=1, op=1, pruning=pruning)
+            S = 0  # Sum of Situations
+            Sscore = 0  # Sum of Scores
+            for key in self.result_dict[version]:
+                item = self.result_dict[version][key]
+                combinations = item[1] * item[2]
+                Sscore += item[0] * combinations
+                S += combinations
+            if S == 0:
+                return 0
+            else:
+                return Sscore/S
+
+    def call_evaluate(self, pos, version, pruning=False, printf=True):
+        result = self.evaluate(pos, pos.rotate(), version, pruning=pruning)
+        if printf:
+            S = 0
+            for key in self.result_dict[1]:
+                #print_pos(key)
+                item = self.result_dict[1][key]
+                score, me, op = item[0], item[1], item[2]
+                S += item[1] * item[2]
+                print("score = %s, me = %d, op = %d, S = %s" % (score, me, op, S))
+        print(render_tuple(self.tp_move[pos]))
+        return result
+
     def search(self, pos, history=()):
         """ Iterative deepening MTD-bi search """
         self.nodes = 0
@@ -991,6 +1180,13 @@ class Searcher:
             lower, upper = -MATE_UPPER, MATE_UPPER
             val = self.alphabeta(pos, lower, upper, depth, nullmove=NULLMOVE, nullmove_now=NULLMOVE)
             yield depth, self.tp_move.get(pos), self.tp_score.get((pos, depth, True), Entry(-MATE_UPPER, MATE_UPPER)).lower
+
+    @staticmethod
+    def setdepth(new_depths):
+        global depths, len_depths
+        depths = new_depths
+        len_depths = len(depths)
+        return depths, len_depths
 
     def calc_average(self, version=0):
         numr, numb = sum(di[version][True][key] for key in di[version][True]), sum(di[version][False][key] for key in di[version][False])
@@ -1059,8 +1255,14 @@ def render_tuple(t, reverse=False):
 
 
 def print_pos(pos):
+    if isinstance(pos, str):
+        board = pos
+    elif isinstance(pos, Position):
+        board = pos.board
+    else:
+        assert False
     chessstr = ''
-    for i, row in enumerate(pos.board.split()):
+    for i, row in enumerate(board.split()):
         joinstr = ''.join(uni_pieces.get(p, p) for p in row)
         print(' ', 9 - i, joinstr)
         chessstr += (' ' + str(9 - i) + joinstr)
@@ -1120,7 +1322,6 @@ def generate_forbiddenmoves(pos, check_bozi=True, step=0):
                         j == 170 and pos.board[139] == 'N' and pos.board[123] == 'p'):  # 兵顶马
                     continue
                 if (i == 164 and pos.board[148] == 'p') or (i == 170 and pos.board[154] == 'p'):
-                    print("continue")
                     continue
                 if pos.score_rough < 150 or pos.che == 0:
                     forbidden_moves.add(move)
@@ -1156,19 +1357,35 @@ def translate_rooted(rooted_chesses, rotated=False):
     return list(map(_translate, rooted_chesses))
 
 
+def rotate_board_only(board):
+    return board[-2::-1].swapcase() + " "
+
+
 def main(random_move=False, AI=True, debug=False):
     global mapping
     resetrbdict()
     mapping = B.translate_mapping(B.mapping)
+    searcher = Searcher()
+    searcher.calc_average()
     with open("debug.json", "w") as f:
          json.dump(mapping, f)
     if debug:
-        hist = [Position(bug, 0, True, 0).set()]
+        hist = [Position(initial_covered, 0, False, 0).set()]
+        for i, x in enumerate(hist[-1].board):
+            if x in 'RNBACP':
+                di[0][hist[-1].turn][x if hist[-1].turn else x.lower()] -= 1
+            elif x in 'rnbacp':
+                di[0][not hist[-1].turn][x if hist[-1].turn else x.upper()] -= 1
+
     else:
         hist = [Position(initial_covered, 0, True, 0).set()]
     setcache(hist[-1].board)
-    searcher = Searcher()
-    searcher.calc_average()
+    searcher.alphabeta(hist[-1], -MATE_UPPER, MATE_UPPER, 4, nullmove=False, nullmove_now=False)
+    print_pos(hist[-1])
+    print(render_tuple(searcher.tp_move.get(hist[-1])))
+    searcher.call_evaluate(hist[-1], 0, False, False)
+    assert di[0] == di[1]
+    exit(0)
     myeatlist = []
     AIeatlist = []
     step = 0
@@ -1288,5 +1505,5 @@ def main(random_move=False, AI=True, debug=False):
 
 
 if __name__ == '__main__':
-    main(random_move=False, AI=True, debug=False)
+    main(random_move=False, AI=True, debug=True)
 

@@ -16,7 +16,7 @@
 #include "../score/score.h"
 
 namespace board{
-    extern std::unordered_map<std::string, std::function<Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>)>> bean;  //define in ../global/global.cpp
+    extern std::unordered_map<std::string, std::function<Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>*)>> bean;  //define in ../global/global.cpp
 }
 
 #define INVALID -1
@@ -26,14 +26,15 @@ namespace board{
 #define WASTE 3
 #define DRAW 4
 #define MAX_ROUNDS 200
-#define NEWRED(X) board::get_withprefix("AIBoard", X, board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, board_pointer -> di_red, 0, board_pointer -> hist)
-#define NEWBLACK(X) board::get_withprefix("AIBoard", X, board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, board_pointer -> di_black, 0, board_pointer -> hist)
+#define NEWRED(X) board::get_withprefix("AIBoard", X, board_pointer -> state_red, board_pointer -> turn, board_pointer -> round, board_pointer -> di_red, 0, &board_pointer -> hist)
+#define NEWBLACK(X) board::get_withprefix("AIBoard", X, board_pointer -> state_black, board_pointer -> turn, board_pointer -> round, board_pointer -> di_black, 0, &board_pointer -> hist)
 
 struct God{
     char eat = '.';
     bool ok = false;
     int type1 = 0;
     int type2 = 0;
+    size_t winning_threshold_class = 0;
     size_t redwin = 0;
     size_t blackwin = 0;
     size_t draw = 0;
@@ -50,9 +51,11 @@ struct God{
     ~God();
     bool GetTurn();
     int StartThinker();
-    int StartGameLoop(unsigned winning_threshold);
-    int StartGameLoopAlternatively(unsigned winning_threshold);//红黑交替
     int StartGame();
+    int StartGameLoop(size_t winning_threshold);
+    int StartGameLoop();
+    int StartGameLoopAlternatively(size_t winning_threshold);//红黑交替
+    int StartGameLoopAlternatively();//红黑交替
     std::string PrintEat(bool turn);
 
     std::function<std::string(const char)> getstring = [](const char c) -> std::string {
