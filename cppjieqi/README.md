@@ -16,6 +16,10 @@ On Mac:
 
 To Be Done.
 
+
+
+注: 如果您不希望显示电脑吃您的暗子, 请注释CMakeLists.txt中的add_definitions(-DSHOWDARK)
+
 ## Players.conf
 
 第一行表示红方, 第二行表示黑方
