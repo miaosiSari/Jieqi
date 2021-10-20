@@ -194,6 +194,10 @@ int God::StartThinker(std::ofstream* of){
 }
 
 void God::Play(std::string logfile){
+    #ifndef SHOWDARK
+    #define SHOWDARK
+    #define NONSHOWDARKORIGIN
+    #endif
     printf("\n对局回顾!\n");
     std::ifstream in(logfile);
     if(!in.is_open()){
@@ -268,11 +272,21 @@ void God::Play(std::string logfile){
                     printf("红胜!\n");
                 }
             }
-            PrintEat(true);
+            if(!board_pointer -> turn){
+                red_eat_black.push_back({p -> eat, p -> eat_type, 195 - 16 * p -> dst_x + p -> dst_y, p -> eat_check});
+            }
+            else{
+                black_eat_red.push_back({p -> eat, p -> eat_type, 195 - 16 * p -> dst_x + p -> dst_y, p -> eat_check});
+            }
+            std::cout << PrintEat(true) << "\n";
             board_pointer -> PrintPos(true, true, false, true);
         }
 
     }
+    #ifdef NONSHOWDARKORIGIN
+    #undef NONSHOWDARKORIGIN
+    #undef SHOWDARK
+    #endif
 }
 
 void God::Play(){

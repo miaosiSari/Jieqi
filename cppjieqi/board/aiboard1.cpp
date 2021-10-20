@@ -1198,7 +1198,7 @@ short mtd_alphabeta1(board::AIBoard1* self, const short gamma, int depth, const 
     if(root) { 
         self -> original_depth = depth;
     }
-    if(self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){
+    if(!root && self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){
         //假设AI执红。校验对象红方(self->original_turn)
         //红方走了一步, 形成局面A, self -> hist[self -> state_red] == false(因为现在是黑方)
         //如果和当前局面重复(当前局面为!self -> original_turn), 且turn也相同, 直接判断黑方胜利
