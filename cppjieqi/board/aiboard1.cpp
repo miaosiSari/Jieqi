@@ -203,6 +203,7 @@ void board::AIBoard1::_initialize_dir(){
     _dir[(int)'A'][0] = NORTH + EAST;
     _dir[(int)'A'][1] = SOUTH + EAST;
     _dir[(int)'A'][2] = NORTH + WEST;
+    _dir[(int)'A'][3] = SOUTH + WEST;
 
     _dir[(int)'G'][0] = NORTH + EAST;
     _dir[(int)'G'][1] = NORTH + WEST;

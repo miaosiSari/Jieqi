@@ -16,12 +16,13 @@ extern unsigned char L1[256][256];
 int main(void) {
     srand(time(NULL));
     IntializeL1();
-    printf("%d\n", L1[183][168]);
     memset(pstglobal, 0, sizeof(pstglobal));
     assert(read_score_table("../score.conf", pstglobal[0]));
     assert(read_score_table("../score.conf", pstglobal[1]));
     assert(read_score_table("../score.conf", pstglobal[2]));
+    assert(read_score_table("../score.conf", pstglobal[3]));
     God g("../players.conf");
     DEBUG ? g.StartGame() : g.StartGameLoopAlternatively();
+    g.Play();
     return 0;
 }

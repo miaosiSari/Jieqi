@@ -145,7 +145,6 @@ const std::unordered_map<std::string, std::string> board::Board::uni_pieces = {
 char board::Board::_dir[91][8] = {{0}};
 
 board::Board::Board() noexcept: finished(false),
-                      num_of_legal_moves(0),
                       turn(true),
                       round(0),
                       _has_initialized(false){
@@ -169,12 +168,11 @@ board::Board::Board() noexcept: finished(false),
     _has_initialized = true;
 }
 
-void board::Board::Reset() noexcept{
+void board::Board::Reset(std::unordered_map<bool, std::unordered_map<unsigned char, char>>* random_map){
     hist.clear();
     finished = false;
     turn = true;
     round = 0;
-    num_of_legal_moves = 0;
     memset(state_red, 0, sizeof(state_red));
     memset(state_black, 0, sizeof(state_black));
     strncpy(state_red, _initial_state, _chess_board_size);
@@ -190,7 +188,11 @@ void board::Board::Reset() noexcept{
     state_black[_chess_board_size] = '\0';
     memset(_is_legal_move, false, sizeof(_is_legal_move));
     _initialize_dir();
-    GenerateRandomMap();
+    if(random_map){
+        this -> random_map = std::move(*random_map);
+    }else{
+        GenerateRandomMap();
+    }
     hist[state_red] = false;
     initialize_di();
     #if DEBUG && BLACK
@@ -438,9 +440,7 @@ void board::Board::DebugDI(){
 }
 
 void board::Board::GenMovesWithScore(){
-    //To make it more efficient, this implementation is rather dirty
-    num_of_legal_moves = 0;
-    memset(legal_moves, 0, sizeof(legal_moves));
+    memset(_is_legal_move, false, sizeof(_is_legal_move));
     const char *_state_pointer = turn?state_red:state_black;
     for(unsigned char i = 51; i <= 203; ++i){
         const char p = _state_pointer[i];
@@ -462,15 +462,13 @@ void board::Board::GenMovesWithScore(){
                     }
                     if(cfoot == 0){
                         if(q == '.'){
-                            legal_moves[num_of_legal_moves] = std::make_tuple(0, i, j);
-                            ++num_of_legal_moves;
+                            _is_legal_move[(int)i][(int)j] = true;
                         } else{
                             ++cfoot;
                         }
                     }else{
                         if(islower(q)) {
-                            legal_moves[num_of_legal_moves] = std::make_tuple(0, i, j);
-                            ++num_of_legal_moves;
+                            _is_legal_move[(int)i][(int)j] = true;
                             break;
                         } else if(isupper(q)) {
                             break;
@@ -484,8 +482,7 @@ void board::Board::GenMovesWithScore(){
         else if(p == 'K'){
             for(unsigned char scanpos = i - 16; scanpos > A9; scanpos -= 16){
                 if(_state_pointer[scanpos] == 'k'){
-                    legal_moves[num_of_legal_moves] = std::make_tuple(0, i, scanpos);
-                    ++num_of_legal_moves;
+                    _is_legal_move[(int)i][(int)scanpos] = true;
                 } else if(_state_pointer[scanpos] != '.'){
                     break;
                 }
@@ -530,8 +527,7 @@ void board::Board::GenMovesWithScore(){
                 else if((p == 'B' || p == 'F') && _state_pointer[i + d/2] != '.') {
                     break;
                 }
-                legal_moves[num_of_legal_moves] = std::make_tuple(0, i, j);
-                ++num_of_legal_moves;
+                _is_legal_move[(int)i][(int)j] = true;
                 if((p != 'D' && p != 'H' && p != 'C' && p != 'R') || islower(q)){
                     break;
                 }
@@ -540,15 +536,6 @@ void board::Board::GenMovesWithScore(){
     } //for
 }//GenMovesWithScore()
 
-void board::Board::CopyToIsLegalMove(){
-    memset(_is_legal_move, false, sizeof(_is_legal_move));
-    for(int i = 0; i < num_of_legal_moves; ++i){
-        std::tuple<unsigned short, unsigned char, unsigned char> a_legal_move = legal_moves[i];
-        unsigned char src = std::get<1>(a_legal_move);
-        unsigned char dst = std::get<2>(a_legal_move);
-        _is_legal_move[(int)src][(int)dst] = true;
-    }
-}
 
 void board::Board::Translate(unsigned char i, unsigned char j, char ucci[5]){
     int x1 = 12 - (i >> 4);
@@ -575,21 +562,6 @@ void board::Board::Print_ij_ucci(unsigned char i, unsigned char j){
     char ucci[5];
     board::Board::Translate(i, j, ucci);
     printf(" (ucci = %s).\n", ucci);
-}
-
-void board::Board::PrintAllMoves(){
-    char ucci[5];
-    int src = 0, dst = 0;
-    unsigned short score = 0;
-    printf("In board/board.cpp/PrintAllMoves()!\n");
-    for(int i = 0; i < num_of_legal_moves; ++i){
-       std::tuple<unsigned short, unsigned char, unsigned char> t = legal_moves[i];
-       score = std::get<0>(t);
-       src = std::get<1>(t);
-       dst = std::get<2>(t);
-       Translate(src, dst, ucci);
-       printf("[%d]src = %d, dst = %d, ucci = %s, score = %u\n", i, src, dst, ucci, score);
-    }
 }
 
 void board::Board::GenerateRandomMap(){

@@ -62,7 +62,6 @@ public:
     unsigned char di_red[VERSION_MAX][2][123];
     unsigned char di_black[VERSION_MAX][2][123];
     bool finished = false;
-    int num_of_legal_moves = 0;
     char state_red[MAX];
     char state_black[MAX];
     bool turn; //true红black黑
@@ -70,7 +69,7 @@ public:
     std::unordered_map<std::string, bool> hist;
     static const std::unordered_map<std::string, std::string> uni_pieces;
     Board() noexcept;
-    void Reset() noexcept;
+    void Reset(std::unordered_map<bool, std::unordered_map<unsigned char, char>>* random_map);
     void initialize_di();
     const std::vector<std::string>& GetHistory() const;
     std::vector<std::string> GetStateString() const;
@@ -85,7 +84,6 @@ public:
     std::shared_ptr<InfoDict> Move(const int x1, const int y1, const int x2, const int y2, const bool = false);
     void DebugDI();
     void GenMovesWithScore();
-    void CopyToIsLegalMove();
     void GenerateRandomMap();
     void PrintRandomMap(bool turn);
     std::function<int(int)> translate_x = [](const int x) -> int {return 12 - x;};
@@ -111,12 +109,15 @@ public:
         return iscovered?_getstringxy_covered(x, y, turn, swapcasewhenblack):_getstringxy_uncovered(x, y, turn, swapcasewhenblack);
     };
 
+    std::function<bool()> CheckRandomMap = [this]() -> bool {
+        return random_map[true].size() == 30 && random_map[false].size() == 30;
+    };
+
     std::tuple<unsigned short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES];
     std::unordered_map<bool, std::unordered_map<unsigned char, char>> random_map;
     static void Translate(unsigned char i, unsigned char j, char ucci[5]);
     static void TranslateSingle(unsigned char i, char ucci[3]);
     static void Print_ij_ucci(unsigned char i, unsigned char j);
-    void PrintAllMoves();
    
 private:
     bool _has_initialized;

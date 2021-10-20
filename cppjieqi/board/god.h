@@ -39,6 +39,7 @@ struct God{
     size_t blackwin = 0;
     size_t draw = 0;
     std::string file;
+    std::string logfile;
     std::vector<std::tuple<char, int, int, char>> red_eat_black;
     std::vector<std::tuple<char, int, int, char>> black_eat_red;
     std::unordered_set<std::string> hist_cache;
@@ -47,10 +48,11 @@ struct God{
     std::unique_ptr<board::Thinker> thinker2; //Black Thinker
     God()=delete;
     God(const char* file);
-    bool Reset(const char* another_file, bool clear_winning_log);
     ~God();
     bool GetTurn();
-    int StartThinker();
+    int StartThinker(std::ofstream* of);
+    void Play(std::string logfile);
+    void Play();
     int StartGame();
     int StartGameLoop(size_t winning_threshold);
     int StartGameLoop();
