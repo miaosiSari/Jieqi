@@ -20,6 +20,8 @@ To Be Done.
 
 注: 如果您不希望显示电脑吃您的暗子, 请注释CMakeLists.txt中的add_definitions(-DSHOWDARK)
 
+下棋: 输入4位UCCI表示。例如, 兵一进一就是i3i4。
+
 ## Players.conf
 
 第一行表示红方, 第二行表示黑方
