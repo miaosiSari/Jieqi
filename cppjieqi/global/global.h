@@ -13,7 +13,7 @@
 #include <type_traits>
 
 namespace board{
-   class Thinker;
+   struct Thinker;
    int register_func(std::string x, std::function<board::Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>*)> y);
 }
 

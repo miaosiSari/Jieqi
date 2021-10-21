@@ -517,7 +517,7 @@ void board::AIBoard3::KongTouPao(const char* _state_pointer, int pos, bool mysel
     } //else
 } //KongTouPao
 
-template<bool needscore=true, bool return_after_mate=false>
+template<bool needscore, bool return_after_mate>
 bool board::AIBoard3::GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive){
     num_of_legal_moves = 0;
     killer_score = 0;
@@ -673,7 +673,7 @@ bool board::AIBoard3::GenMovesWithScore(std::tuple<short, unsigned char, unsigne
 }//GenMovesWithScore()
 
 
-template<bool doublereverse=true>
+template<bool doublereverse>
 bool board::AIBoard3::Mate(){
     if(doublereverse)
         turn = !turn;
@@ -688,11 +688,11 @@ bool board::AIBoard3::Mate(){
     return mate;
 }
 
-bool board::AIBoard3::Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp){
+bool board::AIBoard3::Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp, bool calc){
     //判断是否被对方将死
     //注意, 这个函数应该在mate_by_oppo为true的时候调用。如mate_by_oppo==false, 根本没将军, 调用没意义
-    if(!*oppo_mate){
-        *oppo_mate = Mate();
+    if(calc){
+        *oppo_mate = Mate<true>();
     }
     if(!*oppo_mate){
         return false;
@@ -718,7 +718,7 @@ bool board::AIBoard3::ExecutedDebugger(bool *oppo_mate){
     unsigned char mate_src = 0, mate_dst = 0;
     bool killer_is_alive = false;
     GenMovesWithScore<false, false>(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
-    return Executed(oppo_mate, legal_moves_tmp, num_of_legal_moves_tmp);
+    return Executed(oppo_mate, legal_moves_tmp, num_of_legal_moves_tmp, true);
 }
 #endif
 
@@ -1130,7 +1130,7 @@ std::string mtd_thinker3(board::AIBoard3* bp){
                 int num_of_legal_moves_tmp = 0;
                 bool killer_is_alive = false;
                 short killer_score = 0;
-                bp -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
+                bp -> GenMovesWithScore<true, false>(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
                 std::cout << "[AM I FAILED?]" << num_of_legal_moves_tmp << " My move: " << bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0])) << ", duration = " << int_ms << ", depth = " << depth + quiesc_depth << "." << std::endl;
                 if(num_of_legal_moves_tmp != 0){
                     return bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0]));
@@ -1155,22 +1155,14 @@ short mtd_quiescence3(board::AIBoard3* self, const short gamma, int quiesc_depth
     const char* _state_pointer = self -> turn? self -> state_red : self -> state_black;
     bool killer_is_alive = false;
     short killer_score = 0;
-    bool mate = quiesc_depth ? self -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive) : self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
+    bool mate = quiesc_depth ? self -> GenMovesWithScore<true, false>(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive) : \
+        self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
-    mate = self -> Mate();//mate:是否**被对手**将军.yes:是, no:否
-    if(quiesc_depth == 0) { 
-        if(!mate){
-            return evaluate();
-        }
-        if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp)){
-            return -MATE_UPPER;
-        }
-        return evaluate();
+    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp, true)){
+        return -MATE_UPPER;
     }
-    if(quiesc_depth == 1 && mate){
-        if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp)){
-            return -MATE_UPPER;
-        }
+    if(quiesc_depth == 0) { 
+        return evaluate();
     }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);
     std::pair<uint32_t, int> pair = {self -> zobrist_hash, (quiesc_depth << 1) + (int)self -> turn};
@@ -1229,6 +1221,7 @@ short mtd_quiescence3(board::AIBoard3* self, const short gamma, int quiesc_depth
 short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy){
     constexpr short MATE_UPPER = 3696;
     unsigned char mate_src = 0, mate_dst = 0;
+    const char* state_pointer = self -> turn ? self -> state_red : self -> state_black;
     if(root) { 
         self -> original_depth = depth;
     }
@@ -1248,10 +1241,10 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
         killer = self -> tp_move[{self -> zobrist_hash, self -> turn}];
         killer_is_alive = true;
     }
-    bool mate = (depth == quiesc_depth ? self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive) : self -> GenMovesWithScore(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
+    bool mate = (depth == quiesc_depth ? self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive) : \
+        self -> GenMovesWithScore<true, false>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
-    mate = self -> Mate();
-    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp) || self -> score < -MATE_UPPER/2){
+    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp, true) || self -> score < -MATE_UPPER/2){
         return -MATE_UPPER;
     }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);
@@ -1265,7 +1258,6 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
     if(entry.second < gamma){
         return entry.second;
     }
-    mate = self -> Mate();
     if(depth == quiesc_depth){
         return mtd_quiescence3(self, gamma, quiesc_depth, true);
     }
@@ -1306,6 +1298,10 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
         for(int j = 0; j < num_of_legal_moves_tmp; ++j){
             auto move_score_tuple = legal_moves_tmp[j];
             auto src = std::get<1>(move_score_tuple), dst = std::get<2>(move_score_tuple);
+            if(root && self -> round <= 15 && self -> che <= self -> che_opponent && ((src == 164 && dst == 52 && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) \
+                || (src == 170 && dst == 58 && (state_pointer[59] == 'd' || state_pointer[59] == 'r'))) && state_pointer[src] == 'H' && state_pointer[dst] == 'e'){
+                continue;
+            }
             #if DEBUG
             std::string ucci = self->translate_ucci(src, dst);
             self -> debug_flags.push_back(ucci);

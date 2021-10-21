@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
+SET(CMAKE_C_COMPILER /usr/bin/clang)
+SET(CMAKE_CXX_COMPILER /usr/bin/g++)
+
 project(cppjieqi)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")

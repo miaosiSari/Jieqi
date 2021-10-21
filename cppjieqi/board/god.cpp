@@ -252,6 +252,8 @@ void God::Play(std::string logfile){
             board_pointer -> Reset(&random_map);
             assert(board_pointer -> CheckRandomMap());
             printf("\n对局No.%zu:\n", gamecounter);
+            red_eat_black.clear();
+            black_eat_red.clear();
             board_pointer -> PrintPos(true, true, false, true);
             state = 0;
             ++gamecounter;

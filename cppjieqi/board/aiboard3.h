@@ -40,7 +40,7 @@ extern unsigned char L1[256][256];
 #include <stack>
 #include <time.h>
 #include <stdlib.h>
-#include <tr1/functional>
+#include <functional>
 #include "../global/global.h"
 #include "../score/score.h"
 #include "thinker.h"
@@ -146,10 +146,10 @@ public:
     short ScanProtectors();
     void Scan();
     void KongTouPao(const char* _state_pointer, int pos, bool t);
-    template<bool needscore=true, bool return_after_mate=false> 
+    template<bool needscore, bool return_after_mate> 
     bool GenMovesWithScore(std::tuple<short, unsigned char, unsigned char> legal_moves[MAX_POSSIBLE_MOVES], int& num_of_legal_moves, std::pair<unsigned char, unsigned char>* killer, short& killer_score, unsigned char& mate_src, unsigned char& mate_dst, bool& killer_is_alive);
-    template<bool doublereverse=true> bool Mate();
-    bool Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp);
+    template<bool doublereverse> bool Mate();
+    bool Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp, bool calc);
     bool ExecutedDebugger(bool *oppo_mate);
     bool Ismate_After_Move(unsigned char src, unsigned char dst);
     void CopyData(const unsigned char di[5][2][123]);
