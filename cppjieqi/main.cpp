@@ -20,7 +20,6 @@ int main(void) {
     assert(read_score_table("../score.conf", pstglobal[1]));
     assert(read_score_table("../score.conf", pstglobal[2]));
     assert(read_score_table("../score.conf", pstglobal[3]));
-	printf("1\n");
     God g("../players.conf");
     DEBUG ? g.StartGame() : g.StartGameLoopAlternatively();
     g.Play();
