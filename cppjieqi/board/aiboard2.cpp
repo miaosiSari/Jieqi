@@ -1222,6 +1222,7 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
     constexpr short MATE_UPPER = 3696;
     unsigned char mate_src = 0, mate_dst = 0;
     if(root) { 
+	    self -> Scan();
         self -> original_depth = depth;
     }
     if(!root && self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){

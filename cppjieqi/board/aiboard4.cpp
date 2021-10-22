@@ -1222,7 +1222,8 @@ short mtd_quiescence4(board::AIBoard4* self, const short gamma, int quiesc_depth
 short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy){
     constexpr short MATE_UPPER = 3696;
     unsigned char mate_src = 0, mate_dst = 0;
-    if(root) { 
+    if(root) {
+        self -> Scan();		
         self -> original_depth = depth;
     }
     if(!root && self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){

@@ -1223,6 +1223,7 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
     unsigned char mate_src = 0, mate_dst = 0;
     const char* state_pointer = self -> turn ? self -> state_red : self -> state_black;
     if(root) { 
+	    self -> Scan();
         self -> original_depth = depth;
     }
     if(!root && self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){
@@ -1298,10 +1299,6 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
         for(int j = 0; j < num_of_legal_moves_tmp; ++j){
             auto move_score_tuple = legal_moves_tmp[j];
             auto src = std::get<1>(move_score_tuple), dst = std::get<2>(move_score_tuple);
-            if(root && self -> round <= 15 && self -> che <= self -> che_opponent && ((src == 164 && dst == 52 && (state_pointer[51] == 'd' || state_pointer[51] == 'r')) \
-                || (src == 170 && dst == 58 && (state_pointer[59] == 'd' || state_pointer[59] == 'r'))) && state_pointer[src] == 'H' && state_pointer[dst] == 'e'){
-                continue;
-            }
             #if DEBUG
             std::string ucci = self->translate_ucci(src, dst);
             self -> debug_flags.push_back(ucci);
