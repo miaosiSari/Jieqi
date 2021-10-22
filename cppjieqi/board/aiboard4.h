@@ -3,8 +3,8 @@
 * Copyright (c) 2021. All rights reserved.
 * Last modified 2021/07/31
 */
-#ifndef aiboard_h
-#define aiboard_h
+#ifndef aiboard4_h
+#define aiboard4_h
 #define MAX 257
 #define CHESS_BOARD_SIZE 256
 #define MAX_POSSIBLE_MOVES 120
@@ -52,41 +52,15 @@ namespace board{
     class AIBoard4;
 }
 
-template <typename T, typename U, typename V>
-bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
-        return std::get<0>(i) > std::get<0>(j);
-}
-
-typedef short(*SCORE)(board::AIBoard4* bp, const char* state_pointer, unsigned char src, unsigned char dst);
-typedef void(*KONGTOUPAO_SCORE)(board::AIBoard4* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
-typedef std::string(*THINKER)(board::AIBoard4* bp);
+typedef short(*SCORE4)(board::AIBoard4* bp, const char* state_pointer, unsigned char src, unsigned char dst);
+typedef void(*KONGTOUPAO_SCORE4)(board::AIBoard4* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
+typedef std::string(*THINKER4)(board::AIBoard4* bp);
 void register_score_functions4();
 std::string SearchScoreFunction4(void* score_func, int type);
 extern short pstglobal[5][123][256];
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
 extern void copy_pst(short dst[][256], short src[][256]);
-
-template<typename T>
-inline void hash_combine(std::size_t& seed, const T& val)
-{
-    std::hash<T> hasher;
-    seed ^= hasher(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
-//  taken from https://stackoverflow.com/a/7222201/916549
-//
-template<typename S, typename T>
-struct myhash
-{
-    inline size_t operator()(const std::pair<S, T>& val) const
-    {
-        size_t seed = 0;
-        hash_combine(seed, val.first);
-        hash_combine(seed, val.second);
-        return seed;
-    }
-};
 
 
 namespace board{
@@ -284,9 +258,9 @@ private:
     static const char _initial_state[MAX];
     static const std::unordered_map<std::string, std::string> _uni_pieces;
     static char _dir[91][8];
-    SCORE _score_func = NULL;
-    KONGTOUPAO_SCORE _kongtoupao_score_func = NULL;
-    THINKER _thinker_func = NULL;
+    SCORE4 _score_func = NULL;
+    KONGTOUPAO_SCORE4 _kongtoupao_score_func = NULL;
+    THINKER4 _thinker_func = NULL;
     std::function<std::string(const char)> _getstring = [](const char c) -> std::string {
         std::string ret;
         const std::string c_string(1, c);

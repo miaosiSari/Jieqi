@@ -1,6 +1,8 @@
 #include "god.h"
 
 namespace board{
+    extern std::map<std::string, std::function<Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>*)>> bean;  //define in ../global/global.cpp
+
     template<typename... Args>
     Thinker* get(std::string x, Args... args){
         if(bean.find(x) != bean.end()){

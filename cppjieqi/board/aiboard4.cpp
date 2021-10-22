@@ -1,6 +1,5 @@
 #include "aiboard4.h"
 
-REGISTER(AIBoard4, Thinker);
 
 std::unordered_map<int, char> LUT4 = {
    {195, 'D'},
@@ -74,9 +73,9 @@ const std::unordered_map<std::string, std::string> board::AIBoard4::_uni_pieces 
 };
 
 char board::AIBoard4::_dir[91][8] = {{0}};
-std::unordered_map<std::string, SCORE> score_bean4;
-std::unordered_map<std::string, KONGTOUPAO_SCORE> kongtoupao_score_bean4;
-std::unordered_map<std::string, THINKER> thinker_bean4;
+std::unordered_map<std::string, SCORE4> score_bean4;
+std::unordered_map<std::string, KONGTOUPAO_SCORE4> kongtoupao_score_bean4;
+std::unordered_map<std::string, THINKER4> thinker_bean4;
 
 board::AIBoard4::AIBoard4() noexcept: 
                     version(0),
@@ -111,7 +110,7 @@ board::AIBoard4::AIBoard4() noexcept:
 }
 
 
-board::AIBoard4::AIBoard4(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
+board::AIBoard4::AIBoard4(const char another_state[MAX], bool turn, int round, const unsigned char di[VERSION_MAX][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
                                                                                                                             version(0), 
                                                                                                                             round(round), 
                                                                                                                             turn(turn), 
@@ -216,11 +215,11 @@ void board::AIBoard4::_initialize_dir(){
 
 void board::AIBoard4::SetScoreFunction(std::string function_name, int type){
     if(type == 0){
-        _score_func = GetWithDefUnordered<std::string, SCORE>(score_bean4, function_name, complicated_score_function4);
+        _score_func = GetWithDefUnordered<std::string, SCORE4>(score_bean4, function_name, complicated_score_function4);
     }else if(type == 1){
-        _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE>(kongtoupao_score_bean4, function_name, complicated_kongtoupao_score_function4);
+        _kongtoupao_score_func = GetWithDefUnordered<std::string, KONGTOUPAO_SCORE4>(kongtoupao_score_bean4, function_name, complicated_kongtoupao_score_function4);
     }else if(type == 2){
-        _thinker_func = GetWithDefUnordered<std::string, THINKER>(thinker_bean4, function_name, mtd_thinker4);
+        _thinker_func = GetWithDefUnordered<std::string, THINKER4>(thinker_bean4, function_name, mtd_thinker4);
     }
 }
 
@@ -743,7 +742,7 @@ bool board::AIBoard4::Ismate_After_Move(unsigned char src, unsigned char dst){
     return mate;
 }
 
-void board::AIBoard4::CopyData(const unsigned char di[5][2][123]){
+void board::AIBoard4::CopyData(const unsigned char di[VERSION_MAX][2][123]){
     memset(aiaverage, 0, sizeof(aiaverage));
     memset(aisumall, 0, sizeof(aisumall));
     memset(aidi, 0, sizeof(aidi));
@@ -1223,7 +1222,7 @@ short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const 
     constexpr short MATE_UPPER = 3696;
     unsigned char mate_src = 0, mate_dst = 0;
     if(root) {
-        self -> Scan();		
+        self -> Scan();     
         self -> original_depth = depth;
     }
     if(!root && self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){

@@ -14,13 +14,7 @@
 
 namespace board{
    struct Thinker;
-   int register_func(std::string x, std::function<board::Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>*)> y);
 }
-
-#define REGISTER(class, baseclass) \
-int tmp_ ## class ##_ ## baseclass = board::register_func(#class, [](const char another_state[], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist)\
- -> board::baseclass * {return new board::class(another_state, turn, round, di, score, hist);});
-
 
 //GetWithDef: If K does not exist, return the default value!
 template <typename K, typename V>
@@ -43,6 +37,32 @@ V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& d
    else {
       return it->second;
    }
+}
+
+template<typename T>
+inline void hash_combine(std::size_t& seed, const T& val)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+//  taken from https://stackoverflow.com/a/7222201/916549
+//
+template<typename S, typename T>
+struct myhash
+{
+    inline size_t operator()(const std::pair<S, T>& val) const
+    {
+        size_t seed = 0;
+        hash_combine(seed, val.first);
+        hash_combine(seed, val.second);
+        return seed;
+    }
+};
+
+template <typename T, typename U, typename V>
+bool GreaterTuple(const std::tuple<T, U, V> &i, const std::tuple<T, U, V> &j) {
+        return std::get<0>(i) > std::get<0>(j);
 }
 
 template<typename T>

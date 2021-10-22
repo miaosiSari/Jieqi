@@ -15,9 +15,6 @@
 #include "../global/global.h"
 #include "../score/score.h"
 
-namespace board{
-    extern std::unordered_map<std::string, std::function<Thinker*(const char[], bool, int, const unsigned char [5][2][123], short, std::unordered_map<std::string, bool>*)>> bean;  //define in ../global/global.cpp
-}
 
 #define INVALID -1
 #define NORMAL 0

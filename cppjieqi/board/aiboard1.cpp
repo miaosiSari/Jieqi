@@ -1,7 +1,5 @@
 #include "aiboard1.h"
 
-REGISTER(AIBoard1, Thinker);
-
 std::unordered_map<int, char> LUT1 = {
    {195, 'D'},
    {196, 'E'},
@@ -111,7 +109,7 @@ board::AIBoard1::AIBoard1() noexcept:
 }
 
 
-board::AIBoard1::AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
+board::AIBoard1::AIBoard1(const char another_state[MAX], bool turn, int round, const unsigned char di[VERSION_MAX][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
                                                                                                                             version(0), 
                                                                                                                             round(round), 
                                                                                                                             turn(turn), 
@@ -681,7 +679,7 @@ bool board::AIBoard1::Ismate_After_Move(unsigned char src, unsigned char dst){
     return mate;
 }
 
-void board::AIBoard1::CopyData(const unsigned char di[5][2][123]){
+void board::AIBoard1::CopyData(const unsigned char di[VERSION_MAX][2][123]){
     memset(aiaverage, 0, sizeof(aiaverage));
     memset(aisumall, 0, sizeof(aisumall));
     memset(aidi, 0, sizeof(aidi));
