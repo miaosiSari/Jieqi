@@ -750,8 +750,8 @@ void board::AIBoard3::CopyData(const unsigned char di[VERSION_MAX][2][123]){
 
     for(int ver = 0; ver < VERSION_MAX; ++ver){
         short numr = 0, numb = 0; 
-        numr += aidi[ver][1][INTR]; numr += aidi[ver][1][INTN];  numr += di[ver][1][INTB];  numr += aidi[ver][1][INTA];  numr += aidi[ver][1][INTC]; numr += aidi[ver][1][INTP]; 
-        numb += aidi[ver][0][INTr]; numb += aidi[ver][0][INTn];  numb += di[ver][0][INTb];  numb += aidi[ver][0][INTa];  numb += aidi[ver][0][INTc]; numb += aidi[ver][0][INTp]; 
+        numr += aidi[ver][1][INTR]; numr += aidi[ver][1][INTN];  numr += aidi[ver][1][INTB];  numr += aidi[ver][1][INTA];  numr += aidi[ver][1][INTC]; numr += aidi[ver][1][INTP]; 
+        numb += aidi[ver][0][INTr]; numb += aidi[ver][0][INTn];  numb += aidi[ver][0][INTb];  numb += aidi[ver][0][INTa];  numb += aidi[ver][0][INTc]; numb += aidi[ver][0][INTp]; 
         aisumall[ver][1] = numr; aisumall[ver][0] = numb;
         if(numr > 0){
             double sumr = 0.0;
