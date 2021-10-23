@@ -125,6 +125,7 @@ public:
     bool Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp, bool calc);
     bool ExecutedDebugger(bool *oppo_mate);
     bool Ismate_After_Move(unsigned char src, unsigned char dst);
+    void CalcVersion(const int ver, const float discount_factor);
     void CopyData(const unsigned char di[5][2][123]);
     std::string Kaiju();
     virtual std::string Think();
@@ -296,5 +297,6 @@ void complicated_kongtoupao_score_function4(board::AIBoard4* bp, short* kongtoup
 short complicated_score_function4(board::AIBoard4* self, const char* state_pointer, unsigned char src, unsigned char dst);
 short mtd_quiescence4(board::AIBoard4* self, const short gamma, int quiesc_depth, const bool root);
 short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
-
+short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, const bool nullmove_now, const int version);
+short eval4(board::AIBoard4* self, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, const bool nullmove_now, const int version);
 #endif

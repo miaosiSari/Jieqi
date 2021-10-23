@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include "board.h"
 #include "thinker.h"
-#include "aiboard1.h"
 #include "human.h"
 #include "../global/global.h"
 #include "../score/score.h"
