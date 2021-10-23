@@ -38,6 +38,7 @@ extern unsigned char L1[256][256];
 #include <stdio.h>
 #include <ctype.h>
 #include <stack>
+#include <math.h>
 #include <time.h>
 #include <stdlib.h>
 #include <functional>
@@ -249,6 +250,14 @@ public:
        return randomNumber;
 	   #endif
     };
+
+    template<typename T>
+    inline T div(T x, T y){
+        if(std::is_floating_point<T>::value){
+            return fabs(y) < 1e-7 ? (x/y) : 0.0;
+        }
+        return y != 0 ? (x / y) : 0;
+    }
    
 private:
     const char* _kaijuku_file;
@@ -297,6 +306,9 @@ void complicated_kongtoupao_score_function4(board::AIBoard4* bp, short* kongtoup
 short complicated_score_function4(board::AIBoard4* self, const char* state_pointer, unsigned char src, unsigned char dst);
 short mtd_quiescence4(board::AIBoard4* self, const short gamma, int quiesc_depth, const bool root);
 short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
-short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, const bool nullmove_now, const int version);
-short eval4(board::AIBoard4* self, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, const bool nullmove_now, const int version);
+void _inner_recur(board::AIBoard4* self, const int ver, std::unordered_map<unsigned char, char>& uncertainty_dict, std::unordered_map<std::pair<int, int>, unsigned char, myhash<int, int>>& result_dict, \
+    int index, int me, int op, bool pruning);
+short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, \
+    const bool nullmove_now, bool pruning);
+short eval4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool nullmove, const bool nullmove_now, bool pruning);
 #endif

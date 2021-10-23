@@ -1357,10 +1357,44 @@ std::string SearchScoreFunction4(void* score_func, int type){
     return "";
 }
 
-short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, const bool nullmove_now, const int version){
+
+void _inner_recur(board::AIBoard4* self, const int ver, std::unordered_map<unsigned char, char>& uncertainty_dict, std::unordered_map<std::pair<int, int>, unsigned char, myhash<int, int>>& result_dict, \
+    int index, int me, int op, bool pruning){
 
 }
 
-short eval4(board::AIBoard4* self, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, const bool nullmove_now, const int version){
-    
+short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool rootall, const bool nullmove, \
+    const bool nullmove_now, bool pruning){
+    return 0;
+}
+
+short eval4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool nullmove, const bool nullmove_now, bool pruning){
+    std::unordered_map<unsigned char, char> uncertainty_dict;
+    std::unordered_map<std::pair<int, int>, unsigned char, myhash<int, int>> result_dict;
+    const char* state_pointer = self -> turn ? self -> state_red : self -> state_black;
+    if(ver == 0){
+        return mtd_alphabeta_doublerecursive4(self, 0, gamma, depths, traverse_all_strategies, true, false, nullmove, nullmove_now, pruning);
+    }
+    else if((size_t)ver >= depths.size()){
+        return mtd_quiescence4(self, gamma, 0, true);
+    }
+    else{
+        memcpy(self -> aidi[ver], self -> aidi[ver-1], sizeof(self -> aidi[ver]));
+        for(unsigned char i = 51; i <= 203; ++i){
+            if((i & 15) < 3 || (i & 15) > 11) { continue; }
+            if(state_pointer[i] == 'U' || state_pointer[i] == 'u'){
+                uncertainty_dict[i] = state_pointer[i];
+            }
+        }
+        _inner_recur(self, ver, uncertainty_dict, result_dict, 0, 1, 1, pruning);
+        int nu = 0, de = 0; //numerator, denominator;
+        for(auto it = result_dict.begin(); it != result_dict.end(); ++it){
+            auto& item = it -> first;
+            auto combinations = item.first * item.second;
+            nu += (it -> second) * combinations;
+            de += combinations;
+        }
+        return self -> div(nu, de);
+    }
+    return 0;
 }
