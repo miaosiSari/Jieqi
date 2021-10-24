@@ -22,6 +22,8 @@ int main(void) {
     assert(read_score_table("../score.conf", pstglobal[3]));
     God g("../players.conf");
     DEBUG ? g.StartGame() : g.StartGameLoopAlternatively();
+    #if !DEBUG
     g.Play();
+    #endif
     return 0;
 }

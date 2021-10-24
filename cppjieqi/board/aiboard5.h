@@ -3,8 +3,8 @@
 * Copyright (c) 2021. All rights reserved.
 * Last modified 2021/07/31
 */
-#ifndef aiboard4_h
-#define aiboard4_h
+#ifndef aiboard5_h
+#define aiboard5_h
 #define MAX 257
 #define CHESS_BOARD_SIZE 256
 #define MAX_POSSIBLE_MOVES 120
@@ -18,6 +18,7 @@
 #define WEST -1
 #define GS(x) std::get<0>(x)
 extern unsigned char L1[256][256];
+
 #include <cstddef>
 #include <vector>
 #include <string>
@@ -37,7 +38,6 @@ extern unsigned char L1[256][256];
 #include <stdio.h>
 #include <ctype.h>
 #include <stack>
-#include <math.h>
 #include <time.h>
 #include <stdlib.h>
 #include <functional>
@@ -51,14 +51,14 @@ extern unsigned char L1[256][256];
 extern std::unordered_map<int, std::unordered_map<std::pair<uint32_t, bool>, std::pair<unsigned char, unsigned char>, myhash<uint32_t, bool>>> tp_move_bean;
 extern std::unordered_map<int, std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>>> tp_score_bean;
 namespace board{
-    class AIBoard4;
+    class AIBoard5;
 }
 
-typedef short(*SCORE4)(board::AIBoard4* bp, const char* state_pointer, unsigned char src, unsigned char dst);
-typedef void(*KONGTOUPAO_SCORE4)(board::AIBoard4* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
-typedef std::string(*THINKER4)(board::AIBoard4* bp);
-void register_score_functions4();
-std::string SearchScoreFunction4(void* score_func, int type);
+typedef short(*SCORE5)(board::AIBoard5* bp, const char* state_pointer, unsigned char src, unsigned char dst);
+typedef void(*KONGTOUPAO_SCORE5)(board::AIBoard5* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
+typedef std::string(*THINKER5)(board::AIBoard5* bp);
+void register_score_functions5();
+std::string SearchScoreFunction5(void* score_func, int type);
 extern short pstglobal[5][123][256];
 template <typename K, typename V>
 extern V GetWithDefUnordered(const std::unordered_map<K,V>& m, const K& key, const V& defval);
@@ -66,7 +66,7 @@ extern void copy_pst(short dst[][256], short src[][256]);
 
 
 namespace board{
-class AIBoard4 : public Thinker{
+class AIBoard5 : public Thinker{
 public:
     short aiaverage[VERSION_MAX][2][2][256];
     unsigned char aisumall[VERSION_MAX][2];
@@ -91,7 +91,6 @@ public:
     short kongtoupao_score = 0;
     short kongtoupao_score_opponent = 0;
     uint32_t zobrist_hash = 0;
-    const float discount_factor;
     char state_red[MAX];
     char state_black[MAX];
     std::stack<std::tuple<unsigned char, unsigned char, char>> cache;
@@ -106,10 +105,10 @@ public:
     std::unordered_map<std::pair<uint32_t, int>, std::pair<short, short>, myhash<uint32_t, int>>* tp_score;
     std::unordered_map<std::string, bool>* hist;
     std::unordered_map<std::string, std::pair<unsigned char, unsigned char>> kaijuku;
-    AIBoard4() noexcept;
-    AIBoard4(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept;
-    AIBoard4(const AIBoard4& another_board) = delete;
-    virtual ~AIBoard4()=default;
+    AIBoard5() noexcept;
+    AIBoard5(const char another_state[MAX], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept;
+    AIBoard5(const AIBoard5& another_board) = delete;
+    virtual ~AIBoard5()=default;
     void Reset() noexcept;
     void SetScoreFunction(std::string function_name, int type);
     std::string SearchScoreFunction(int type);
@@ -128,7 +127,6 @@ public:
     bool Executed(bool* oppo_mate, std::tuple<short, unsigned char, unsigned char> legal_moves_tmp[], int num_of_legal_moves_tmp, bool calc);
     bool ExecutedDebugger(bool *oppo_mate);
     bool Ismate_After_Move(unsigned char src, unsigned char dst);
-    void CalcVersion(const int ver, const float discount_factor);
     void CopyData(const unsigned char di[5][2][123]);
     std::string Kaiju();
     virtual std::string Think();
@@ -136,16 +134,14 @@ public:
     std::string DebugPrintPos(bool turn) const;
     void print_raw_board(const char* board, const char* hint);
     template<typename... Args> void print_raw_board(const char* board, const char* hint, Args... args);
-    uint32_t zobrist[123][256];
     #if DEBUG
     std::vector<std::string> debug_flags;
     int movecounter=0;
-
     std::function<uint32_t()> get_theoretical_zobrist = [this]() -> uint32_t {
         uint32_t theoretical_hash = 0;
         for(int j = 51; j <= 203; ++j){
             if(::isalpha(state_red[j])){
-                 theoretical_hash ^= zobrist[(int)state_red[j]][j];
+                 theoretical_hash ^= _zobrist[(int)state_red[j]][j];
             }
         }
         return theoretical_hash;
@@ -221,10 +217,6 @@ public:
         return 195 - 16 * x + y;
     };
 
-    char operator[](std::string s){
-        return state_red[f(s)];
-    }
-
     std::function<std::string(unsigned char)> translate_single = [](unsigned char i) -> std::string{
        int x1 = 12 - (i >> 4);
        int y1 = (i & 15) - 3;
@@ -259,25 +251,18 @@ public:
 	   #endif
     };
 
-    template<typename T>
-    inline T div(T x, T y){
-        if(std::is_floating_point<T>::value){
-            return fabs(y) < 1e-7 ? (x/y) : 0.0;
-        }
-        return y != 0 ? (x / y) : 0;
-    }
-   
 private:
     const char* _kaijuku_file;
     std::string _myname;
+    uint32_t _zobrist[123][256];
     bool _has_initialized = false;
     static const int _chess_board_size;
     static const char _initial_state[MAX];
     static const std::unordered_map<std::string, std::string> _uni_pieces;
     static char _dir[91][8];
-    SCORE4 _score_func = NULL;
-    KONGTOUPAO_SCORE4 _kongtoupao_score_func = NULL;
-    THINKER4 _thinker_func = NULL;
+    SCORE5 _score_func = NULL;
+    KONGTOUPAO_SCORE5 _kongtoupao_score_func = NULL;
+    THINKER5 _thinker_func = NULL;
     std::function<std::string(const char)> _getstring = [](const char c) -> std::string {
         std::string ret;
         const std::string c_string(1, c);
@@ -292,15 +277,15 @@ private:
         for(int i = 0; i < 123; ++i){
             for(int j = 0; j < 256; ++j){
                 if(i != '.'){
-                    zobrist[i][j] = randU32();
+                    _zobrist[i][j] = randU32();
 				}
                 else
-                    zobrist[i][j] = 0;
+                    _zobrist[i][j] = 0;
             }
         }
         for(int j = 51; j <= 203; ++j){
             if(::isalpha(state_red[j])){
-                zobrist_hash ^= zobrist[(int)state_red[j]][j];
+                zobrist_hash ^= _zobrist[(int)state_red[j]][j];
             }
         }
     };
@@ -308,20 +293,10 @@ private:
 };
 }
 
-std::string mtd_thinker4(board::AIBoard4* bp);
-void complicated_kongtoupao_score_function4(board::AIBoard4* bp, short* kongtoupao_score, short* kongtoupao_score_opponent);
-short complicated_score_function4(board::AIBoard4* self, const char* state_pointer, unsigned char src, unsigned char dst);
-short mtd_quiescence4(board::AIBoard4* self, const short gamma, int quiesc_depth, const bool root, int* me, int* op);
-short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy, int* me, int* op);
-short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool nullmove, \
-    const bool nullmove_now, const bool pruning, const float discount_factor);
-void _inner_recur(board::AIBoard4* self, const int ver, std::unordered_map<unsigned char, char>& uncertainty_dict, std::vector<unsigned char>& uncertainty_keys, \
-    std::unordered_map<std::pair<int, int>, unsigned char, myhash<int, int>>& result_dict, const int index, const int me, const int op, const bool pruning, const short score, const short gamma, \
-    std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool nullmove, const bool nullmove_now, const float discount_factor);
-short eval4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool nullmove, const bool nullmove_now, const bool pruning, \
-    const float discount_factor);
-short calleval4(board::AIBoard4* self, const short gamma, std::vector<int> depths, std::vector<bool> traverse_all_strategies, const bool nullmove, const bool pruning);
-#if DEBUG
-void debugset(board::AIBoard4* self);
-#endif
+std::string mtd_thinker5(board::AIBoard5* self);
+void complicated_kongtoupao_score_function5(board::AIBoard5* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
+short complicated_score_function5(board::AIBoard5* bp, const char* state_pointer, unsigned char src, unsigned char dst);
+short mtd_quiescence5(board::AIBoard5* self, const short gamma, int quiesc_depth, const bool root);
+short mtd_alphabeta5(board::AIBoard5* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
+
 #endif

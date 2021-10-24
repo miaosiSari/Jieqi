@@ -106,9 +106,6 @@ God::~God(){
 int God::StartThinker(std::ofstream* of){
     if(!ok) return -1;
     board_pointer -> GenMovesWithScore();
-    #if DEBUG
-    board_pointer -> DebugDI();
-    #endif
     if(board_pointer -> turn){
         if(type1 == 0){
             printf("红方行棋!\n");
@@ -300,6 +297,8 @@ void God::Play(){
 int God::StartGame(){
     red_eat_black.clear();
     black_eat_red.clear();
+    tp_move_bean.clear();
+    tp_score_bean.clear();
     bool write = false;
     std::ofstream of(logfile, std::ios::app);
     if(of.is_open()){

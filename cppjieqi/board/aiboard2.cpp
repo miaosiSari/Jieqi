@@ -1129,12 +1129,12 @@ std::string mtd_thinker2(board::AIBoard2* bp){
                 bool killer_is_alive = false;
                 short killer_score = 0;
                 bp -> GenMovesWithScore<true, false>(legal_moves_tmp, num_of_legal_moves_tmp, NULL, killer_score, mate_src, mate_dst, killer_is_alive);
-                std::cout << "[AM I FAILED?]" << num_of_legal_moves_tmp << " My move: " << bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0])) << ", duration = " << int_ms << ", depth = " << depth + quiesc_depth << "." << std::endl;
+                std::cout << "My name: " << bp -> GetName() << " [AM I FAILED?]" << num_of_legal_moves_tmp << " My move: " << bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0])) << ", duration = " << int_ms << ", depth = " << depth + quiesc_depth << "." << std::endl;
                 if(num_of_legal_moves_tmp != 0){
                     return bp -> translate_ucci(std::get<1>(legal_moves_tmp[0]), std::get<2>(legal_moves_tmp[0]));
                 }
             }
-            std::cout << "My move: " << bp -> translate_ucci(move.first, move.second) << ", duration = " << int_ms << ", depth = " << depth + quiesc_depth << "." << std::endl;
+            std::cout << "My name: " << bp -> GetName() << " My move: " << bp -> translate_ucci(move.first, move.second) << ", duration = " << int_ms << ", depth = " << depth + quiesc_depth << "." << std::endl;
             return bp -> translate_ucci(move.first, move.second);
         }
     }
@@ -1223,7 +1223,7 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
         self -> Scan();
         self -> original_depth = depth;
     }
-    if(!root && self -> hist -> find(self -> state_red) != self -> hist -> end() && (*self -> hist)[self -> state_red] != self -> original_turn){
+    if(!root && self -> hist -> find(self -> state_red) != self -> hist -> end()){
         //假设AI执红。校验对象红方(self->original_turn)
         //红方走了一步, 形成局面A, self -> hist[self -> state_red] == false(因为现在是黑方)
         //如果和当前局面重复(当前局面为!self -> original_turn), 且turn也相同, 直接判断黑方胜利
@@ -1244,6 +1244,9 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
     if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp, true) || self -> score < -MATE_UPPER/2){
         return -MATE_UPPER;
     }
+    if(depth == quiesc_depth){
+        return mtd_quiescence2(self, gamma, quiesc_depth, true);
+    }
     std::pair<short, short> entry(-MATE_UPPER, MATE_UPPER);
     std::pair<uint32_t, int> pair = {self -> zobrist_hash, (depth << 1) + (int)self -> turn};
     if(self -> tp_score.find(pair) != self -> tp_score.end()){
@@ -1254,9 +1257,6 @@ short mtd_alphabeta2(board::AIBoard2* self, const short gamma, int depth, const 
     }
     if(entry.second < gamma){
         return entry.second;
-    }
-    if(depth == quiesc_depth){
-        return mtd_quiescence2(self, gamma, quiesc_depth, true);
     }
     short score = 0, best = -MATE_UPPER;
     std::function<bool(short, unsigned char, unsigned char, short*)> judge = [&](short score, unsigned char src, unsigned char dst, short* best){
