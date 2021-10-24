@@ -56,7 +56,7 @@ struct God{
     int StartGameLoop();
     int StartGameLoopAlternatively(size_t winning_threshold);//红黑交替
     int StartGameLoopAlternatively();//红黑交替
-    std::string PrintEat(bool turn);
+    std::string PrintEat(bool turn, bool SHOWDARK);
 
     std::function<std::string(const char)> getstring = [](const char c) -> std::string {
         std::string ret;
@@ -74,17 +74,13 @@ struct God{
         return true;
     };
 
-    std::function<std::string(const char, bool, bool, bool)> isdot = [this](const char c, bool isdark, bool isend, bool turn) -> std::string {
+    std::function<std::string(const char, bool, bool)> isdot = [this](const char c, bool isdark, bool turn) -> std::string {
         if(c == '.') return "";
         std::string ret = getstring(turn? ::toupper(c) : ::tolower(c));
-        if(isdark && isend){
-            ret = ret + "(暗).";
-        }else if(isdark && !isend){
-            ret = ret + "(暗), ";
-        }else if(!isdark && isend){
-            ret = ret + ".";
+        if(isdark){
+            ret = ret + "(暗) ";
         }else{
-            ret = ret + ", ";
+            ret = ret + " ";
         }
         return ret;
     };

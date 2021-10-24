@@ -109,7 +109,7 @@ int God::StartThinker(std::ofstream* of){
     if(board_pointer -> turn){
         if(type1 == 0){
             printf("红方行棋!\n");
-            std::cout << PrintEat(board_pointer -> turn) << std::endl;
+            std::cout << PrintEat(board_pointer -> turn, false) << std::endl;
             board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
             thinker1.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
         }else{
@@ -150,7 +150,7 @@ int God::StartThinker(std::ofstream* of){
     }else{
         if(type2 == 0){
             printf("黑方行棋!\n");
-            std::cout << PrintEat(board_pointer -> turn) << std::endl;
+            std::cout << PrintEat(board_pointer -> turn, false) << std::endl;
             board_pointer -> PrintPos(board_pointer -> turn, true, false, true);
             thinker2.reset(new board::Human(board_pointer -> turn, board_pointer -> round));
         }else{
@@ -193,10 +193,6 @@ int God::StartThinker(std::ofstream* of){
 }
 
 void God::Play(std::string logfile){
-    #ifndef SHOWDARK
-    #define SHOWDARK
-    #define NONSHOWDARKORIGIN
-    #endif
     printf("\n对局回顾!\n");
     std::ifstream in(logfile);
     if(!in.is_open()){
@@ -279,15 +275,11 @@ void God::Play(std::string logfile){
             else{
                 black_eat_red.push_back({p -> eat, p -> eat_type, 195 - 16 * p -> dst_x + p -> dst_y, p -> eat_check});
             }
-            std::cout << PrintEat(true) << "\n";
+            std::cout << PrintEat(true, true) << "\n";
             board_pointer -> PrintPos(true, true, false, true);
         }
 
     }
-    #ifdef NONSHOWDARKORIGIN
-    #undef NONSHOWDARKORIGIN
-    #undef SHOWDARK
-    #endif
 }
 
 void God::Play(){
@@ -464,23 +456,24 @@ bool God::GetTurn(){
    return board_pointer -> turn;
 }
 
-std::string God::PrintEat(bool turn){
+std::string God::PrintEat(bool turn, bool SHOWDARK){
     std::string ret;
     if(turn){
         ret += "黑吃红: ";
         for(size_t i = 0; i < black_eat_red.size(); ++i){
-            #ifdef SHOWDARK
-            auto tuple = black_eat_red[i];
-            if(std::get<1>(tuple) == 2){
-                char covered = board_pointer -> random_map[!turn][std::get<2>(tuple)];
-                assert(covered == std::get<3>(tuple));
-                ret += isdot(covered, true, (i == (black_eat_red.size() - 1)), true);
-            }else{
-                ret += isdot(std::get<0>(tuple), false, (i == (black_eat_red.size() - 1)), true);
+            if(SHOWDARK){
+                auto tuple = black_eat_red[i];
+                if(std::get<1>(tuple) == 2){
+                    char covered = board_pointer -> random_map[!turn][std::get<2>(tuple)];
+                    assert(covered == std::get<3>(tuple));
+                    ret += isdot(covered, true, true);
+                }else{
+                    ret += isdot(std::get<0>(tuple), false, true);
+                }
             }
-            #else
-            ret += isdot(std::get<0>(black_eat_red[i]), false, (i == (black_eat_red.size() - 1)), true);
-            #endif
+            else{
+                ret += isdot(std::get<0>(black_eat_red[i]), false, true);
+            }
         }
         ret += '\n';
         ret += "红吃黑: ";
@@ -489,26 +482,26 @@ std::string God::PrintEat(bool turn){
             if(std::get<1>(tuple) == 2){
                 char covered = board_pointer -> random_map[turn][std::get<2>(tuple)];
                 assert(covered == std::get<3>(tuple));
-                ret += isdot(covered, true, (i == (red_eat_black.size() - 1)), false);
+                ret += isdot(covered, true, false);
             }else{
-                ret += isdot(std::get<0>(tuple), false, (i == (red_eat_black.size() - 1)), false);
+                ret += isdot(std::get<0>(tuple), false, false);
             }
         }
     }else{
         ret += "红吃黑: ";
         for(size_t i = 0; i < red_eat_black.size(); ++i){
-            #ifdef SHOWDARK
-            auto tuple = red_eat_black[i];
-            if(std::get<1>(tuple) == 2){
-                char covered = board_pointer -> random_map[!turn][std::get<2>(tuple)];
-                assert(covered == std::get<3>(tuple));
-                ret += isdot(covered, true, (i == (red_eat_black.size() - 1)), false);
+            if(SHOWDARK){
+                auto tuple = red_eat_black[i];
+                if(std::get<1>(tuple) == 2){
+                    char covered = board_pointer -> random_map[!turn][std::get<2>(tuple)];
+                    assert(covered == std::get<3>(tuple));
+                    ret += isdot(covered, true, false);
+                }else{
+                    ret += isdot(std::get<0>(tuple), false, false);
+                }
             }else{
-                ret += isdot(std::get<0>(tuple), false, (i == (red_eat_black.size() - 1)), false);
+                ret += isdot(std::get<0>(red_eat_black[i]), false, false);
             }
-            #else
-            ret += isdot(std::get<0>(red_eat_black[i]), false, (i == (red_eat_black.size() - 1)), false);
-            #endif
         }
         ret += '\n';
         ret += "黑吃红: ";
@@ -517,9 +510,9 @@ std::string God::PrintEat(bool turn){
             if(std::get<1>(tuple) == 2){
                 char covered = board_pointer -> random_map[turn][std::get<2>(tuple)];
                 assert(covered == std::get<3>(tuple));
-                ret += isdot(covered, true, (i == (black_eat_red.size() - 1)), true);
+                ret += isdot(covered, true, true);
             }else{
-                ret += isdot(std::get<0>(tuple), false, (i == (black_eat_red.size() - 1)), true);
+                ret += isdot(std::get<0>(tuple), false, true);
             }
         }
    }

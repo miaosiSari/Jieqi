@@ -1111,7 +1111,7 @@ inline void complicated_kongtoupao_score_function4(board::AIBoard4* bp, short* k
 std::string mtd_thinker4(board::AIBoard4* bp){
     #define DOUBLE 1
     constexpr short MATE_UPPER = 3696;
-    constexpr short EVAL_ROBUSTNESS = 0;
+    constexpr short EVAL_ROBUSTNESS = 15;
     bp -> Scan();
     bool traverse_all_strategy = true;
     int max_depth = (bp -> round < 15?5:7);
@@ -1123,7 +1123,7 @@ std::string mtd_thinker4(board::AIBoard4* bp){
         while(lower < upper - EVAL_ROBUSTNESS){
             short gamma = (lower + upper + 1)/2; //不会溢出
             #if DOUBLE
-            short score = calleval4(bp, gamma, {2, 2}, {true, false}, true, false);
+            short score = calleval4(bp, gamma, {2, 3}, {true, false}, true, false);
             #else
             int me = 0, op = 0;
             short score = mtd_alphabeta4(bp, gamma, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy, &me, &op);
@@ -1132,7 +1132,7 @@ std::string mtd_thinker4(board::AIBoard4* bp){
             if(score < gamma) { upper = score; }
         }
         #if DOUBLE
-        calleval4(bp, lower, {2, 2}, {true, false}, true, false);
+        calleval4(bp, lower, {2, 3}, {true, false}, true, false);
         #else
         int me = 0, op = 0;
         mtd_alphabeta4(bp, lower, depth + quiesc_depth, true, true, true, quiesc_depth, traverse_all_strategy, &me, &op);
