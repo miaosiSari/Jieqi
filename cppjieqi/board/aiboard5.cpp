@@ -100,7 +100,7 @@ board::AIBoard5::AIBoard5() noexcept:
     memset(state_black, 0, sizeof(state_black));
     strncpy(state_red, _initial_state, _chess_board_size);
     strncpy(state_black, _initial_state, _chess_board_size);
-    copy_pst(this -> pst, ::pstglobal[2]);
+    copy_pst(this -> pst, ::pstglobal[4]);
     _initialize_dir();
     _initialize_zobrist();
     zobrist_cache.insert((zobrist_hash << 1)|original_turn);
@@ -139,7 +139,7 @@ board::AIBoard5::AIBoard5(const char another_state[MAX], bool turn, int round, c
     }else{
         rotate(state_red);
     }
-    copy_pst(this -> pst, ::pstglobal[1]);
+    copy_pst(this -> pst, ::pstglobal[4]);
     CopyData(di);
     _initialize_dir();
     _initialize_zobrist();

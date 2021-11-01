@@ -1243,9 +1243,6 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
         self -> GenMovesWithScore<true, false>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
     if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp, true)){
-        if(CH("g9g8")){
-            self -> print_raw_board(self -> state_red, "state_red");
-        }
         return -MATE_UPPER;
     }
     if(depth == quiesc_depth){

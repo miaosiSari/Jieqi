@@ -16,10 +16,9 @@ int main(void) {
     srand(time(NULL));
     IntializeL1();
     memset(pstglobal, 0, sizeof(pstglobal));
-    assert(read_score_table("../score.conf", pstglobal[0]));
-    assert(read_score_table("../score.conf", pstglobal[1]));
     assert(read_score_table("../score.conf", pstglobal[2]));
     assert(read_score_table("../score.conf", pstglobal[3]));
+    assert(read_score_table("../score.conf", pstglobal[4]));
     God g("../players.conf");
     DEBUG ? g.StartGame() : g.StartGameLoopAlternatively();
     #if !DEBUG
