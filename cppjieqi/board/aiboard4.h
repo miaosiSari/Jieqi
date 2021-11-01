@@ -75,6 +75,7 @@ public:
     int round = 0;
     bool turn = true; //true红black黑
     const bool original_turn;//游戏时的红黑
+    bool original_turns[VERSION_MAX];
     int original_depth;
     unsigned char protector = 4;
     unsigned char protector_oppo = 4;
@@ -314,7 +315,7 @@ short complicated_score_function4(board::AIBoard4* self, const char* state_point
 short mtd_quiescence4(board::AIBoard4* self, const short gamma, int quiesc_depth, const bool root, int* me, int* op);
 short mtd_alphabeta4(board::AIBoard4* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy, int* me, int* op);
 short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool nullmove, \
-    const bool nullmove_now, const bool pruning, const float discount_factor);
+    const bool nullmove_now, const bool pruning, const float discount_factor, std::unordered_map<unsigned char, char>& uncertainty_dict, bool* need_clamp);
 void _inner_recur(board::AIBoard4* self, const int ver, std::unordered_map<unsigned char, char>& uncertainty_dict, std::vector<unsigned char>& uncertainty_keys, \
     std::unordered_map<std::pair<int, int>, unsigned char, myhash<int, int>>& result_dict, const int index, const int me, const int op, const bool pruning, const short score, const short gamma, \
     std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool nullmove, const bool nullmove_now, const float discount_factor);

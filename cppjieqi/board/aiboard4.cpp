@@ -705,8 +705,8 @@ bool board::AIBoard4::Executed(bool* oppo_mate, std::tuple<short, unsigned char,
     bool saved = false; //还有救?
     for(int i = 0; i < num_of_legal_moves_tmp; ++i){
         auto tuple = legal_moves_tmp[i];
-        bool retval = Move(std::get<1>(tuple), std::get<2>(tuple), std::get<0>(tuple));
-        if(retval && !Mate<false>()){
+        Move(std::get<1>(tuple), std::get<2>(tuple), std::get<0>(tuple));
+        if(!Mate<false>()){
             saved = true;
         }
         UndoMove(1);
@@ -788,10 +788,9 @@ void board::AIBoard4::CopyData(const unsigned char di[VERSION_MAX][2][123]){
     memset(aisumall, 0, sizeof(aisumall));
     memset(aidi, 0, sizeof(aidi));
     #if DEBUG
-    debugset(this);
-    #else
-    memcpy(aidi, di, sizeof(aidi));
+    //debugset(this);
     #endif
+    memcpy(aidi, di, sizeof(aidi));
     CalcVersion(0, discount_factor);
 }
 
@@ -826,7 +825,7 @@ std::string board::AIBoard4::Kaiju(){
 }
 
 std::string board::AIBoard4::Think(){
-    SetScoreFunction("mtd_thinker", 2);
+    SetScoreFunction("mtd_thinker4", 2);
     return round == 0 ? Kaiju() : _thinker_func(this);
 }
 
@@ -1400,9 +1399,21 @@ std::string SearchScoreFunction4(void* score_func, int type){
 
 
 short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool root, const bool nullmove, \
-    const bool nullmove_now, const bool pruning, const float discount_factor){
+    const bool nullmove_now, const bool pruning, const float discount_factor, std::unordered_map<unsigned char, char>& uncertainty_dict, bool* need_clamp){
     constexpr short MATE_UPPER = 3696;
-    //bool flag = (root && ver == 1 && (*self)["e8"] == 'c' && (*self)["e5"] == 'R'); 
+    *need_clamp = false;
+    auto src_move_is_from_uncertainty_dict = [&](unsigned char i){
+        for(auto j = uncertainty_dict.begin(); j != uncertainty_dict.end(); ++j){
+            if(j -> first == i && self -> turn == self -> original_turns[ver]){
+                return true;
+            }
+            if(j -> first == 254 - i && self -> turn != self -> original_turns[ver]){
+                return true;
+            }
+        }
+        return false;
+    };
+
     self -> version = ver;
     int depth = depths[ver];
     bool traverse_all_strategy = traverse_all_strategies[ver];
@@ -1428,7 +1439,11 @@ short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const
     }
     bool mate = (depth ? self -> GenMovesWithScore<true, false>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive) : \
         self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
-    if(mate) { (*self -> tp_move)[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
+    if(mate) { 
+        *need_clamp = src_move_is_from_uncertainty_dict(mate_src);
+        (*self -> tp_move)[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; 
+        return MATE_UPPER; 
+    }
     if((size_t)ver == depths.size() - 1 && self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp, true)){
         return -MATE_UPPER;
     }
@@ -1455,6 +1470,7 @@ short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const
         if(*best >= gamma && update){
             if(src && dst){
                 (*self -> tp_move)[{self -> zobrist_hash, self -> turn}] = {src, dst};
+                *need_clamp =  src_move_is_from_uncertainty_dict(src);
             }
             return true;
         }
@@ -1464,7 +1480,7 @@ short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const
         if(nullmove && nullmove_now && depth > 3 && !mate && !root){
             depths[ver] -= 3;
             self -> NULLMove();
-            score = -mtd_alphabeta_doublerecursive4(self, ver, 1 - gamma, depths, traverse_all_strategies, false, nullmove, nullmove, pruning, discount_factor); //Attempt: false --> nullmove
+            score = -mtd_alphabeta_doublerecursive4(self, ver, 1 - gamma, depths, traverse_all_strategies, false, nullmove, nullmove, pruning, discount_factor, uncertainty_dict, need_clamp); //Attempt: false --> nullmove
             self -> UndoMove(0);
             depths[ver] += 3;
             if(judge(score, 0, 0, &best) && (!root || !traverse_all_strategy)){
@@ -1475,7 +1491,7 @@ short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const
             bool retval = self -> Move(killer.first, killer.second, killer_score);
             if(retval){
                 depths[ver] -= 1;
-                score = -mtd_alphabeta_doublerecursive4(self, ver, 1 - gamma, depths, traverse_all_strategies, false, nullmove, nullmove, pruning, discount_factor);
+                score = -mtd_alphabeta_doublerecursive4(self, ver, 1 - gamma, depths, traverse_all_strategies, false, nullmove, nullmove, pruning, discount_factor, uncertainty_dict, need_clamp);
                 depths[ver] += 1;
             }
             self -> UndoMove(1);
@@ -1494,7 +1510,7 @@ short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const
             bool retval = self -> Move(src, dst, std::get<0>(move_score_tuple));
             if(retval){
                 depths[ver] -= 1;
-                score = -mtd_alphabeta_doublerecursive4(self, ver, 1 - gamma, depths, traverse_all_strategies, false, nullmove, nullmove, pruning, discount_factor);
+                score = -mtd_alphabeta_doublerecursive4(self, ver, 1 - gamma, depths, traverse_all_strategies, false, nullmove, nullmove, pruning, discount_factor, uncertainty_dict, need_clamp);
                 depths[ver] += 1;
             }
             self -> UndoMove(1);
@@ -1518,11 +1534,17 @@ short mtd_alphabeta_doublerecursive4(board::AIBoard4* self, const int ver, const
 void _inner_recur(board::AIBoard4* self, const int ver, std::unordered_map<unsigned char, char>& uncertainty_dict, std::vector<unsigned char>& uncertainty_keys, \
     std::unordered_map<std::pair<int, int>, short, myhash<int, int>>& result_dict, const int index, const int me, const int op, const bool pruning, const short score, const short gamma, \
     std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool nullmove, const bool nullmove_now, const float discount_factor){
+    const int THRES = 200;
+    bool need_clamp = false;
+    if(index == 0 && uncertainty_keys.empty()){
+        result_dict[{1, 1}] += mtd_alphabeta_doublerecursive4(self, ver, gamma, depths, traverse_all_strategies, true, nullmove, nullmove_now, pruning, discount_factor, uncertainty_dict, &need_clamp);
+        return;
+    }
     if((size_t)index >= uncertainty_keys.size()){
         self -> score = score;
         self -> CalcVersion(ver, discount_factor);
-        short res =  mtd_alphabeta_doublerecursive4(self, ver, gamma, depths, traverse_all_strategies, true, nullmove, nullmove_now, pruning, discount_factor);
-        result_dict[{me, op}] += res;
+        short res =  mtd_alphabeta_doublerecursive4(self, ver, gamma, depths, traverse_all_strategies, true, nullmove, nullmove_now, pruning, discount_factor, uncertainty_dict, &need_clamp);
+        result_dict[{me, op}] += (need_clamp && res >= THRES ? THRES : res);
     }else{
         bool turn = self -> turn, notturn = !self -> turn;
         char* state_pointer = turn ? self -> state_red : self -> state_black;
@@ -1582,12 +1604,15 @@ void _inner_recur(board::AIBoard4* self, const int ver, std::unordered_map<unsig
 
 short eval4(board::AIBoard4* self, const int ver, const short gamma, std::vector<int>& depths, std::vector<bool>& traverse_all_strategies, const bool nullmove, const bool nullmove_now, const bool pruning, \
     const float discount_factor){
+    self -> original_turns[ver] = self -> turn;
     std::unordered_map<unsigned char, char> uncertainty_dict;
     std::vector<unsigned char> uncertainty_keys;
     std::unordered_map<std::pair<int, int>, short, myhash<int, int>> result_dict;
     const char* state_pointer = self -> turn ? self -> state_red : self -> state_black;
+    bool need_clamp = false;
+    std::unordered_map<unsigned char, char> empty_map;
     if(ver == 0){
-        return mtd_alphabeta_doublerecursive4(self, 0, gamma, depths, traverse_all_strategies, true, nullmove, nullmove_now, pruning, discount_factor);
+        return mtd_alphabeta_doublerecursive4(self, 0, gamma, depths, traverse_all_strategies, true, nullmove, nullmove_now, pruning, discount_factor, empty_map, &need_clamp);
     }
 
     else if((size_t)ver >= depths.size()){
@@ -1605,25 +1630,22 @@ short eval4(board::AIBoard4* self, const int ver, const short gamma, std::vector
             }
         }
         short nowscore = self -> score;
-        //printf("\n*****************\n");
         _inner_recur(self, ver, uncertainty_dict, uncertainty_keys, result_dict, 0, 1, 1, pruning, self -> score, gamma, depths, traverse_all_strategies, nullmove, nullmove_now, discount_factor);
         self -> score = nowscore;
         int nu = 0, de = 0; //numerator, denominator;
         for(auto it = result_dict.begin(); it != result_dict.end(); ++it){
             auto& item = it -> first;
             auto combinations = item.first * item.second;
-            //printf("%d %d %d\n", it -> first.first, it -> first.second, it -> second);
             nu += (it -> second) * combinations;
             de += combinations;
         }
-        //printf("nu = %d, de = %d\n", nu, de);
-        //printf("@@@@@@@@@@@@@@@@@@\n");
         return self -> div(nu, de);
     }
     return 0;
 }
 
 short calleval4(board::AIBoard4* self, const short gamma, std::vector<int> depths, std::vector<bool> traverse_all_strategies, const bool nullmove, const bool pruning){
+    memset(self -> original_turns, self -> turn, sizeof(self -> original_turns));
     return eval4(self, 0, gamma, depths, traverse_all_strategies, nullmove, nullmove, pruning, self -> discount_factor);
 }
 

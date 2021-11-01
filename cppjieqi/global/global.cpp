@@ -1,5 +1,4 @@
 #include "global.h"
-#include "../board/aiboard2.h"
 #include "../board/aiboard3.h"
 #include "../board/aiboard4.h"
 #include "../board/aiboard5.h"
@@ -10,8 +9,6 @@ namespace board{
       bean.insert({x, y});
       return 0;
     }
-    int aiboard2 = register_func("AIBoard2", [](const char another_state[], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist)\
- -> Thinker * {return new AIBoard2(another_state, turn, round, di, score, hist);});
     int aiboard3 = register_func("AIBoard3", [](const char another_state[], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist)\
  -> Thinker * {return new AIBoard3(another_state, turn, round, di, score, hist);});
     int aiboard4 = register_func("AIBoard4", [](const char another_state[], bool turn, int round, const unsigned char di[5][2][123], short score, std::unordered_map<std::string, bool>* hist)\

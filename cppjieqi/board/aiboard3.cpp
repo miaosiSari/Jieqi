@@ -698,8 +698,8 @@ bool board::AIBoard3::Executed(bool* oppo_mate, std::tuple<short, unsigned char,
     bool saved = false; //还有救?
     for(int i = 0; i < num_of_legal_moves_tmp; ++i){
         auto tuple = legal_moves_tmp[i];
-        bool retval = Move(std::get<1>(tuple), std::get<2>(tuple), std::get<0>(tuple));
-        if(retval && !Mate<false>()){
+        Move(std::get<1>(tuple), std::get<2>(tuple), std::get<0>(tuple));
+        if(!Mate<false>()){
             saved = true;
         }
         UndoMove(1);
@@ -1102,11 +1102,11 @@ std::string mtd_thinker3(board::AIBoard3* bp){
     constexpr short EVAL_ROBUSTNESS = 0;
     bp -> Scan();
     bool traverse_all_strategy = true;
-    int max_depth = (bp -> round < 15?6:7);
-    int quiesc_depth = (bp -> round < 15?1:0);
+    int max_depth = (bp -> round < 15?3:7);
+    int quiesc_depth = (bp -> round < 15?0:0);
     int depth = 0;
     auto start = std::chrono::high_resolution_clock::now();
-    for(depth = 5; depth <= max_depth; ++depth){
+    for(depth = 3; depth <= max_depth; ++depth){
         #if CLEAR_EVERY_ROOT
         bp -> tp_score.clear();
         bp -> tp_move.clear();
@@ -1242,7 +1242,10 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
     bool mate = (depth == quiesc_depth ? self -> GenMovesWithScore<false, true>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive) : \
         self -> GenMovesWithScore<true, false>(legal_moves_tmp, num_of_legal_moves_tmp, killer_is_alive?&killer:NULL, killer_score, mate_src, mate_dst, killer_is_alive));
     if(mate) { self -> tp_move[{self -> zobrist_hash, self -> turn}] = {mate_src, mate_dst}; return MATE_UPPER; }
-    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp, true) || self -> score < -MATE_UPPER/2){
+    if(self -> Executed(&mate, legal_moves_tmp, num_of_legal_moves_tmp, true)){
+        if(CH("g9g8")){
+            self -> print_raw_board(self -> state_red, "state_red");
+        }
         return -MATE_UPPER;
     }
     if(depth == quiesc_depth){
@@ -1307,13 +1310,14 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
             self -> UndoMove(1);
             #if DEBUG
             self -> debug_flags.pop_back();
-            //if(root) std::cout << self -> translate_tuple(move_score_tuple) << " " << score << " " << GS(move_score_tuple) << " " << gamma << "\n";
+            if(root) std::cout << self -> translate_tuple(move_score_tuple) << " " << score << " " << GS(move_score_tuple) << " " << gamma << "\n";
             #endif
             if(retval && judge(score, src, dst, &best) && (!root || !traverse_all_strategy)){
                 break;
             }
         }
     }while(false);
+    if(root) printf("\n");
     if(best >= gamma){
         self -> tp_score[pair] = {best, entry.second};
     }else{

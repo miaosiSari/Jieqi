@@ -701,8 +701,8 @@ bool board::AIBoard5::Executed(bool* oppo_mate, std::tuple<short, unsigned char,
     bool saved = false; //还有救?
     for(int i = 0; i < num_of_legal_moves_tmp; ++i){
         auto tuple = legal_moves_tmp[i];
-        bool retval = Move(std::get<1>(tuple), std::get<2>(tuple), std::get<0>(tuple));
-        if(retval && !Mate<false>()){
+        Move(std::get<1>(tuple), std::get<2>(tuple), std::get<0>(tuple));
+        if(!Mate<false>()){
             saved = true;
         }
         UndoMove(1);
