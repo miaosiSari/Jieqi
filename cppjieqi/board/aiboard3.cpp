@@ -1102,11 +1102,11 @@ std::string mtd_thinker3(board::AIBoard3* bp){
     constexpr short EVAL_ROBUSTNESS = 0;
     bp -> Scan();
     bool traverse_all_strategy = true;
-    int max_depth = (bp -> round < 15?3:7);
-    int quiesc_depth = (bp -> round < 15?0:0);
+    int max_depth = (bp -> round < 15?6:7);
+    int quiesc_depth = (bp -> round < 15?1:0);
     int depth = 0;
     auto start = std::chrono::high_resolution_clock::now();
-    for(depth = 3; depth <= max_depth; ++depth){
+    for(depth = 5; depth <= max_depth; ++depth){
         #if CLEAR_EVERY_ROOT
         bp -> tp_score.clear();
         bp -> tp_move.clear();
@@ -1310,14 +1310,12 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
             self -> UndoMove(1);
             #if DEBUG
             self -> debug_flags.pop_back();
-            if(root) std::cout << self -> translate_tuple(move_score_tuple) << " " << score << " " << GS(move_score_tuple) << " " << gamma << "\n";
             #endif
             if(retval && judge(score, src, dst, &best) && (!root || !traverse_all_strategy)){
                 break;
             }
         }
     }while(false);
-    if(root) printf("\n");
     if(best >= gamma){
         self -> tp_score[pair] = {best, entry.second};
     }else{
