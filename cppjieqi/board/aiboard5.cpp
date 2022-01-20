@@ -77,6 +77,7 @@ std::unordered_map<std::string, KONGTOUPAO_SCORE5> kongtoupao_score_bean5;
 std::unordered_map<std::string, THINKER5> thinker_bean5;
 
 board::AIBoard5::AIBoard5() noexcept: 
+                    lastinsert(false),
                     version(0),
                     round(0),
                     turn(true),
@@ -112,6 +113,7 @@ board::AIBoard5::AIBoard5() noexcept:
 
 
 board::AIBoard5::AIBoard5(const char another_state[MAX], bool turn, int round, const unsigned char di[VERSION_MAX][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
+                                                                                                                            lastinsert(false),
                                                                                                                             version(0), 
                                                                                                                             round(round), 
                                                                                                                             turn(turn), 
@@ -284,6 +286,7 @@ bool board::AIBoard5::Move(const unsigned char encode_from, const unsigned char 
         zobrist_cache.insert(zobrist_turn);
         Scan();
     }
+    lastinsert = retval;
     return retval;
 }
 
@@ -298,7 +301,9 @@ void board::AIBoard5::NULLMove(){
 void board::AIBoard5::UndoMove(int type){
     score_cache.pop();
     score = score_cache.top();
-    zobrist_cache.erase((zobrist_hash<<1)|turn);
+    if(lastinsert){
+        zobrist_cache.erase((zobrist_hash<<1)|turn);
+    }
     if(type == 1){//非空移动
         const std::tuple<unsigned char, unsigned char, char> from_to_eat = cache.top();
         cache.pop();
@@ -1295,19 +1300,11 @@ short mtd_alphabeta5(board::AIBoard5* self, const short gamma, int depth, const 
         for(int j = 0; j < num_of_legal_moves_tmp; ++j){
             auto move_score_tuple = legal_moves_tmp[j];
             auto src = std::get<1>(move_score_tuple), dst = std::get<2>(move_score_tuple);
-            #if DEBUG
-            std::string ucci = self->translate_ucci(src, dst);
-            self -> debug_flags.push_back(ucci);
-            #endif
             bool retval = self -> Move(src, dst, std::get<0>(move_score_tuple));
             if(retval){
                 score = -mtd_alphabeta5(self, 1 - gamma, depth - 1, false, nullmove, nullmove, quiesc_depth, traverse_all_strategy);
             }
             self -> UndoMove(1);
-            #if DEBUG
-            self -> debug_flags.pop_back();
-            if(root) std::cout << self -> translate_tuple(move_score_tuple) << " " << score << " " << GS(move_score_tuple) << " " << gamma << "\n";
-            #endif
             if(retval && judge(score, src, dst, &best) && (!root || !traverse_all_strategy)){
                 break;
             }

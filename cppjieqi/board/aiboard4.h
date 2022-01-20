@@ -71,6 +71,7 @@ public:
     short aiaverage[VERSION_MAX][2][2][256];
     unsigned char aisumall[VERSION_MAX][2];
     unsigned char aidi[VERSION_MAX][2][123];
+    bool lastinsert = false;
     int version = 0;
     int round = 0;
     bool turn = true; //true红black黑

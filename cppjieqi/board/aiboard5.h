@@ -71,6 +71,7 @@ public:
     short aiaverage[VERSION_MAX][2][2][256];
     unsigned char aisumall[VERSION_MAX][2];
     unsigned char aidi[VERSION_MAX][2][123];
+    bool lastinsert = false;
     int version = 0;
     int round = 0;
     bool turn = true; //true红black黑
@@ -217,6 +218,10 @@ public:
         return 195 - 16 * x + y;
     };
 
+    char operator[](std::string s){
+        return state_red[f(s)];
+    }
+
     std::function<std::string(unsigned char)> translate_single = [](unsigned char i) -> std::string{
        int x1 = 12 - (i >> 4);
        int y1 = (i & 15) - 3;
@@ -297,6 +302,6 @@ std::string mtd_thinker5(board::AIBoard5* self);
 void complicated_kongtoupao_score_function5(board::AIBoard5* board_pointer, short* kongtoupao_score, short* kongtoupao_score_opponent);
 short complicated_score_function5(board::AIBoard5* bp, const char* state_pointer, unsigned char src, unsigned char dst);
 short mtd_quiescence5(board::AIBoard5* self, const short gamma, int quiesc_depth, const bool root);
-short mtd_alphabeta5(board::AIBoard5* self, const short gamma, int depth, const bool root, const bool nullmove, const bool nullmove_now, const int quiesc_depth, const bool traverse_all_strategy);
+short mtd_alphabeta5(board::AIBoard5* self, const short gamma, int depth, const bool root, const bool nullmove, const bool lastmate, const int quiesc_depth, const bool traverse_all_strategy);
 
 #endif

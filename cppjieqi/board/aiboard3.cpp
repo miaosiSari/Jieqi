@@ -76,7 +76,8 @@ std::unordered_map<std::string, SCORE3> score_bean3;
 std::unordered_map<std::string, KONGTOUPAO_SCORE3> kongtoupao_score_bean3;
 std::unordered_map<std::string, THINKER3> thinker_bean3;
 
-board::AIBoard3::AIBoard3() noexcept: 
+board::AIBoard3::AIBoard3() noexcept:
+                    lastinsert(false),
                     version(0),
                     round(0),
                     turn(true),
@@ -110,6 +111,7 @@ board::AIBoard3::AIBoard3() noexcept:
 
 
 board::AIBoard3::AIBoard3(const char another_state[MAX], bool turn, int round, const unsigned char di[VERSION_MAX][2][123], short score, std::unordered_map<std::string, bool>* hist) noexcept: 
+                                                                                                                            lastinsert(false),
                                                                                                                             version(0), 
                                                                                                                             round(round), 
                                                                                                                             turn(turn), 
@@ -281,6 +283,7 @@ bool board::AIBoard3::Move(const unsigned char encode_from, const unsigned char 
         zobrist_cache.insert(zobrist_turn);
         Scan();
     }
+    lastinsert = retval;
     return retval;
 }
 
@@ -295,7 +298,9 @@ void board::AIBoard3::NULLMove(){
 void board::AIBoard3::UndoMove(int type){
     score_cache.pop();
     score = score_cache.top();
-    zobrist_cache.erase((zobrist_hash<<1)|turn);
+    if(lastinsert){
+        zobrist_cache.erase((zobrist_hash<<1)|turn);
+    }
     if(type == 1){//非空移动
         const std::tuple<unsigned char, unsigned char, char> from_to_eat = cache.top();
         cache.pop();
@@ -1097,6 +1102,39 @@ void complicated_kongtoupao_score_function3(board::AIBoard3* bp, short* kongtoup
 }
 
 
+void register_score_functions3(){
+    score_bean3.insert({"complicated_score_function3", complicated_score_function3});
+    kongtoupao_score_bean3.insert({"complicated_kongtoupao_score_function3", complicated_kongtoupao_score_function3});
+    thinker_bean3.insert({"mtd_thinker3", mtd_thinker3});
+}
+
+std::string SearchScoreFunction3(void* score_func, int type){
+    if(type == 0){
+        for(auto it = score_bean3.begin(); it != score_bean3.end(); ++it){
+            if(it -> second == score_func){
+                return it -> first;
+            }
+        } 
+        return "";
+    }else if(type == 1){
+        for(auto it = kongtoupao_score_bean3.begin(); it != kongtoupao_score_bean3.end(); ++it){
+            if(it -> second == score_func){
+                return it -> first;
+            }
+        } 
+        return "";
+    }else if(type == 2){
+        for(auto it = thinker_bean3.begin(); it != thinker_bean3.end(); ++it){
+            if(it -> second == score_func){
+                return it -> first;
+            }
+        } 
+        return "";
+    }
+    return "";
+}
+
+
 std::string mtd_thinker3(board::AIBoard3* bp){
     constexpr short MATE_UPPER = 3696;
     constexpr short EVAL_ROBUSTNESS = 0;
@@ -1319,36 +1357,4 @@ short mtd_alphabeta3(board::AIBoard3* self, const short gamma, int depth, const 
         self -> tp_score[pair] = {entry.first, best};
     }
     return best;
-}
-
-void register_score_functions3(){
-    score_bean3.insert({"complicated_score_function3", complicated_score_function3});
-    kongtoupao_score_bean3.insert({"complicated_kongtoupao_score_function3", complicated_kongtoupao_score_function3});
-    thinker_bean3.insert({"mtd_thinker3", mtd_thinker3});
-}
-
-std::string SearchScoreFunction3(void* score_func, int type){
-    if(type == 0){
-        for(auto it = score_bean3.begin(); it != score_bean3.end(); ++it){
-            if(it -> second == score_func){
-                return it -> first;
-            }
-        } 
-        return "";
-    }else if(type == 1){
-        for(auto it = kongtoupao_score_bean3.begin(); it != kongtoupao_score_bean3.end(); ++it){
-            if(it -> second == score_func){
-                return it -> first;
-            }
-        } 
-        return "";
-    }else if(type == 2){
-        for(auto it = thinker_bean3.begin(); it != thinker_bean3.end(); ++it){
-            if(it -> second == score_func){
-                return it -> first;
-            }
-        } 
-        return "";
-    }
-    return "";
 }
