@@ -7,8 +7,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 aux_source_directory(global/ DIR_SRCS)
 aux_source_directory(score/ DIR_SRCS)
 aux_source_directory(board/ DIR_SRCS)
-aux_source_directory(helper/ DIR_SRCS)
 aux_source_directory(. DIR_SRCS)
-#add_definitions(-DSHOWDARK)
 add_executable(cppjieqi ${DIR_SRCS})
 
